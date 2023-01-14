@@ -1,0 +1,14 @@
+--- clang/tools/CMakeLists.orig.txt	2023-01-11 16:44:03.361612235 -0800
++++ clang/tools/CMakeLists.txt	2023-01-11 16:45:01.882752206 -0800
+@@ -20,11 +20,6 @@
+ 
+ add_clang_subdirectory(clang-rename)
+ add_clang_subdirectory(clang-refactor)
+-# For MinGW we only enable shared library if LLVM_LINK_LLVM_DYLIB=ON.
+-# Without that option resulting library is too close to 2^16 DLL exports limit.
+-if(UNIX OR (MINGW AND LLVM_LINK_LLVM_DYLIB))
+-  add_clang_subdirectory(clang-shlib)
+-endif()
+ 
+ if(CLANG_ENABLE_ARCMT)
+   add_clang_subdirectory(arcmt-test)

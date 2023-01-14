@@ -1,0 +1,11 @@
+.DS_Store
+*.exe
+*.gz
+*.tar
+
+/_*
+/build
+/hello
+/hello_c
+/hello_cc
+/myclang/myclang

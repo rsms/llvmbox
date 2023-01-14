@@ -1,0 +1,81 @@
+# Second stage of a bootstrap build, based on
+# clang/cmake/caches/DistributionExample-stage2.cmake
+
+set(LLVM_ENABLE_PROJECTS "clang;clang-tools-extra;lld" CACHE STRING "")
+set(LLVM_ENABLE_RUNTIMES "compiler-rt;libcxx;libcxxabi" CACHE STRING "")
+
+set(LLVM_TARGETS_TO_BUILD X86;ARM;AArch64;RISCV;WebAssembly CACHE STRING "")
+
+set(CMAKE_EXE_LINKER_FLAGS -static CACHE STRING "")
+
+# set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "")
+# set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 -gline-tables-only -DNDEBUG" CACHE STRING "")
+# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -gline-tables-only -DNDEBUG" CACHE STRING "")
+set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "")
+set(CMAKE_C_FLAGS_MINSIZEREL "-O3 -gline-tables-only -DNDEBUG" CACHE STRING "")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-O3 -gline-tables-only -DNDEBUG" CACHE STRING "")
+
+set(PACKAGE_VENDOR "rsms" CACHE STRING "")
+
+# config general llvm
+set(LLVM_ENABLE_MODULES     OFF CACHE BOOL "")
+set(LLVM_ENABLE_BINDINGS    OFF CACHE BOOL "")
+set(LLVM_ENABLE_LIBXML2     OFF CACHE BOOL "")
+set(LLVM_ENABLE_TERMINFO    OFF CACHE BOOL "")
+set(LLVM_INCLUDE_UTILS      OFF CACHE BOOL "")
+set(LLVM_INCLUDE_TESTS      OFF CACHE BOOL "")
+set(LLVM_INCLUDE_GO_TESTS   OFF CACHE BOOL "")
+set(LLVM_INCLUDE_EXAMPLES   OFF CACHE BOOL "")
+set(LLVM_INCLUDE_BENCHMARKS OFF CACHE BOOL "")
+set(LLVM_ENABLE_OCAMLDOC    OFF CACHE BOOL "")
+set(LLVM_ENABLE_Z3_SOLVER   OFF CACHE BOOL "")
+set(LLVM_INCLUDE_DOCS       OFF CACHE BOOL "")
+
+# config compiler-rt
+set(COMPILER_RT_BUILD_XRAY             OFF CACHE BOOL "")
+set(COMPILER_RT_CAN_EXECUTE_TESTS      OFF CACHE BOOL "")
+set(COMPILER_RT_BUILD_LIBFUZZER        OFF CACHE BOOL "")
+set(SANITIZER_USE_STATIC_CXX_ABI       ON CACHE BOOL "")
+set(SANITIZER_USE_STATIC_LLVM_UNWINDER ON CACHE BOOL "")
+set(COMPILER_RT_USE_BUILTINS_LIBRARY   ON CACHE BOOL "")
+
+# config clang
+set(CLANG_INCLUDE_DOCS           OFF CACHE BOOL "")
+set(CLANG_ENABLE_OBJC_REWRITER   OFF CACHE BOOL "")
+set(CLANG_ENABLE_ARCMT           OFF CACHE BOOL "")
+set(CLANG_ENABLE_STATIC_ANALYZER OFF CACHE BOOL "")
+set(LIBCLANG_BUILD_STATIC        ON CACHE BOOL "")
+
+# config libc++
+set(LIBCXX_ENABLE_SHARED                       OFF CACHE BOOL "")
+set(LIBCXX_ENABLE_STATIC_ABI_LIBRARY           ON CACHE BOOL "")
+set(LIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX       OFF CACHE BOOL "")
+set(LIBCXXABI_ENABLE_SHARED                    OFF CACHE BOOL "")
+set(LIBCXXABI_INCLUDE_TESTS                    OFF CACHE BOOL "")
+set(LIBCXXABI_ENABLE_STATIC_UNWINDER           ON CACHE BOOL "")
+set(LIBCXXABI_LINK_TESTS_WITH_SHARED_LIBCXXABI OFF CACHE BOOL "")
+
+
+# setup toolchain
+set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE BOOL "")
+set(LLVM_TOOLCHAIN_TOOLS
+  dsymutil
+  llvm-cov
+  llvm-dwarfdump
+  llvm-profdata
+  llvm-objdump
+  llvm-nm
+  llvm-size
+  llvm-ar
+  llvm-ranlib
+  CACHE STRING "")
+
+set(LLVM_DISTRIBUTION_COMPONENTS
+  clang
+  LTO
+  clang-format
+  clang-resource-headers
+  builtins
+  runtimes
+  ${LLVM_TOOLCHAIN_TOOLS}
+  CACHE STRING "")
