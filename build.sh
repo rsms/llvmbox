@@ -225,9 +225,9 @@ else
   _pushd "$LLVM_HOST_BUILD"
 
   CMAKE_EXE_LINKER_FLAGS=()
-  case "$HOST_SYS" in
-    Linux) CMAKE_EXE_LINKER_FLAGS+=( -static ) ;;
-  esac
+  # case "$HOST_SYS" in
+  #   Linux) CMAKE_EXE_LINKER_FLAGS+=( -static ) ;;
+  # esac
 
   CMAKE_C_FLAGS="-w"
   # note: -w silences warnings (nothing we can do about those)
