@@ -351,55 +351,10 @@ done
 _popd
 
 
-
-exit
-
 # ————————————————————————————————————————————————————————————————————————————————————
 # test host compiler
 
-C_CFLAGS=()
-C_LFLAGS=()
-CXX_CFLAGS=(
-  -nostdinc++ \
-  -I"$LLVM_HOST"/include/c++/v1 \
-)
-CXX_LFLAGS=(
-  -fuse-ld=lld \
-  -nostdlib++ \
-  -L"$LLVM_HOST"/lib \
-  -lc++ \
-  -lc++abi \
-)
-# -Wl,--push-state -Wl,-Bstatic -lc++ -lc++abi -Wl,--pop-state
-case "$HOST_SYS" in
-  Linux)
-    CXX_CFLAGS+=(
-      -static \
-      -I"$LLVM_HOST"/include/x86_64-unknown-linux-gnu/c++/v1 \
-    )
-    CXX_LFLAGS+=(
-      -L"$LLVM_HOST"/lib/x86_64-unknown-linux-gnu \
-    )
-    ;;
-  Darwin)
-    CXX_CFLAGS+=(
-      -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include \
-    )
-    CXX_LFLAGS+=(
-      -lSystem \
-    )
-    ;;
-esac
-
-_pushd "$PROJECT"
-set -x
-"$LLVM_HOST"/bin/clang++ "${CXX_CFLAGS[@]}" "${CXX_LFLAGS[@]}" \
-  -std=c++14 -o hello_cc hello.cc
-./hello_cc
-set +x
-_print_exe_links hello_cc
-
-_popd
+bash "$PROJECT/test.sh" "$LLVM_HOST"
 
 
 exit

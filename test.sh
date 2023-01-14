@@ -206,12 +206,15 @@ echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # myclang C++ program, needs libc, libc++ and clang libs
-echo "--------------------------------------------------------------------------------"
-echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
-     "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
-       -std=c++14 -o hello_cc hello.cc &&
-       ./hello_cc &&
-       _print_exe_links hello_cc ||
-       EXIT_STATUS=1
+#
+#  WIP
+#
+# echo "--------------------------------------------------------------------------------"
+# echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
+#      "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
+#        -std=c++14 -o hello_cc hello.cc &&
+#        ./hello_cc &&
+#        _print_exe_links hello_cc ||
+#        EXIT_STATUS=1
 
 exit $EXIT_STATUS
