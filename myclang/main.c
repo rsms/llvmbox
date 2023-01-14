@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(argv[1], "-cc1") == 0 || strcmp(argv[1], "-cc1as") == 0)
     return clang_main(argc, argv);
 
-  if (strcmp(argv[1], "as" == 0)) {
+  if (strcmp(argv[1], "as") == 0) {
     argv[1] = "-cc1as";
     return clang_main(argc, argv);
   }
@@ -33,6 +33,6 @@ int main(int argc, char* argv[]) {
     "  cc   C compiler (clang)\n"
     "  c++  C++ compiler (clang++)\n"
     "  ar   Archiver (llvm-ar)\n"
-  );
+  , argv[0]);
   return 0;
 }

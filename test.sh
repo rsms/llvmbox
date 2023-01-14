@@ -161,7 +161,7 @@ $CXX_LDFLAGS )
 
 case "$HOST_SYS" in
   Linux)
-    LDFLAGS+=( -static )
+    LDFLAGS=( -static "${LDFLAGS[@]}" )
     ;;
   Darwin)
     [ -d /Library/Developer/CommandLineTools/SDKs ] ||
@@ -185,18 +185,17 @@ CXXFLAGS+=( "${CFLAGS[@]}" )
 CXX_LDFLAGS+=( "${LDFLAGS[@]}" )
 
 
-# ————————————————————————————————————————————————————————————————————————————————————
-# simple C program, needs libc
 echo "--------------------------------------------------------------------------------"
+echo "building a simple C program (libc)"
 echo "$CCROOT"/bin/clang "${CFLAGS[@]}" "${LDFLAGS[@]}" -std=c17 -o hello_c hello.c
      "$CCROOT"/bin/clang "${CFLAGS[@]}" "${LDFLAGS[@]}" -std=c17 -o hello_c hello.c &&
        ./hello_c &&
        _print_exe_links hello_c ||
        EXIT_STATUS=1
 
-# ————————————————————————————————————————————————————————————————————————————————————
-# simple C++ program, needs libc and libc++
+
 echo "--------------------------------------------------------------------------------"
+echo "building a simple C++ program (libc, libc++)"
 echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
      "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
        -std=c++14 -o hello_cc hello.cc &&
@@ -204,17 +203,41 @@ echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
        _print_exe_links hello_cc ||
        EXIT_STATUS=1
 
-# ————————————————————————————————————————————————————————————————————————————————————
-# myclang C++ program, needs libc, libc++ and clang libs
-#
-#  WIP
-#
-# echo "--------------------------------------------------------------------------------"
-# echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
-#      "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
-#        -std=c++14 -o hello_cc hello.cc &&
-#        ./hello_cc &&
-#        _print_exe_links hello_cc ||
-#        EXIT_STATUS=1
+
+echo "--------------------------------------------------------------------------------"
+echo "building myclang (libc, libc++, llvm, clang, lld)"
+
+ZLIB="$(dirname "$CCROOT")"/zlib-host  # TODO FIXME
+
+MYCLANG_CXXFLAGS=( "${CXXFLAGS[@]}" \
+  $("$CCROOT"/bin/llvm-config --cxxflags) \
+)
+MYCLANG_LDFLAGS=( "${CXX_LDFLAGS[@]}" \
+  $("$CCROOT"/bin/llvm-config --ldflags) \
+  $("$CCROOT"/bin/llvm-config --link-static --libfiles all) \
+  "$CCROOT"/lib/libclang*.a \
+  "$ZLIB/lib/libz.a" \
+)
+
+MYCLANG_SOURCES=( $(echo myclang/*.{c,cc}) )
+MYCLANG_OBJECTS=()
+for f in "${MYCLANG_SOURCES[@]}"; do MYCLANG_OBJECTS+=( $f.o ); done
+
+for f in "${MYCLANG_SOURCES[@]}"; do
+  [ "$f" -nt "$f.o" ] || continue
+  if [[ "$f" == *.cc ]]; then
+    echo "$CCROOT"/bin/clang++ "${MYCLANG_CXXFLAGS[@]}" -c -o $f.o $f
+         "$CCROOT"/bin/clang++ "${MYCLANG_CXXFLAGS[@]}" -c -o $f.o $f
+  else
+    echo "$CCROOT"/bin/clang "${CFLAGS[@]}" -c -o $f.o $f
+         "$CCROOT"/bin/clang "${CFLAGS[@]}" -c -o $f.o $f
+  fi
+done
+
+echo "$CCROOT"/bin/clang++ "${MYCLANG_LDFLAGS[@]}" "${MYCLANG_OBJECTS[@]}" \
+       -o myclang/myclang
+     "$CCROOT"/bin/clang++ "${MYCLANG_LDFLAGS[@]}" "${MYCLANG_OBJECTS[@]}" \
+       -o myclang/myclang
+
 
 exit $EXIT_STATUS
