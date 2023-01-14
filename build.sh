@@ -224,6 +224,11 @@ else
   mkdir -p "$LLVM_HOST_BUILD"
   _pushd "$LLVM_HOST_BUILD"
 
+  CMAKE_EXE_LINKER_FLAGS=()
+  case "$HOST_SYS" in
+    Linux) CMAKE_EXE_LINKER_FLAGS+=( -static ) ;;
+  esac
+
   CMAKE_C_FLAGS="-w"
   # note: -w silences warnings (nothing we can do about those)
   # -fcompare-debug-second silences "note: ..." in GCC.
@@ -246,9 +251,7 @@ else
     -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
     -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
     -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
-    \
-    -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
-    -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
+    -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS[@]}" \
     \
     -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;WebAssembly;X86" \
     -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
@@ -267,7 +270,10 @@ else
     -DLLVM_ENABLE_OCAMLDOC=OFF \
     -DLLVM_ENABLE_Z3_SOLVER=OFF \
     -DLLVM_INCLUDE_DOCS=OFF \
-    -DLLVM_ENABLE_ZLIB=FORCE_ON \
+    \
+    -DLLVM_ENABLE_ZLIB=1 \
+    -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
+    -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
     \
     -DCLANG_INCLUDE_DOCS=OFF \
     -DCLANG_ENABLE_OBJC_REWRITER=OFF \
