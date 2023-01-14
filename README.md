@@ -24,7 +24,6 @@ You should be able to build your own compiler suite by:
    (exception: on darwin it has to dynamically link with libSystem.dylib, but that's it)
 
 
-
 ## Build
 
 Host requirements:
@@ -35,37 +34,36 @@ Host requirements:
 - python3
 - bash
 
-Host systems: (checked = known to work, unchecked = may work)
+Tested host systems:
 
-- [x] Ubuntu 20 x86_64
-- [x] macOS 10.15 x86_64
-- [ ] macOS 12 arm64
+- Ubuntu 20 x86_64
+- macOS 10.15 x86_64
 
-
-```
-bash build.sh ./mybuild
-```
 
 If you have a lot of RAM, it is usually much faster to build in a ramfs:
 
-Linux:
+- Linux: `export LLVMBOX_BUILD_DIR=/dev/shm`
+- macOS: `./macos-tmpfs.sh build && export LLVMBOX_BUILD_DIR=build`
+
 
 ```
-bash build.sh /dev/shm/llvm
-```
-
-macOS:
-
-```
-./macos-tmpfs.sh build && bash build.sh build
+export LLVMBOX_BUILD_DIR=build
+bash 010-llvm-source.sh
+bash 011-update-myclang-source.sh
+bash 020-zlib-host.sh
+bash 021-llvm-host.sh
+bash 030-zlib-dist.sh
+bash 031-llvm-dist.sh
 ```
 
 
 
 ## Test
 
+`bash test.sh <compiler-root>`
+
 ```
-bash test.sh
+bash test.sh $LLVMBOX_BUILD_DIR/llvm-$LLVMBOX_TARGET
 ```
 
 

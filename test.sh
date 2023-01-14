@@ -47,6 +47,7 @@ cd "$PROJECT"
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # target
+
 if [ -z "$TARGET" ]; then
   TARGET=$HOST_ARCH-unknown-unknown
   case "$HOST_SYS" in
@@ -55,82 +56,6 @@ if [ -z "$TARGET" ]; then
     *)      _err "cannot infer TARGET; please set TARGET=arch-sys-flavor in env"
   esac
 fi
-
-# # ————————————————————————————————————————————————————————————————————————————————————
-
-# C_CFLAGS=()
-# C_LFLAGS=()
-# CXX_CFLAGS=(
-#   -nostdinc++ \
-#   -I"$CCROOT"/include/c++/v1 \
-# )
-# CXX_LFLAGS=(
-#   -fuse-ld=lld \
-#   -nostdlib++ \
-#   -L"$CCROOT"/lib \
-#   -lc++ \
-#   -lc++abi \
-# )
-# # -Wl,--push-state -Wl,-Bstatic -lc++ -lc++abi -Wl,--pop-state
-# case "$HOST_SYS" in
-#   Linux)
-#     CXX_CFLAGS+=(
-#       -static \
-#       -I"$CCROOT"/include/x86_64-unknown-linux-gnu/c++/v1 \
-#     )
-#     CXX_LFLAGS+=(
-#       -L"$CCROOT"/lib/x86_64-unknown-linux-gnu \
-#     )
-#     ;;
-#   Darwin)
-#     CXX_CFLAGS+=(
-#       -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include \
-#     )
-#     CXX_LFLAGS+=(
-#       -lSystem \
-#     )
-#     ;;
-# esac
-
-# set -x
-# "$CCROOT"/bin/clang++ "${CXX_CFLAGS[@]}" "${CXX_LFLAGS[@]}" \
-#   -std=c++14 -o hello_cc hello.cc
-# ./hello_cc
-# set +x
-# _print_exe_links hello_cc
-# exit
-
-# /Users/rsms/src/llvm/build/llvm-host/bin/clang++
-#   -nostdinc++
-#   -I/Users/rsms/src/llvm/build/llvm-host/include/c++/v1
-#   -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include
-#   -fuse-ld=lld
-#   -nostdlib++
-#   -L/Users/rsms/src/llvm/build/llvm-host/lib
-#   -lc++
-#   -lc++abi
-#   -lSystem
-#   -std=c++14 -o hello_cc hello.cc
-
-# /Users/rsms/src/llvm/build/llvm-host/bin/clang++
-#   -nostdinc++
-#   -I/Users/rsms/src/llvm/build/llvm-host/include/c++/v1
-#   -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include
-#   -fuse-ld=lld
-#   -nostdlib++
-#   -L/Users/rsms/src/llvm/build/llvm-host/lib
-#   -lc++
-#   -lc++abi
-#   -lSystem
-#   -std=c++14 -o hello_cc hello.cc
-
-# /Users/rsms/src/llvm/build/llvm-host/bin/clang
-#   -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include
-#   -Wno-nullability-completeness
-#   -fuse-ld=lld
-#   -L/Users/rsms/src/llvm/build/llvm-host/lib
-#   -lSystem
-#   -std=c17 -o hello_c hello.c
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # compiler and linker flags

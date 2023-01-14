@@ -32,7 +32,7 @@ HOST_ARCH=$(uname -m)
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
 
-_err() { echo "$SCRIPTNAME:" "$@" >&2; exit 1; }
+_err() { echo "$0:" "$@" >&2; exit 1; }
 
 _relpath() { # <path>
   case "$1" in
@@ -197,6 +197,7 @@ fi
 # https://llvm.org/docs/BuildingADistribution.html
 
 # TODO: consider a "stage2" build a la clang/cmake/caches/Fuchsia.cmake
+#       see experiments/stage2.sh
 
 LLVM_HOST=$BUILD_DIR/llvm-host
 LLVM_HOST_BUILD=$BUILD_DIR/llvm-host-build
@@ -211,6 +212,7 @@ LLVM_HOST_COMPONENTS=(
   llvm-profdata \
   llvm-ranlib \
   llvm-size \
+  llvm-rc \
   clang \
   clang-format \
   clang-resource-headers \
@@ -274,6 +276,7 @@ else
     -DLLVM_ENABLE_ZLIB=1 \
     -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
     -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
+    -DLLVM_ENABLE_ZSTD=OFF \
     \
     -DCLANG_INCLUDE_DOCS=OFF \
     -DCLANG_ENABLE_OBJC_REWRITER=OFF \
@@ -334,7 +337,202 @@ fi
 
 
 # ————————————————————————————————————————————————————————————————————————————————————
-# copy clang driver impl for testing
+# build zlib for "distribution" using "host" compiler
+
+ZLIB_DIST=$BUILD_DIR/zlib-dist
+
+if [ "$(cat "$ZLIB_DIST/version" 2>/dev/null)" != "$ZLIB_VERSION" ]; then
+  _fetch_source_tar \
+    https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz "$ZLIB_CHECKSUM" "$ZLIB_SRC"
+  _pushd "$ZLIB_SRC"
+  echo "building zlib ... (${ZLIB_DIST##$PWD0/}.log)"
+  ( # -fPIC needed on Linux
+    CFLAGS="-fPIC" \
+      ./configure --static --prefix=
+    make -j$(nproc)
+    make check
+    rm -rf "$ZLIB_DIST"
+    mkdir -p "$ZLIB_DIST"
+    make DESTDIR="$ZLIB_DIST" install
+    echo "$ZLIB_VERSION" > "$ZLIB_DIST/version"
+  ) > $ZLIB_DIST.log
+  _popd
+fi
+
+
+exit
+
+
+# ————————————————————————————————————————————————————————————————————————————————————
+# build second "distribution" llvm using the "host" llvm
+
+LLVM_DIST=$BUILD_DIR/llvm-dist
+LLVM_DIST_BUILD=$BUILD_DIR/llvm-dist-build
+LLVM_DIST_COMPONENTS=(
+  dsymutil \
+  llvm-ar \
+  llvm-config \
+  llvm-cov \
+  llvm-dwarfdump \
+  llvm-nm \
+  llvm-objdump \
+  llvm-profdata \
+  llvm-ranlib \
+  llvm-size \
+  llvm-rc \
+  clang \
+  clang-format \
+  clang-resource-headers \
+  builtins \
+  runtimes \
+)
+
+# TODO: make this a cli option for cross compiling
+# for now, match host
+TARGET=
+case "$HOST_SYS" in
+  Darwin) TARGET=$HOST_ARCH-macos-none ;;
+  Linux)  TARGET=$HOST_ARCH-linux-musl ;;
+  *)      _err "unsupported target system $HOST_SYS"
+esac
+
+
+TARGET_OS_AND_ABI=${TARGET#*-} # Example: linux-gnu
+CMAKE_SYSTEM_NAME=${TARGET_OS_AND_ABI%-*} # Example: linux
+case $CMAKE_SYSTEM_NAME in
+  macos)   CMAKE_SYSTEM_NAME="Darwin";;
+  freebsd) CMAKE_SYSTEM_NAME="FreeBSD";;
+  windows) CMAKE_SYSTEM_NAME="Windows";;
+  linux)   CMAKE_SYSTEM_NAME="Linux";;
+  native)  CMAKE_SYSTEM_NAME="";;
+esac
+
+if [ "$(cat "$LLVM_DIST/version" 2>/dev/null)" = "$LLVM_RELEASE" ] &&
+   [ "$LLVM_DIST/version" -nt "$LLVM_HOST/version" ]
+then
+  echo "${LLVM_DIST##$PWD0/}: up-to-date"
+else
+  mkdir -p "$LLVM_DIST_BUILD"
+  _pushd "$LLVM_DIST_BUILD"
+
+  # see https://llvm.org/docs/HowToCrossCompileLLVM.html#hacks
+
+  CMAKE_C_COMPILER="$LLVM_HOST/bin/clang"
+  CMAKE_CXX_COMPILER="$LLVM_HOST/bin/clang++"
+  CMAKE_ASM_COMPILER="$CMAKE_C_COMPILER"
+  CMAKE_RC_COMPILER="$LLVM_HOST/bin/llvm-rc"
+  CMAKE_AR="$LLVM_HOST/bin/llvm-ar"
+  CMAKE_RANLIB="$LLVM_HOST/bin/llvm-ranlib"
+
+  LLVM_CFLAGS=( -target $TARGET -w -I"$ZLIB_DIST/include" )
+  LLVM_LDFLAGS=( -L"$ZLIB_DIST/lib" )
+
+  EXTRA_CMAKE_ARGS=()  # extra args added to cmake invocation (depending on target)
+
+  CMAKE_EXE_LINKER_FLAGS=()
+  # case "$HOST_SYS" in
+  #   Linux) CMAKE_EXE_LINKER_FLAGS+=( -static ) ;;
+  # esac
+
+  CMAKE_C_FLAGS="-target $TARGET -w"
+
+  case "$HOST_SYS" in
+    Darwin)
+      # TODO: do like zig and copy the headers we need into the repo so a build
+      # targeting apple platforms can be done anywhere.
+      if [ "$HOST_SYS" =  ]
+      command -v xcrun >/dev/null || _err "xcrun not found in PATH"
+      EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="$(xcrun --show-sdk-path)" )
+      ;;
+  esac
+
+
+  echo "configuring llvm ... (${PWD##$PWD0/}/cmake-config.log)"
+  cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
+    -DCMAKE_BUILD_TYPE=MinSizeRel \
+    -DCMAKE_CROSSCOMPILING=True \
+    -DCMAKE_INSTALL_PREFIX="$LLVM_HOST" \
+    -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
+    \
+    -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" \
+    -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" \
+    -DCMAKE_ASM_COMPILER="$CMAKE_ASM_COMPILER" \
+    -DCMAKE_RC_COMPILER="$CMAKE_RC_COMPILER" \
+    -DCMAKE_AR="$CMAKE_AR" \
+    -DCMAKE_RANLIB="$CMAKE_RANLIB" \
+    \
+    -DCMAKE_C_FLAGS="$LLVM_CFLAGS" \
+    -DCMAKE_CXX_FLAGS="$LLVM_CFLAGS" \
+    \
+    -DCMAKE_EXE_LINKER_FLAGS="$LLVM_LDFLAGS" \
+    -DCMAKE_SHARED_LINKER_FLAGS="$LLVM_LDFLAGS" \
+    -DCMAKE_MODULE_LINKER_FLAGS="$LLVM_LDFLAGS" \
+    \
+    -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
+    -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
+    -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS[@]}" \
+    \
+    -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;WebAssembly;X86" \
+    -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
+    -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+    -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${LLVM_HOST_COMPONENTS[@]}")" \
+    -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+    -DLLVM_ENABLE_MODULES=OFF \
+    -DLLVM_ENABLE_BINDINGS=OFF \
+    -DLLVM_ENABLE_LIBXML2=OFF \
+    -DLLVM_ENABLE_TERMINFO=OFF \
+    -DLLVM_INCLUDE_UTILS=OFF \
+    -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_GO_TESTS=OFF \
+    -DLLVM_INCLUDE_EXAMPLES=OFF \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+    -DLLVM_ENABLE_OCAMLDOC=OFF \
+    -DLLVM_ENABLE_Z3_SOLVER=OFF \
+    -DLLVM_INCLUDE_DOCS=OFF \
+    -DLLVM_ENABLE_PIC=False \
+    \
+    -DLLVM_ENABLE_ZLIB=1 \
+    -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
+    -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
+    -DLLVM_ENABLE_ZSTD=OFF \
+    \
+    -DCLANG_INCLUDE_DOCS=OFF \
+    -DCLANG_ENABLE_OBJC_REWRITER=OFF \
+    -DCLANG_ENABLE_ARCMT=OFF \
+    -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
+    -DLIBCLANG_BUILD_STATIC=ON \
+    -DLIBCLANG_BUILD_STATIC=ON \
+    -DENABLE_SHARED=OFF \
+    \
+    -DLIBCXX_ENABLE_SHARED=OFF \
+    -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
+    -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX=OFF \
+    -DLIBCXXABI_ENABLE_SHARED=OFF \
+    -DLIBCXXABI_INCLUDE_TESTS=OFF \
+    -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
+    -DLIBCXXABI_LINK_TESTS_WITH_SHARED_LIBCXXABI=OFF \
+    -DLIBUNWIND_ENABLE_SHARED=OFF \
+    \
+    -DCOMPILER_RT_BUILD_XRAY=OFF \
+    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+    -DCOMPILER_RT_CAN_EXECUTE_TESTS=OFF \
+    -DSANITIZER_USE_STATIC_CXX_ABI=ON \
+    -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
+    -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+    \
+    # > cmake-config.log || _err "cmake failed. See $PWD/cmake-config.log"
+
+  _popd
+fi
+
+
+
+exit
+
+
+
+# ————————————————————————————————————————————————————————————————————————————————————
+# copy clang driver impl for myclang
 
 _pushd "$PROJECT"
 cp -v "$LLVM_SRC"/clang/tools/driver/driver.cpp     myclang/driver.cc
@@ -358,196 +556,6 @@ _popd
 
 
 # ————————————————————————————————————————————————————————————————————————————————————
-# test host compiler
+# test the compiler
 
 bash "$PROJECT/test.sh" "$LLVM_HOST"
-
-
-exit
-
-
-"$LLVM_HOST"/bin/clang++ \
-  -fuse-ld=lld \
-  -static \
-  -stdlib=libc++ \
-  -nostdlib++ \
-  -nostdinc++ \
-  -I"$LLVM_HOST"/include/c++/v1 \
-  -I"$LLVM_HOST"/include/x86_64-unknown-linux-gnu/c++/v1 \
-  -L"$LLVM_HOST"/lib/x86_64-unknown-linux-gnu \
-  -lc++ \
-  -std=c++14 \
-  -o hello_cc hello.cc
-./hello_cc
-_print_exe_links hello_cc
-
-
-"$LLVM_HOST"/bin/clang++ \
-  -fuse-ld=lld \
-  -stdlib=libc++ \
-  -nostdlib++ \
-  -nostdinc++ \
-  -I"$LLVM_HOST"/include/c++/v1 \
-  -L"$LLVM_HOST"/lib \
-  -I/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include \
-  -lc++ -lc++abi \
-  -std=c++14 \
-  -o hello_cc hello.cc
-
-
-
-
-
-exit
-# ————————————————————————————————————————————————————————————————————————————————————
-# build second llvm with the host
-
-
-
-LLVM_HOST=$BUILD_DIR/llvm-host
-LLVM_HOST_BUILD=$BUILD_DIR/llvm-host-build
-
-if [ "$(cat "$LLVM_HOST/version" 2>/dev/null)" != "$LLVM_RELEASE" ]; then
-  mkdir -p "$LLVM_HOST_BUILD"
-  _pushd "$LLVM_HOST_BUILD"
-
-  CMAKE_C_FLAGS="-w"
-  # note: -w silences warnings (nothing we can do about those)
-  # -fcompare-debug-second silences "note: ..." in GCC.
-  case "$(${CC:-cc} --version || true)" in
-    *'Free Software Foundation'*) # GCC
-      CMAKE_C_FLAGS="$CMAKE_C_FLAGS -fcompare-debug-second"
-      CMAKE_C_FLAGS="$CMAKE_C_FLAGS -Wno-misleading-indentation"
-      ;;
-  esac
-
-  echo "configuring llvm ... (${PWD##$PWD0/}/cmake-config.log)"
-  cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX="$LLVM_HOST" \
-    -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
-    -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
-    -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
-    \
-    -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
-    -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
-    \
-    -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;WebAssembly;X86" \
-    -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
-    -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
-    -DLLVM_DISTRIBUTION_COMPONENTS="dsymutil;llvm-cov;llvm-dwarfdump;llvm-profdata;llvm-objdump;llvm-nm;llvm-size;llvm-ar;llvm-ranlib;llvm-config;clang;LTO;clang-format;clang-resource-headers;builtins;runtimes" \
-    -DLLVM_ENABLE_MODULES=OFF \
-    -DLLVM_ENABLE_BINDINGS=OFF \
-    -DLLVM_ENABLE_LIBXML2=OFF \
-    -DLLVM_ENABLE_TERMINFO=OFF \
-    -DLLVM_INCLUDE_UTILS=OFF \
-    -DLLVM_INCLUDE_TESTS=OFF \
-    -DLLVM_INCLUDE_GO_TESTS=OFF \
-    -DLLVM_INCLUDE_EXAMPLES=OFF \
-    -DLLVM_INCLUDE_BENCHMARKS=OFF \
-    -DLLVM_ENABLE_OCAMLDOC=OFF \
-    -DLLVM_ENABLE_Z3_SOLVER=OFF \
-    -DLLVM_INCLUDE_DOCS=OFF \
-    -DLLVM_ENABLE_ZLIB=FORCE_ON \
-    \
-    -DCLANG_INCLUDE_DOCS=OFF \
-    -DCLANG_ENABLE_OBJC_REWRITER=OFF \
-    -DCLANG_ENABLE_ARCMT=OFF \
-    -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
-    -DLIBCLANG_BUILD_STATIC=ON \
-    \
-    -DLIBCXX_ENABLE_SHARED=OFF \
-    -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
-    -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX=OFF \
-    -DLIBCXXABI_ENABLE_SHARED=OFF \
-    -DLIBCXXABI_INCLUDE_TESTS=OFF \
-    -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
-    -DLIBCXXABI_LINK_TESTS_WITH_SHARED_LIBCXXABI=OFF \
-    \
-    -DCOMPILER_RT_BUILD_XRAY=OFF \
-    -DCOMPILER_RT_CAN_EXECUTE_TESTS=OFF \
-    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-    -DSANITIZER_USE_STATIC_CXX_ABI=ON \
-    -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
-    -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
-    \
-    "${EXTRA_CMAKE_ARGS[@]}" \
-    > cmake-config.log || _err "cmake failed. See $PWD/cmake-config.log"
-
-  # echo "building libc++ ..."
-  # # ninja cxx cxxabi
-  # ninja install-cxx-stripped install-cxxabi-stripped
-
-  echo "building llvm ..."
-  ninja distribution
-  # note: the "distribution" target builds only LLVM_DISTRIBUTION_COMPONENTS
-
-  echo "installing llvm -> ${LLVM_HOST##$PWD0/} ..."
-  rm -rf "$LLVM_HOST"
-  mkdir -p "$LLVM_HOST"
-  ninja install-distribution
-fi
-
-
-
-
-exit
-# ————————————————————————————————————————————————————————————————————————————————————
-# build llvm host compiler (stage2)
-#
-# this works on ubuntu, but not mac
-
-LLVM_STAGE2=$BUILD_DIR/llvm-stage2
-LLVM_STAGE2_BUILD=$LLVM_STAGE2/build
-
-if [ ! -x "$LLVM_STAGE2/bin/clang" ] ||
-   [ "$PROJECT/stage1.cmake" -nt "$LLVM_STAGE2/bin/clang" ] ||
-   [ "$PROJECT/stage2.cmake" -nt "$LLVM_STAGE2/bin/clang" ]
-then
-  if [ "$PROJECT/stage1.cmake" -nt "$LLVM_STAGE2/bin/clang" ] ||
-     [ "$PROJECT/stage2.cmake" -nt "$LLVM_STAGE2/bin/clang" ]
-  then
-    rm -rf "$LLVM_STAGE2_BUILD"
-  fi
-  mkdir -p "$LLVM_STAGE2_BUILD"
-  _pushd "$LLVM_STAGE2_BUILD"
-
-  STAGE1_CMAKE_C_FLAGS="-w"
-  # note: -w silences warnings (nothing we can do about those)
-  # -fcompare-debug-second silences "note: ..." in GCC.
-  case "$(${CC:-cc} --version || true)" in
-    *'Free Software Foundation'*) # GCC
-      STAGE1_CMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS -fcompare-debug-second"
-      STAGE1_CMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS -Wno-misleading-indentation"
-      ;;
-  esac
-
-  echo "cmake ... ($PWD/cmake-config.log)"
-  cmake -G Ninja "$LLVM_SRC/llvm" \
-    -C "$PROJECT/stage1.cmake" \
-    -DCMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS" \
-    -DCMAKE_CXX_FLAGS="$STAGE1_CMAKE_C_FLAGS" \
-    -DCMAKE_INSTALL_PREFIX="$LLVM_STAGE2" \
-    -DCMAKE_PREFIX_PATH="$LLVM_STAGE2" \
-    > cmake-config.log ||
-    _err "cmake failed. See $PWD/cmake-config.log"
-
-  echo ninja stage2-distribution
-  ninja stage2-distribution
-
-  echo ninja stage2-install-distribution
-  ninja stage2-install-distribution
-
-  cp -a "$LLVM_STAGE2_BUILD"/bin/llvm-{ar,ranlib,tblgen} "$LLVM_STAGE2"/bin
-  cp -a "$LLVM_STAGE2_BUILD"/bin/clang-tblgen            "$LLVM_STAGE2"/bin
-
-  cp -a "$LLVM_STAGE2_BUILD"/bin/lld   "$LLVM_STAGE2"/bin
-  ln -fs "$LLVM_STAGE2_BUILD"/bin/lld  "$LLVM_STAGE2"/bin/ld64.lld
-  ln -fs "$LLVM_STAGE2_BUILD"/bin/lld  "$LLVM_STAGE2"/bin/ld.lld
-
-  touch "$LLVM_STAGE2/bin/clang"
-
-  _popd
-fi
-
-
