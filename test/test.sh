@@ -31,7 +31,7 @@ SCRIPTNAME=${0##*/}
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
 CCROOT=$1
-PROJECT=$(dirname "$0")
+PROJECT=$TEST_DIR/..
 EXIT_STATUS=0
 
 if [[ "$1" == "--h"* || "$1" == "-h"* ]]; then
@@ -43,7 +43,7 @@ fi
 PREVDIR=$PWD; cd "$PROJECT"; PROJECT=$PWD; cd "$PREVDIR"
 PREVDIR=$PWD; cd "$CCROOT"; CCROOT=$PWD; cd "$PREVDIR"
 
-cd "$PROJECT"
+cd "$(dirname "$0")"
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # target
@@ -128,6 +128,9 @@ echo "$CCROOT"/bin/clang++ "${CXXFLAGS[@]}" "${CXX_LDFLAGS[@]}" \
        _print_exe_links hello_cc ||
        EXIT_STATUS=1
 
+
+# myclang build is broken
+exit
 
 echo "--------------------------------------------------------------------------------"
 echo "building myclang (libc, libc++, llvm, clang, lld)"

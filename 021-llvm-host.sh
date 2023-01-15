@@ -27,11 +27,6 @@ LLVM_HOST_COMPONENTS=(
   runtimes \
 )
 
-if [ "$(cat "$LLVM_HOST/version" 2>/dev/null)" = "$LLVM_RELEASE" ]; then
-  echo "${LLVM_HOST##$PWD0/}: up-to-date"
-  exit
-fi
-
 mkdir -p "$LLVM_HOST_BUILD"
 _pushd "$LLVM_HOST_BUILD"
 
@@ -120,6 +115,9 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
 
 # -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON  works on macos, not ubuntu
 
+echo "building runtimes ..."
+ninja runtimes
+
 echo "building llvm ..."
 ninja distribution
 # note: the "distribution" target builds only LLVM_DISTRIBUTION_COMPONENTS
@@ -128,16 +126,20 @@ rm -rf "$LLVM_HOST"
 mkdir -p "$LLVM_HOST"
 
 echo "installing llvm -> ${LLVM_HOST##$PWD0/} ..."
-ninja install-distribution install-lld \
+ninja install-distribution \
+  install-lld \
   install-builtins \
   install-compiler-rt \
-  install-llvm-objcopy
+  install-llvm-objcopy \
+  install-llvm-tblgen
 
 echo "installing llvm libs -> ${LLVM_HOST##$PWD0/} ..."
 ninja install-llvm-libraries install-llvm-headers
 
 echo "installing clang libs -> ${LLVM_HOST##$PWD0/} ..."
 ninja install-libclang install-clang-libraries install-clang-headers
+
+cp -a bin/clang-tblgen "$LLVM_HOST/bin/clang-tblgen"
 
 echo "$LLVM_RELEASE" > "$LLVM_HOST/version"
 

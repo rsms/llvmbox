@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e ; source "$(dirname "$0")/config.sh"
 
-if [ "$(cat "$ZLIB_HOST/version" 2>/dev/null)" == "$ZLIB_VERSION" ]; then
-  echo "$ZLIB_HOST: up-to-date"
-  exit
-fi
-
 _fetch_source_tar \
   https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz "$ZLIB_CHECKSUM" "$ZLIB_SRC"
 

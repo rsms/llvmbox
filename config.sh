@@ -13,31 +13,33 @@ set -e
 _err() { echo "$0:" "$@" >&2; exit 1; }
 PWD0=${PWD0:-$PWD}
 [ -n "$LLVMBOX_BUILD_DIR" ] || _err "LLVMBOX_BUILD_DIR is not set in env"
-BUILD_DIR=$LLVMBOX_BUILD_DIR
-mkdir -p "$BUILD_DIR"
-PREVDIR=$PWD; cd "$BUILD_DIR"; BUILD_DIR=$PWD; cd "$PREVDIR"
-PREVDIR=$PWD; cd "$(dirname "$0")"; PROJECT=$PWD ; cd "$PREVDIR"
+
+PROJECT=$(realpath -s "$(dirname "$0")")
+BUILD_DIR=$(realpath -s "$LLVMBOX_BUILD_DIR")
+DOWNLOAD_DIR=$(realpath -s "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
+mkdir -p "$DOWNLOAD_DIR" "$BUILD_DIR"
 # ————————————————————————————————————————————————————————————————————————————————————
 
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
 
-TARGET=$LLVMBOX_TARGET  # e.g. x86_64-macos-none, aarch64-linux-musl
+TARGET=$LLVMBOX_TARGET  # e.g. x86_64-macos-none, aarch64-linux-gnu
 if [ -z "$TARGET" ]; then
   case "$HOST_SYS" in
     Darwin) TARGET=$HOST_ARCH-macos-none ;;
-    Linux)  TARGET=$HOST_ARCH-linux-musl ;;
+    Linux)  TARGET=$HOST_ARCH-linux-gnu ;;
     *)      _err "couldn't guess TARGET from $HOST_SYS"
   esac
 fi
 TARGET_SYS_AND_ABI=${TARGET#*-} # e.g. linux-musl
 TARGET_SYS=${TARGET_SYS_AND_ABI%-*} # e.g. linux
+TARGET_ARCH=${TARGET%%-*} # e.g. x86_64
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
 LLVM_RELEASE=15.0.7
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
-LLVM_SRC=$BUILD_DIR/llvm-$LLVM_RELEASE
+LLVM_SRC=$BUILD_DIR/llvm-src
 LLVM_HOST=$BUILD_DIR/llvm-host
 LLVM_DIST=$BUILD_DIR/llvm-$TARGET
 
@@ -137,9 +139,8 @@ _fetch_source_tar() { # <url> <sha256> <outdir>
   local url=$1
   local sha256=$2
   local outdir=$3
-  local tarfile=${url##*/}
-  tarfile="$(basename "$outdir").${tarfile#*.}" # e.g. foo.tar.gz, foo.tgz
-  local stampfile=$outdir/_download_tar_source.sha256
+  local tarfile=$DOWNLOAD_DIR/$(basename "$url")
+  local stampfile=$tarfile.sha256
   if [ "$(cat "$stampfile" 2>/dev/null)" = "$sha256" ]; then
     echo "${outdir##$PWD0/}: up-to-date"
   else

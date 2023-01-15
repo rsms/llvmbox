@@ -1,5 +1,7 @@
 # TODO: consider using --sysroot
 #   --sysroot effectively changes the logical root for headers and libraries
+#
+# see https://libcxx.llvm.org/UsingLibcxx.html#alternate-libcxx
 
 TARGET_CC=$HOST_CC
 TARGET_CXX=$HOST_CXX
@@ -14,23 +16,43 @@ TARGET_RANLIB=$HOST_RANLIB
 #   macos) TARGET_LLD=$LLVM_HOST/bin/ld64.lld ;;
 # esac
 
-TARGET_CFLAGS=( --target="$TARGET" )
-TARGET_LDFLAGS=( -fuse-ld=lld -L"$LLVM_HOST"/lib )
+TARGET_CFLAGS=(
+  --target="$TARGET" \
+)
+TARGET_LDFLAGS=(
+  -fuse-ld=lld \
+  -L"$LLVM_HOST"/lib \
+)
 
-TARGET_CXXFLAGS=( -nostdinc++ -I"$LLVM_HOST"/include/c++/v1 )
-TARGET_CXX_LDFLAGS=( -nostdlib++ -lc++ -lc++abi )
+TARGET_CXXFLAGS=(
+  -nostdinc++ \
+  -isystem "$LLVM_HOST/include/c++/v1" \
+  -I"$LLVM_HOST/include/c++/v1" \
+)
+TARGET_CXX_LDFLAGS=(
+  -nostdlib++ \
+  -lc++ -lc++abi \
+)
 
-[ -d "$LLVM_HOST/include/$TARGET/c++/v1" ] &&
-  TARGET_CXXFLAGS+=( "-I$LLVM_HOST/include/$TARGET/c++/v1" )
+# note: for dylib linking to work, set '-Wl,-rpath,"$LLVM_HOST/lib"' in LDFLAGS
 
-[ -d "$LLVM_HOST/lib/$TARGET" ] &&
-  TARGET_LDFLAGS+=( "-L$LLVM_HOST/lib/$TARGET" )
+# on linux, a c++ __config_site header is placed in a subdirectory
+# "include/HOST_TRIPLE/c++/v1/__config_site"
+# e.g. include/x86_64-unknown-linux-gnu/c++/v1/__config_site
+[ "$HOST_SYS" = "Linux" ] &&
+[ -d "$(echo "$LLVM_HOST/include/$HOST_ARCH-"*)" ] &&
+  TARGET_CXXFLAGS+=( -I"$(echo "$LLVM_HOST/include/$HOST_ARCH-"*)/c++/v1" )
+# same goes for lib
+[ "$HOST_SYS" = "Linux" ] &&
+[ -d "$(echo "$LLVM_HOST/lib/$HOST_ARCH-"*)" ] &&
+  TARGET_LDFLAGS+=( -L"$(echo "$LLVM_HOST/lib/$HOST_ARCH-"*)" )
+
 
 case "$TARGET_SYS" in
   linux)
     TARGET_LDFLAGS=( -static "${TARGET_LDFLAGS[@]}" )
     ;;
-  macos)
+  apple|darwin|macos|ios)
     [ -d /Library/Developer/CommandLineTools/SDKs ] ||
       _err "missing /Library/Developer/CommandLineTools/SDKs; try running: xcode-select --install"
     MACOS_SDK=$(
@@ -39,7 +61,7 @@ case "$TARGET_SYS" in
     [ -d "$MACOS_SDK" ] ||
       _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
     TARGET_CFLAGS+=(
-      "-I$MACOS_SDK/usr/include" \
+      -isystem "$MACOS_SDK/usr/include" \
       -Wno-nullability-completeness \
       -DTARGET_OS_EMBEDDED=0 \
     )
@@ -54,9 +76,9 @@ TARGET_CXX_LDFLAGS+=( "${TARGET_LDFLAGS[@]}" )
 
 TARGET_CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
 case $TARGET_CMAKE_SYSTEM_NAME in
-  macos)   TARGET_CMAKE_SYSTEM_NAME="Darwin";;
-  freebsd) TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
-  windows) TARGET_CMAKE_SYSTEM_NAME="Windows";;
-  linux)   TARGET_CMAKE_SYSTEM_NAME="Linux";;
-  native)  TARGET_CMAKE_SYSTEM_NAME="";;
+  apple|macos) TARGET_CMAKE_SYSTEM_NAME="Darwin";;
+  freebsd)     TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
+  windows)     TARGET_CMAKE_SYSTEM_NAME="Windows";;
+  linux)       TARGET_CMAKE_SYSTEM_NAME="Linux";;
+  native)      TARGET_CMAKE_SYSTEM_NAME="";;
 esac
