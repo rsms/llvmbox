@@ -43,29 +43,90 @@ Tested host systems:
 If you have a lot of RAM, it is usually much faster to build in a ramfs:
 
 - Linux: `export LLVMBOX_BUILD_DIR=/dev/shm`
-- macOS: `./macos-tmpfs.sh build && export LLVMBOX_BUILD_DIR=build`
+- macOS: `utils/macos-tmpfs.sh build && export LLVMBOX_BUILD_DIR=build`
 
 
-You can build everything using `build.sh` or running each step separately,
-the latter is useful when a step needs adjustments and you don't want to rebuild the
-previous steps:
+Define your build directory
 
 ```
 export LLVMBOX_BUILD_DIR=build
-bash build.sh
 ```
 
+Execute the first section of build steps:
+
 ```
-export LLVMBOX_BUILD_DIR=build
-bash 010-llvm-source.sh
-bash 011-update-myclang-source.sh
-bash 020-zlib-host.sh
-bash 021-llvm-host.sh
-bash 030-zlib-dist.sh
-bash 031-llvm-dist.sh
+for f in $(echo 01*.sh | sort); do bash $f; done
+```
+
+Now, there are a few alternatives:
+
+### Alternative 1: "stage2" build
+
+Alternative 1: "stage2" build. This is supposed to be the "correct" way to build an llvm distribution but after about 20 hours of trying to make it work on either macOS and Ubuntu, I have doubts.
+
+```
+bash stage2.sh
 ```
 
 
+Linux builds passes stage1 but fails stage2, suffering from high memory usage; linker is OOM killed:
+
+```
+clang++: error: unable to execute command: Killed
+clang++: error: linker command failed due to signal (use -v to see invocation)
+```
+
+macOS builds passes stage1 but fails stage2 with libc++ link errors like these:
+
+```
+ld64.lld: error: undefined symbol: std::__2::generic_category()
+>>> referenced by /tmp/lto.tmp:(symbol std::__2::make_error_code[abi:v15007](std::__2::errc)+0x10)
+```
+
+If the linker gets OOM killed, set LLVMBOX_LTO_JOBS=N, e.g.
+
+```
+LLVMBOX_LTO_JOBS=2 bash stage2.sh
+```
+
+
+### Alternative 2: custom build scripts per platform
+
+Linux:
+
+```
+for f in $(echo 0*-linux-*.sh | sort); do bash $f; done
+```
+
+macOS:
+
+```
+for f in $(echo 0*-mac-*.sh | sort); do bash $f; done
+```
+
+macOS build currently fails during compiler-rt:
+
+```
+[2299/10112] Building ASM object projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o
+FAILED: projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o
+/usr/bin/clang -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/rsms/tmp/llvm-macos-build/projects/compiler-rt/lib/builtins -I/Users/rsms/tmp/src/llvm/compiler-rt/lib/builtins -I/Users/rsms/tmp/llvm-macos-build/include -I/Users/rsms/tmp/src/llvm/llvm/include -Os -DNDEBUG -arch i386 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.5 -fPIC -O3 -fvisibility=hidden -DVISIBILITY_HIDDEN -Wall -fomit-frame-pointer -arch i386 -target i386-apple-macos10.5 -darwin-target-variant i386-apple-ios13.1-macabi -MD -MT projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o -MF projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o.d -o projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o -c /Users/rsms/tmp/src/llvm/compiler-rt/lib/builtins/i386/ashldi3.S
+clang: error: no such file or directory: 'i386-apple-ios13.1-macabi'
+```
+
+
+----
+
+## Experiment: build with bazel
+
+```
+cd experiments/bazel
+bash build-llvm-bazel.sh
+```
+
+Uses bazel to build llvm in a sandbox. Build works on linux and mac, but produces invalid results that link to shared libraries on the build host. There seem to be no way of building a "stage2" with LLVM's bazel workspace (see experiments/bazel/targets.txt)
+
+
+----
 
 ## Test
 
@@ -79,8 +140,8 @@ bash test/test.sh $LLVMBOX_BUILD_DIR/llvm-host
 There are wrapper scripts to help with testing, which invokes clang with the appropriate flags:
 
 ```
-LLVM_ROOT=/dev/shm/llvm-host ./cc test/hello.c -o test/hello_c
-LLVM_ROOT=/dev/shm/llvm-host ./c++ test/hello.cc -o test/hello_cc
+LLVM_ROOT=/dev/shm/llvm-host utils/cc test/hello.c -o test/hello_c
+LLVM_ROOT=/dev/shm/llvm-host utils/c++ test/hello.cc -o test/hello_cc
 ```
 
 
@@ -88,45 +149,8 @@ LLVM_ROOT=/dev/shm/llvm-host ./c++ test/hello.cc -o test/hello_cc
 ## Current status
 
 
-### macOS 10.15 x86_64 build host: dist build FAILING
-
-```
-$ bash 031-llvm-dist.sh
-...
-In file included from /Users/rsms/tmp/llvm-src/compiler-rt/lib/builtins/arm/fp_mode.c:9:
-In file included from /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include/stdint.h:53:
-In file included from /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include/sys/_types/_intptr_t.h:30:
-/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include/machine/types.h:37:2: error: architecture not supported
-#error architecture not supported
- ^
-...
-```
-
-
-### Ubuntu x86_64 build host: dist build FAILING
-
-```
-$ bash 031-llvm-dist.sh
-...
-[906/4703] Linking CXX shared module lib/LLVMHello.so
-FAILED: lib/LLVMHello.so
-: && /dev/shm/llvm-host/bin/clang++ -nostdinc++ -isystem /dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/x86_64-unknown-linux-gnu/c++/v1 --target=x86_64-linux-gnu -I/dev/shm/zlib-x86_64-linux-gnu/include -isystem /dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/x86_64-unknown-linux-gnu/c++/v1 --target=x86_64-linux-gnu -I/dev/shm/zlib-x86_64-linux-gnu/include -fPIC -nostdinc++ -isystem /dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/c++/v1 -I/dev/shm/llvm-host/include/x86_64-unknown-linux-gnu/c++/v1 --target=x86_64-linux-gnu -I/dev/shm/zlib-x86_64-linux-gnu/include -fPIC -fno-semantic-interposition -fvisibility-inlines-hidden -Werror=date-time -Werror=unguarded-availability-new -Wall -Wextra -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wmissing-field-initializers -pedantic -Wno-long-long -Wc++98-compat-extra-semi -Wimplicit-fallthrough -Wcovered-switch-default -Wno-noexcept-type -Wnon-virtual-dtor -Wdelete-non-virtual-dtor -Wsuggest-override -Wstring-conversion -Wmisleading-indentation -fdiagnostics-color -ffunction-sections -fdata-sections -Os -DNDEBUG  -nostdlib++ -lc++ -lc++abi -static -fuse-ld=lld -L/dev/shm/llvm-host/lib -L/dev/shm/llvm-host/lib/x86_64-unknown-linux-gnu -L/dev/shm/zlib-x86_64-linux-gnu/lib -L/dev/shm/llvm-host/lib/x86_64-linux-gnu -Wl,-z,nodelete -Wl,--color-diagnostics   -Wl,--gc-sections  -Wl,--version-script,"/dev/shm/llvm-dist-build/lib/Transforms/Hello/LLVMHello.exports" -shared  -o lib/LLVMHello.so lib/Transforms/Hello/CMakeFiles/LLVMHello.dir/Hello.cpp.o  -Wl,-rpath,"\$ORIGIN/../lib" && :
-clang-15: warning: argument unused during compilation: '-nostdinc++' [-Wunused-command-line-argument]
-clang-15: warning: argument unused during compilation: '-nostdinc++' [-Wunused-command-line-argument]
-ld.lld: error: relocation R_X86_64_TPOFF32 against tcache cannot be used with -shared
->>> defined in /lib/x86_64-linux-gnu/libc.a(malloc.o)
->>> referenced by malloc.o:(_int_free) in archive /lib/x86_64-linux-gnu/libc.a
-
-ld.lld: error: relocation R_X86_64_TPOFF32 against tcache cannot be used with -shared
->>> defined in /lib/x86_64-linux-gnu/libc.a(malloc.o)
->>> referenced by malloc.o:(_int_free) in archive /lib/x86_64-linux-gnu/libc.a
-
-ld.lld: error: relocation R_X86_64_TPOFF32 against tcache cannot be used with -shared
->>> defined in /lib/x86_64-linux-gnu/libc.a(malloc.o)
->>> referenced by malloc.o:(_int_malloc) in archive /lib/x86_64-linux-gnu/libc.a
-...
-```
-
+- macOS 10.15 x86_64 build host: dist build FAILING
+- Ubuntu x86_64 build host: dist build FAILING
 
 
 ## Issues
@@ -138,3 +162,19 @@ Linux llvm host build _"warning: Using 'NAME' in statically linked applications 
     /usr/bin/ld: lib/libLLVMSupport.a(Path.cpp.o): in function `llvm::sys::fs::expandTildeExpr(llvm::SmallVectorImpl<char>&)':
     Path.cpp:(.text._ZN4llvm3sys2fsL15expandTildeExprERNS_15SmallVectorImplIcEE+0x1a6): warning: Using 'getpwnam' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
 
+
+
+## Useful resources
+
+- https://llvm.org/docs/HowToCrossCompileLLVM.html#hacks
+- https://llvm.org/docs/BuildingADistribution.html
+- https://libcxx.llvm.org/BuildingLibcxx.html
+- https://libcxx.llvm.org/UsingLibcxx.html#alternate-libcxx
+- https://github.com/rust-lang/rust/issues/65051
+- https://wiki.musl-libc.org/building-llvm.html
+- https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/build/toolchain.md
+- https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/development/compilers/llvm/11/llvm/default.nix#L277
+- https://git.alpinelinux.org/aports/tree/main/llvm15
+- https://git.alpinelinux.org/aports/tree/main/llvm-runtimes
+- https://git.alpinelinux.org/aports/tree/main/clang15
+- https://github.com/Homebrew/homebrew-core/blob/master/Formula/llvm.rb

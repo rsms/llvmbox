@@ -1,0 +1,80 @@
+xar Release Notes
+=================
+
+1.6.1 (2012-09-17)
+
+  * Fix issues #75, #76
+  * Added NEWS file
+  * Stealth support for any available EVP_get_digestbyname hash (see man page)
+  * Support digests sha224, sha256, sha384 and sha512 provided the linked
+    libcrypto supports them (OpenSSL 0.9.8 and later).  Note that using a
+    --toc-cksum other than none, md5 or sha1 (the default) is NOT backwards
+    compatible (requires extended binary header support), but using a
+    --file-cksum other than none, md5 or sha1 is backwards compatible provided
+    the recipient's libcrypto supports it.  Both --toc-cksum and --file-cksum
+    must be specified to get them to be different.
+  * Do not attempt to extract attribute information to a non-file destination
+  * Handle 6 more flags bits including UF_HIDDEN and UF_COMPRESSED
+  * Fix xar_get_mode output to still include type when mode is unavailable
+    (This also fixes alignment problems in -tv output when mode is missing)
+  * Fix archival of FinderCreateTime on 64 bit archs (extract was already okay)
+  * Add support for --recompress option to blindly recompress all files added
+    to the archive not matched by a --no-compress option when a --compression
+    type other than none is in effect.  All prior versions of xar always behave
+    as though --recompress has been specified.
+  * Recognized already-compressed files will now just be stored as-is in the
+    archive without a second compression.  The gzip, bzip2 and xz formats are
+    currently recognized.  The --recompress option disables this behavior.
+    The xar library itself now provides this support (XAR_OPT_RECOMPRESS).
+  * xar.h c++ compatibility added
+  * XAR_OPT_TOCCKSUM can now be set after adding signatures without causing
+    archive corruption
+  * Update liblzma support to work with current liblzma versions
+  * Show additional information in --version output if --verbose given first
+  * Update man page and --help output to be current
+  * Allow --compression=xz whenever --compression=lzma is supported
+  * Now builds on cygwin
+  * A huge number of warnings were eliminated so compilations should be much
+    cleaner on many platforms now
+  * Add support for --rfc6713 (see man page) (XAR_OPT_RFC6713FORMAT)
+  * Support compiling against an older libcrypto but running against a newer one
+  * Make extracted-checksum/archived-checksum use long hash name to match value
+    used in toc checksum (backwards compatible)
+  * Add missing trailing 'Z' to creation-date in archive (backwards compatible)
+  * Help output (--help) now goes to standard output instead of standard error
+  * Reduce spew on command line argument error
+  * Support --directory (-C) during archive as well as extract
+  * Add support for --to-stdout (-O) (XAR_OPT_EXTRACTSTDOUT)
+  * Add support for --strip-components (XAR_OPT_STRIPCOMPONENTS)
+  * Command aliases added (--create, --extract, --list, --file, --directory,
+    --verbose, --one-file-system, -V)
+  * The xar header version can now be easily #if tested using XAR_VERSION_NUM
+  * The xar library version can now be fetched with XAR_OPT_XARLIBVERSION
+  * xar_from_base64 no longer adds extra bytes to the decoded output
+  * Library now adds a signature-creation-time element which contains the
+    "%.1f" formatted number of seconds since 2001-01-01T00:00:00Z when any
+    signatures are present
+  * Rudimentary command line signature support (--sign/--replace-sign etc.)
+  * configure now defaults compiler options to "-Wall -g -O2" for gcc
+  * Update Xcode projects
+  * Import into git (adding .gitignore and .gitattributes)
+  * Initial release from https://github.com/mackyle/xar project
+
+1.5.3 (2010-04-12)
+
+  * Fix issue #68
+  * Ensure binary header and toc checksum types match
+  * configure improvements
+
+1.5.2 (2007-12-29)
+
+  * Fix issues #2, #32, #41, #42, #43
+  * Allow --prop-exclude ea to exclude darwin/FreeBSD extended attributes
+  * Add support for --compression-args
+  * Add support for lzma compression (-a or --compression=lzma)
+  * Add support for --keep-existing (-k)
+  * Add support for bzip2 compression (-j or --compression=bzip2)
+
+1.5.0 (2007-05-16)
+
+  * Initial release from https://code.google.com/p/xar/ project

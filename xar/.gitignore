@@ -1,0 +1,13 @@
+Makefile
+*.stamp
+*.log
+*.status
+/include/config.h
+/include/xar.h
+/lib/Makefile.inc
+/lib/libxar.la
+/lib/libxar.la.in
+/src/Makefile.inc
+/src/ixar
+/src/xar
+/xar.spec

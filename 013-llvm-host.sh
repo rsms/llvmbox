@@ -7,7 +7,6 @@ set -e ; source "$(dirname "$0")/config.sh"
 # TODO: consider a "stage2" build a la clang/cmake/caches/Fuchsia.cmake
 #       see experiments/stage2.sh
 
-LLVM_HOST_BUILD=$BUILD_DIR/llvm-host-build
 LLVM_HOST_COMPONENTS=(
   dsymutil \
   llvm-ar \
@@ -21,43 +20,46 @@ LLVM_HOST_COMPONENTS=(
   llvm-size \
   llvm-rc \
   clang \
-  clang-format \
   clang-resource-headers \
   builtins \
   runtimes \
 )
 
-mkdir -p "$LLVM_HOST_BUILD"
-_pushd "$LLVM_HOST_BUILD"
+mkdir -p "$BUILD_DIR/llvm-host-build"
+_pushd "$BUILD_DIR/llvm-host-build"
 
-CMAKE_EXE_LINKER_FLAGS=()
-# case "$HOST_SYS" in
-#   Linux) CMAKE_EXE_LINKER_FLAGS+=( -static ) ;;
-# esac
+CMAKE_C_FLAGS=( -w -I"$ZLIB_HOST/include" )
+CMAKE_LD_FLAGS=( -L"$ZLIB_HOST/lib" )
 
-CMAKE_C_FLAGS="-w"
-# note: -w silences warnings (nothing we can do about those)
-# -fcompare-debug-second silences "note: ..." in GCC.
 case "$(${CC:-cc} --version || true)" in
   *'Free Software Foundation'*) # GCC
-    CMAKE_C_FLAGS="$CMAKE_C_FLAGS -fcompare-debug-second"
-    CMAKE_C_FLAGS="$CMAKE_C_FLAGS -Wno-misleading-indentation"
+    # -fcompare-debug-second silences "note: ..." in GCC
+    CMAKE_C_FLAGS+=( -fcompare-debug-second -Wno-misleading-indentation )
     ;;
 esac
 
 CMAKE_ARGS=()
 if [ "$HOST_SYS" = "Darwin" ]; then
-  CMAKE_ARGS+=( -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON )
+  CMAKE_ARGS+=( \
+    -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
+  )
+  LLVM_HOST_COMPONENTS+=( llvm-libtool-darwin )
 fi
 
-echo "configuring llvm ... (${PWD##$PWD0/}/cmake-config.log)"
+CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]}"
+CMAKE_LD_FLAGS="${CMAKE_LD_FLAGS[@]}"
+
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$LLVM_HOST" \
   -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
+  \
   -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
-  -DCMAKE_EXE_LINKER_FLAGS="${CMAKE_EXE_LINKER_FLAGS[@]}" \
+  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
+  -DCMAKE_SHARED_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
+  -DCMAKE_MODULE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   \
   -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;WebAssembly;X86" \
   -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
@@ -80,6 +82,7 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DLLVM_ENABLE_ZLIB=1 \
   -DZLIB_LIBRARY="$ZLIB_HOST/lib/libz.a" \
   -DZLIB_INCLUDE_DIR="$ZLIB_HOST/include" \
+  \
   -DLLVM_ENABLE_ZSTD=OFF \
   \
   -DCLANG_INCLUDE_DOCS=OFF \
@@ -87,8 +90,6 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCLANG_ENABLE_ARCMT=OFF \
   -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
   -DLIBCLANG_BUILD_STATIC=ON \
-  -DLIBCLANG_BUILD_STATIC=ON \
-  -DENABLE_SHARED=OFF \
   \
   -DLIBCXX_ENABLE_SHARED=OFF \
   -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
@@ -106,8 +107,7 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
   -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
   \
-  "${CMAKE_ARGS[@]}" \
-  > cmake-config.log || _err "cmake failed. See $PWD/cmake-config.log"
+  "${CMAKE_ARGS[@]}"
 
 # echo "building libc++ ..."
 # # ninja cxx cxxabi
@@ -115,31 +115,25 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
 
 # -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON  works on macos, not ubuntu
 
-echo "building runtimes ..."
-ninja runtimes
-
-echo "building llvm ..."
 ninja distribution
 # note: the "distribution" target builds only LLVM_DISTRIBUTION_COMPONENTS
 
 rm -rf "$LLVM_HOST"
 mkdir -p "$LLVM_HOST"
 
-echo "installing llvm -> ${LLVM_HOST##$PWD0/} ..."
-ninja install-distribution \
+ninja \
+  install-distribution \
   install-lld \
   install-builtins \
   install-compiler-rt \
   install-llvm-objcopy \
-  install-llvm-tblgen
-
-echo "installing llvm libs -> ${LLVM_HOST##$PWD0/} ..."
-ninja install-llvm-libraries install-llvm-headers
-
-echo "installing clang libs -> ${LLVM_HOST##$PWD0/} ..."
-ninja install-libclang install-clang-libraries install-clang-headers
+  install-llvm-tblgen \
+  install-llvm-libraries \
+  install-llvm-headers \
+  install-libclang \
+  install-clang-libraries \
+  install-clang-headers
 
 cp -a bin/clang-tblgen "$LLVM_HOST/bin/clang-tblgen"
 
 echo "$LLVM_RELEASE" > "$LLVM_HOST/version"
-

@@ -76,9 +76,9 @@ TARGET_CXX_LDFLAGS+=( "${TARGET_LDFLAGS[@]}" )
 
 TARGET_CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
 case $TARGET_CMAKE_SYSTEM_NAME in
-  apple|macos) TARGET_CMAKE_SYSTEM_NAME="Darwin";;
-  freebsd)     TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
-  windows)     TARGET_CMAKE_SYSTEM_NAME="Windows";;
-  linux)       TARGET_CMAKE_SYSTEM_NAME="Linux";;
-  native)      TARGET_CMAKE_SYSTEM_NAME="";;
+  apple|macos|darwin) TARGET_CMAKE_SYSTEM_NAME="Darwin";;
+  freebsd)            TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
+  windows)            TARGET_CMAKE_SYSTEM_NAME="Windows";;
+  linux)              TARGET_CMAKE_SYSTEM_NAME="Linux";;
+  native)             TARGET_CMAKE_SYSTEM_NAME="";;
 esac

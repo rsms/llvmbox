@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# D=$PWD; cd "$(dirname "$0")"; PROJECT=$PWD; cd "$D"
+# D=$PWD; cd "$(dirname "$0")/.."; PROJECT=$PWD; cd "$D"
 if [ -z "$LLVM_ROOT" ]; then
   echo "LLVM_ROOT not set in env (e.g. LLVM_ROOT=/path/to/llvm so that \$LLVM_ROOT/bin/clang is found)" >&2
   exit 1

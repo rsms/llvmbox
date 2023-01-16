@@ -1,0 +1,155 @@
+﻿devel
+	2012-11-21 Kyle J. McKay mackyle@gmail.com
+	* xar.c: Don't leak file handle in is_valid_dir
+	2012-09-17 Kyle J. McKay mackyle@gmail.com
+	* ChangeLog: Add recent updates
+	* Add NEWS file
+	* lib/{archive.h,c;io.c}: Increase default read buffer size
+	* lib/{archive,darwinattr,stat}.c: Do not attempt extract darwinattr, flags or stat information to a buffer
+	* lib/stat.c: Handle 6 more flags bits including UF_HIDDEN and UF_COMPRESSED
+	* lib/util.c: Fix xar_get_mode output when mode is unavailable
+	2012-09-16 Kyle J. McKay mackyle@gmail.com
+	* lib/darwinattr.c: Fix archival of FinderCreateTime on 64 bit archs
+	* src/xar.c: Include commit information in -vV output if available
+	* src/xar.c: Only fetch real options in the list when copying archives
+	* lib/archive.c: Do not crash if NULL option passed to xar_opt_get 
+	* lib/ext2.c: A little help for cygwin
+	* xar_README.txt: Update recommended configure options
+	* src/xar.c: Allow --compression=xz whenever --compression=lzma is allowed
+	* lib/lzmaxar.c: Update to compile against modern versions of liblzma
+	* Ignore *.so* library files
+	* Massive elimination of warnings including from -m64
+	2012-09-15 Kyle J. McKay mackyle@gmail.com
+	* configure.ac: Version bump to 1.6.1
+	* src/xar.c: Only spew the giant help missive on request (--help) otherwise use a very brief usage hint instead
+	* lib/{archive.c,darwinattr.c,stat.c}: Make all ASCII-format dates in the archive RFC 3339 compliant (change is backwards compatible)
+	* lib/{archive.c,hash.h,hash.c}: Support EVP_get_digestbyname hashes up to at least 1024 bits in length
+	* test/validate.c: Allocate hash buffer dynamically
+	* src/xar.{c,1}: Support new --rfc6713 command line option to set XAR_OPT_RFC6713FORMAT
+	* include/xar.h.in,lib/{archive.h,archive.c,zxar.c}: Support new XAR_OPT_RFC6713FORMAT option and force it on if XAR_CKSUM_OTHER is in effect
+	* src/xar.{c,1}: Allow any available EVP_get_digestbyname for --toc-cksum and/or --file-cksum by appending ! to its name
+	* include/xar.h.in: C++ compatibility and new XAR_OPT_EXTRACTSTDOUT, XAR_OPT_STRIPCOMPONENTS and XAR_OPT_XARLIBVERSION options
+	* src/xar.1: Update man page to reflect new options/behavior and add some more examples and tips
+	* src/xar.c: Replace --sha1-digestinfo-to-sign with --digestinfo-to-sign that understands md5, sha1, sha224, sha256, sha384 and sha512 digest types
+	* src/xar.c: Allow removing signatures with --replace-sign --sig-size=0
+	* src/xar.c: Complain if --sig-size is negative
+	* src/xar.c: Allow --list (-t), --create (-c), --extract (-x), --file (-f), --directory (-C), --one-file-system (-l) and --verbose (-V) option synonyms
+	* src/xar.c: The -C option now works while archiving too
+	* src/xar.c: Conflicting commands are now detected to avoid producing a corrupt archive
+	* src/xar.c: Support new --strip-components and --to-stdout options
+	2012-09-14 Kyle J. McKay mackyle@gmail.com
+	* lib/archive.c: Eliminate long-standing corruption bug when setting XAR_OPT_TOCCKSUM after adding files or signatures
+	2012-09-12 Kyle J. McKay mackyle@gmail.com
+	* include/xar.h.in lib/{archive.h,c;util.c} src/xar.c: Modify the way the new hash values are stored in the header (by name instead of number) so that any hash can be used for TOC checksum
+	* src/xar.c: Relegate signature-related chatty messages to verbose only (-v) and make sure all errors really go to stderr
+	* src/xar.c: Improve temporary file handling (honor $TMPDIR/$TMP before going to /tmp, make sure it gets removed and honor umask)
+	* src/xar.c: Tone down error messages (No! More! Freaking! Exclamation! Points! Yahoo!)
+	* src/xar.c src/xar.1: Update man page/help to reflect all current options
+	2012-09-11 Kyle J. McKay mackyle@gmail.com
+	* lib/archive.c lib/hash.c src/xar.c src/xar.1 test/validate.c: Support new hash values
+	* lib/{bzxar.h,c;io.h,c;lzmaxar.h,c;zxar.h,c} src/xar.c,1: Support new XAR_OPT_RECOMPRESS/--recompress option and associated behavior of not recompressing recognized compression formats by default.
+	2012-09-10 Kyle J. McKay mackyle@gmail.com
+	* configure.ac include/xar.h.in: XAR_NUMERIC_VERSION for preprocessor xar version testing
+	* include/xar.h.in: New hash values and new recompress option
+	* src/xar.1: Add myself to authors list
+	* lib/zxar.c: Understand RFC 6713 application/zlib compression type (but do not generate it)
+	2012-09-08 Kyle J. McKay mackyle@gmail.com
+	* lib/{archive.h,c;hash.c} test/validate.c: Do not bake in size of EVP_MD_CTX structure into xar library
+	* Bump version to 1.6dev_sigv4
+	* Use long name of hash instead of short name to make extracted/archived-checksum style attribute match toc checksum style attribute
+	* Include tenths of a second in the signature-creation-time value
+	* Support new --sha1-digestinfo-to-sign=file option that prepends the SHA-1 DigestInfo prefix to the data written to the file
+	2012-09-07 Kyle J. McKay mackyle@gmail.com
+	* initial import into git
+	* add .gitignore and .gitattributes files
+	* bring Xcode projects up-to-date
+	* strmode.h: remove execute permission from file mode
+	2011-01-06 Kyle J. McKay mackyle@gmail.com
+	* lib/util.c now does "#define _FILE_OFFSET_BITS 64" which should help with checksum mismatch issues
+	* lib/signature.c now generates a signature-creation-time element to hopefully make Safari happy
+	* cleaned up some of the help in the xar --help output and xar man page
+	* xar --version now outputs "1.6dev_sigv3" to distinguish this version from the earlier ones
+	2010-09-06 Kyle J. McKay mackyle@gmail.com
+	* xar_from_base64 no longer adds extra bytes to the decoded output (longstanding bug)
+	* the version number output by xar --version is now 1.6dev_s1 to distinguish from earlier CLI signature support
+	*  the extra blank line that could sometimes be inserted in the --extract-CAfile output certificates has been removed
+	2010-08-13 Kyle J. McKay mackyle@gmail.com
+	* initial support for command line signatures based heavily upon http://opensource.apple.com/source/xar/xar-36.1/xarsig/xar-sig.c
+	2009-11-24 Rob Braun bbraun@synack.net
+	* configure.ac include/xar.h.in: Move the stdint.h vs. inttypes.h into the configure script and out of the header file.
+	* lib/signature.c: fix a warning with a printf formatting string
+	* lib/util.c lib/util.h lib/appledouble.h include/xar.h.in: adjust the inclusion of stdint.h to hopefully avoid problems on proto-c99 systems that have inttypes.h but not stdint.h.  Issue #68
+	* src/xar.c: If a compression type is specified that we don't support/haven't been compiled with, spit out an error.
+	* configure.ac: Allow explicit disabling of bzip2 support.
+	2009-07-08 Rob Braun bbraun@synack.net
+	* lib/archive.c: Fix an invalid free, pointed out by Randy Saldinger
+	* lib/archive.c: Have xar_open() check if there are checksum properties in the toc and use that.  If not, fall back to static location.
+	2008-12-19 Rob Braun bbraun@synack.net
+	* lib/lzmaxar.c include/xar.h.in src/xar.c: Update lzma support to reflect the new xz naming and adjust lzma to be the old lzma format.  Changes from Anders F Björklund.
+	2008-08-19 Rob Braun bbraun@synack.net
+	* lib/lzmaxar.c: if lzma compression is specified but not compiled in, throw an error.
+	* src/xar.c: When extracting, save directories until the end.  This lets timestamps get set correctly on directories and addresses issue #58.
+	2008-08-17 Rob Braun bbraun@synack.net
+	* lib/archive.c: Make sure the binary header and toc checksum types match.  Contributed by Apple.
+	2008-08-15 Rob Braun bbraun@synack.net
+	* lib/Makefile.inc.in: Add the $(LDFLAGS) variable when creating libxar
+	* src/xar.c: Fix a typo in the usage statement.
+	* lib/io.c: Fix seeking on a pipe
+	2008-08-14 Rob Braun bbraun@synack.net
+	* lib/bzxar.c: if bzip2 compression is specified but not compiled in, throw an error.
+	* src/xar.c src/xar.1: Add -C to chdir before extraction.
+	* lib/script.c: Perform some input checking.
+	* lib/b64.c lib/b64.h: xar_to_base64() was never used, so it is removed.
+	* lib/lzmaxar.c: Update the use of the lzma API to match 4.42 alpha 6 of the lzma library from Anders F Björklund.
+	2007-12-14 Rob Braun bbraun@synack.net
+	* configure.ac: Fix a broken configure check for sys/acl.h and acl_t
+	2007-12-09 Rob Braun bbraun@synack.net
+	* include/xar.h.in lib/filetree.c lib/stat.c test/validate.c: Make sure xar_iter_new() takes no parameters.  From rpm5.
+	* lib/libxar.la.in.in: set the libxir to @LIBDIR@ from autoconf.  From rpm5.
+	* configure.ac: Allow specifying the path to lzma with --with-lzma=PATH
+	* lib/lzmaxar.c: Use the global macro for compression level.
+	2007-11-11 Rob Braun bbraun@synack.net
+	* lib/archive.c: Add a #define for a mising function in Mac OS X's old version of libxml2 from Anders F Björklund.
+	* lib/Makefile.inc.in: Be a little more gnu libtool friendly from Anders F Björklund.
+	2007-11-11 Rob Braun bbraun@synack.net
+	* lib/archive.c: Some memory leak cleanups from Anders F Björklund.
+	2007-11-1 Dave Leimbach leimy2k@gmail.com
+	* lib/data.c: fixed a file descriptor leak by adding a close before return
+	* src/xar.1: Added man page text for --extract-subdoc
+	2007-10-22 Rob Braun bbraun@synack.net
+	* src/xar.c src/xar.1: Add -a as a synonym for --compression=lzma
+	* lib/darwinattr.c lib/fbsdattr.c: Add --prop-exclude support for darwin and fbsd EAs.
+	2007-10-16 Rob Braun bbraun@synack.net
+	* include/xar.h.in src/xar.c lib/io.c lib/lzmaxar.c lib/bzxar.c lib/archive.c lib/zxar.c: Added an option to pass arguments to the compression code.  This to allow specifying compression levels to gzip, bzip2, and lzma.
+	* lib/io.c: Issue 41, fixed a bug where rsize was being used uninitialized.
+	* lib/io.c: Issue 42, log a warning and continue if archived-checksum doesn't appear when archiving a file.
+	* lib/archive.c: Issue 43, free the buffer in xar_extract_tobuffersz() if there is an error extracting the file.
+	2007-10-02 Rob Braun bbraun@synack.net
+	*  test/compression test/data include/config.h.in include/xar.h.in src/xar.1 src/xar.c configure.ac lib/lzmaxar.c lib/lzmaxar.h lib/io.c lib/bzxar.c  lib/Makefile.inc.in lib/zxar.c INSTALL: Incorporate a patch from anders.f.bjorklund for adding lzma compression support.
+	2007-10-02 Rob Braun bbraun@synack.net
+	* include/xar.h.in lib/io.c lib/io.h lib/archive.c: Add a "streaming" API that allows for file data to be extracted incrementally, like the zlib decompression API, instead of requiring the entire file to fit in memory like xar_extract_tobuffer().  This is the inital commit of the API and may still change.  This change is based on a patch from Charles Srstka.
+	2007-09-26 Rob Braun bbraun@synack.net
+	* lib/io.c: Consolidate the lseek handling code into one function.
+		Contributed by Charles Srstka as part of Issue 2.
+	2007-09-21 Rob Braun bbraun@synack.net
+	* include/xar.h.in src/xar.c src/xar.1 lib/stat.c: Only extract setuid/setgid bits if the user/group are the same as the archived file (if -p/-P are specified on the command line) OR if the newly added --keep-setuid flag is specified.
+	* configure.ac lib/stat.c: Fix the autoconf test for ino_t size, and switch the inode and device number printf's to use the autogenerated INO_STRING and DEV_STRING to get the correct formatting parameter.
+	2007-09-20 Rob Braun bbraun@synack.net
+	* src/xar.c src/xar.1: Add -k as a synonym for --keep-existing for tar compatibility.
+	2007-09-20 Rob Braun bbraun@synack.net
+	* src/xar.c src/xar.1: Add --keep-existing flag which prevents existing files from being extracted.
+	2007-09-20 Rob Braun bbraun@synack.net
+	* lib/archive.c: Fix a bug in toc parsing where invalid tocs, particularly with mismatched closing tags, would still be processed.
+	2007-09-20 Rob Braun bbraun@synack.net
+	* lib/filetree.c: Fix a minor memory leak with xar_iter_free() not freeing all memory associated with a xar_iter_t.
+	2007-09-20 Rob Braun bbraun@synack.net
+	* ChangeLog: renamed from CHANGELOG.
+	2007-09-19 Dave Leimbach leimy2k@gmail.com
+	* xar/xar.c xar/xar.1: Added support for -j and -z as shortcuts for --compression=bzip2 or --compression=zlib respectively.
+	2007-09-19 Rob Braun bbraun@synack.net
+	* lib/zxar.c lib/bzxar.c: cleanup for more consistency between the two compression modules.  Patch contributed by Anders Björklund from the rpm5 project.
+	2007-09-19 Rob Braun bbraun@synack.net
+	* CHANGELOG: Added changelog
+	* include/xar.h.in src/xar.c lib/util.c: moved helper functions for retrieving and formating file properties such as size, mode, mtime, etc. from src/xar.c to lib/util.c and exported them in xar.h.
+	* lib/err.c lib/archive.h: Added the xar_t archive context to the error handler context to be able to retrieve archive level context within an error, such as archive level options, or being able to examine other files than the one the error occurred on.
+	* lib/strmode.h lib/util.c config.h.in configure.ac: Import strmode(3) from freebsd to handle the formatting of file mode in xar_get_mode(), used for displaying file mode from xar -tvf.  configure will automatically detect whether to use the OS strmode(3) or the included copy.

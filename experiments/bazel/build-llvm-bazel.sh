@@ -1,16 +1,21 @@
 #!/bin/bash
 set -e
 
-LLVM_RELEASE=15.0.7
-LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
-
-LLVM_RELEASE=eb4aa6c7a5f22583e319aaaae3f6ee73cbc5464a
-LLVM_SHA256=7c6919bde160a94a5f9c1f93c337fb6fdb9215571a8bbb385aed598763ff59ab
-
 PWD0=${PWD0:-$PWD}
 SCRIPTNAME=${0##*/}
 PROJECT=$PWD
 BUILD_DIR=${BUILD_DIR:-$PROJECT/build}
+
+# ————————————————————————————————————————————————————————————————————————————————————
+
+LLVM_RELEASE=15.0.7
+LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
+# LLVM_RELEASE=eb4aa6c7a5f22583e319aaaae3f6ee73cbc5464a
+# LLVM_SHA256=7c6919bde160a94a5f9c1f93c337fb6fdb9215571a8bbb385aed598763ff59ab
+LLVM_SRC=${LLVM_SRC:-$BUILD_DIR/llvm-$LLVM_RELEASE}
+
+BAZEL_CACHE_DIR=${BAZEL_CACHE_DIR:-$BUILD_DIR/bazel-cache}
+BAZEL_SANDBOX_BASE=${BAZEL_SANDBOX_BASE:-$BUILD_DIR/bazel-sandbox}
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
@@ -98,7 +103,6 @@ _fetch_source_tar() { # <url> <sha256> <outdir>
 # ————————————————————————————————————————————————————————————————————————————————————
 
 # llvm source
-LLVM_SRC=$BUILD_DIR/llvm-$LLVM_RELEASE
 LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive
 if (echo "$LLVM_RELEASE" | grep -qE '[0-9]+\.'); then
   # release version
@@ -112,7 +116,7 @@ _fetch_source_tar "$LLVM_SRC_URL" "$LLVM_SHA256" "$LLVM_SRC"
 # tools PATH
 TOOLS_DIR=$PROJECT/tools
 mkdir -p "$TOOLS_DIR"
-export PATH=$PROJECT/bin:$PATH
+export PATH=$TOOLS_DIR:$PATH
 
 # bazel
 BAZEL_VERSION=$(cat "$LLVM_SRC/utils/bazel/.bazelversion")
@@ -121,8 +125,6 @@ case "$(uname -s)" in
   Darwin) BAZEL_EXE=bazel-${BAZEL_VERSION}-darwin-$(uname -m) ;;
   *)      _err "unsupported system: $(uname -s)"
 esac
-BAZEL_CACHE_DIR=$BUILD_DIR/bazel-cache
-BAZEL_SANDBOX_BASE=$BUILD_DIR/bazel-sandbox
 _download \
   https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/$BAZEL_EXE \
   "$TOOLS_DIR/$BAZEL_EXE"
@@ -146,11 +148,22 @@ elif command -v gcc >/dev/null; then
 else
   _err "no host compiler found (tried: clang, gcc)"
 fi
-pushd "$LLVM_SRC/utils/bazel" >/dev/null
-pwd
-bazel build \
-  --disk_cache="$BAZEL_CACHE_DIR" \
-  --sandbox_base="$BAZEL_SANDBOX_BASE" \
-  "${BAZEL_ARGS[@]}" \
-  @llvm-project//clang
+
+
+mkdir -p "$PROJECT/out"
+
+pushd "$LLVM_SRC/utils/bazel" >/dev/null ; pwd
+
+# dump huge list of targets:
+#bazel query @llvm-project//...
+
+bazel \
+  --output_base="$PROJECT/out" \
+  build \
+    --disk_cache="$BAZEL_CACHE_DIR" \
+    --sandbox_base="$BAZEL_SANDBOX_BASE" \
+    "${BAZEL_ARGS[@]}" \
+    @llvm-project//clang
 popd >/dev/null
+
+"$PROJECT/out"/execroot/__main__/bazel-out/*/bin/external/llvm-project/clang/clang --version

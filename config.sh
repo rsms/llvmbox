@@ -14,9 +14,9 @@ _err() { echo "$0:" "$@" >&2; exit 1; }
 PWD0=${PWD0:-$PWD}
 [ -n "$LLVMBOX_BUILD_DIR" ] || _err "LLVMBOX_BUILD_DIR is not set in env"
 
-PROJECT=$(realpath -s "$(dirname "$0")")
-BUILD_DIR=$(realpath -s "$LLVMBOX_BUILD_DIR")
-DOWNLOAD_DIR=$(realpath -s "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
+PROJECT=$(realpath "$(dirname "$0")")
+BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
+DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
 mkdir -p "$DOWNLOAD_DIR" "$BUILD_DIR"
 # ————————————————————————————————————————————————————————————————————————————————————
 
@@ -39,15 +39,40 @@ TARGET_ARCH=${TARGET%%-*} # e.g. x86_64
 
 LLVM_RELEASE=15.0.7
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
-LLVM_SRC=$BUILD_DIR/llvm-src
-LLVM_HOST=$BUILD_DIR/llvm-host
-LLVM_DIST=$BUILD_DIR/llvm-$TARGET
+LLVM_SRC=${LLVM_SRC:-$BUILD_DIR/src/llvm}
+LLVM_HOST=${LLVM_HOST:-$BUILD_DIR/llvm-host}
+LLVM_DIST=${LLVM_DIST:-$BUILD_DIR/llvm-$TARGET}
 
 ZLIB_VERSION=1.2.13
-ZLIB_CHECKSUM=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
-ZLIB_SRC=$BUILD_DIR/zlib-src
-ZLIB_HOST=$BUILD_DIR/zlib-host
-ZLIB_DIST=$BUILD_DIR/zlib-$TARGET
+ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
+ZLIB_SRC=${ZLIB_SRC:-$BUILD_DIR/src/zlib}
+ZLIB_HOST=${ZLIB_HOST:-$BUILD_DIR/zlib-host}
+ZLIB_DIST=${ZLIB_DIST:-$BUILD_DIR/zlib-$TARGET}
+
+ZSTD_VERSION=1.5.2
+ZSTD_SHA256=7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0
+ZSTD_SRC=${ZSTD_SRC:-$BUILD_DIR/src/zstd}
+ZSTD_DESTDIR=${ZSTD_DESTDIR:-$BUILD_DIR/zstd}
+
+XC_VERSION=5.2.5
+XC_SHA256=3e1e518ffc912f86608a8cb35e4bd41ad1aec210df2a47aaa1f95e7f5576ef56
+XC_SRC=${XC_SRC:-$BUILD_DIR/src/xc}
+XC_DESTDIR=${XC_DESTDIR:-$BUILD_DIR/xc}
+
+OPENSSL_VERSION=1.1.1s
+OPENSSL_SHA256=c5ac01e760ee6ff0dab61d6b2bbd30146724d063eb322180c6f18a6f74e4b6aa
+OPENSSL_SRC=${OPENSSL_SRC:-$BUILD_DIR/src/openssl}
+OPENSSL_DESTDIR=${OPENSSL_DESTDIR:-$BUILD_DIR/openssl}
+
+LIBXML2_VERSION=2.10.3
+LIBXML2_SHA256=5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c
+LIBXML2_SRC=${LIBXML2_SRC:-$BUILD_DIR/src/libxml2}
+LIBXML2_DESTDIR=${LIBXML2_DESTDIR:-$BUILD_DIR/libxml2}
+
+XAR_SRC=$PROJECT/xar
+XAR_DESTDIR=${XAR_DESTDIR:-$BUILD_DIR/xar}
+
+# ————————————————————————————————————————————————————————————————————————————————————
 
 HOST_CC="$LLVM_HOST/bin/clang"
 HOST_CXX="$LLVM_HOST/bin/clang++"
@@ -56,6 +81,8 @@ HOST_LD=$HOST_CC
 HOST_RC="$LLVM_HOST/bin/llvm-rc"
 HOST_AR="$LLVM_HOST/bin/llvm-ar"
 HOST_RANLIB="$LLVM_HOST/bin/llvm-ranlib"
+
+[ -z "$CC" ] && command -v clang >/dev/null && export CC=clang
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
