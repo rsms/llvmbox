@@ -31,7 +31,7 @@ TARGET_CXXFLAGS=(
 )
 TARGET_CXX_LDFLAGS=(
   -nostdlib++ \
-  -lc++ -lc++abi \
+  -lc++ \
 )
 
 # note: for dylib linking to work, set '-Wl,-rpath,"$LLVM_HOST/lib"' in LDFLAGS
@@ -64,8 +64,12 @@ case "$TARGET_SYS" in
       -isystem "$MACOS_SDK/usr/include" \
       -Wno-nullability-completeness \
       -DTARGET_OS_EMBEDDED=0 \
+      -DTARGET_OS_IPHONE=0 \
+      -mmacosx-version-min=10.10 \
     )
-    TARGET_LDFLAGS+=( -lSystem )
+    TARGET_LDFLAGS+=( \
+      -mmacosx-version-min=10.10 \
+    )
     ;;
 esac
 

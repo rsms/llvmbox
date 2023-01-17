@@ -60,7 +60,17 @@ for f in $(echo 01*.sh | sort); do bash $f; done
 
 Now, there are a few alternatives:
 
-### Alternative 1: "stage2" build
+
+### Alternative 1: custom build scripts
+
+```
+for f in $(echo 02*.sh | sort); do bash $f; done
+```
+
+Succeeds on macOS
+
+
+### Alternative 2: "stage2" build
 
 Alternative 1: "stage2" build. This is supposed to be the "correct" way to build an llvm distribution but after about 20 hours of trying to make it work on either macOS and Ubuntu, I have doubts.
 
@@ -83,35 +93,12 @@ ld64.lld: error: undefined symbol: std::__2::generic_category()
 >>> referenced by /tmp/lto.tmp:(symbol std::__2::make_error_code[abi:v15007](std::__2::errc)+0x10)
 ```
 
-If the linker gets OOM killed, set LLVMBOX_LTO_JOBS=N, e.g.
+If the linker gets OOM killed, try some of the following ideas:
 
-```
-LLVMBOX_LTO_JOBS=2 bash stage2.sh
-```
+- set LLVMBOX_LTO_JOBS=N, e.g. `LLVMBOX_LTO_JOBS=2 bash stage2.sh`
+- allocate more swap space (if you use zfs, see `utils/linux-swap-zfs.sh`)
+- disable LTO: `BOOTSTRAP_LLVM_ENABLE_LTO` in stage1.cmake, `LLVM_ENABLE_LTO` in stage2.cmake (must do a full complete clean rebuild after changing these)
 
-
-### Alternative 2: custom build scripts per platform
-
-Linux:
-
-```
-for f in $(echo 0*-linux-*.sh | sort); do bash $f; done
-```
-
-macOS:
-
-```
-for f in $(echo 0*-mac-*.sh | sort); do bash $f; done
-```
-
-macOS build currently fails during compiler-rt:
-
-```
-[2299/10112] Building ASM object projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o
-FAILED: projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o
-/usr/bin/clang -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/Users/rsms/tmp/llvm-macos-build/projects/compiler-rt/lib/builtins -I/Users/rsms/tmp/src/llvm/compiler-rt/lib/builtins -I/Users/rsms/tmp/llvm-macos-build/include -I/Users/rsms/tmp/src/llvm/llvm/include -Os -DNDEBUG -arch i386 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.5 -fPIC -O3 -fvisibility=hidden -DVISIBILITY_HIDDEN -Wall -fomit-frame-pointer -arch i386 -target i386-apple-macos10.5 -darwin-target-variant i386-apple-ios13.1-macabi -MD -MT projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o -MF projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o.d -o projects/compiler-rt/lib/builtins/CMakeFiles/clang_rt.builtins_i386_osx.dir/i386/ashldi3.S.o -c /Users/rsms/tmp/src/llvm/compiler-rt/lib/builtins/i386/ashldi3.S
-clang: error: no such file or directory: 'i386-apple-ios13.1-macabi'
-```
 
 
 ----
@@ -130,27 +117,36 @@ Uses bazel to build llvm in a sandbox. Build works on linux and mac, but produce
 
 ## Test
 
+The ultimate test is to be able to build "myclang", our own "custom clang" that links in all the code needed for clang (which is almost everything).
+
 ```sh
-# bash test/test.sh <compiler-root>
-bash test/test.sh $LLVMBOX_BUILD_DIR/llvm-host
+LLVM_ROOT=path-to-llvm-installation ./myclang/build.sh
 ```
 
-### cc and c++ wrappers
+For example:
 
-There are wrapper scripts to help with testing, which invokes clang with the appropriate flags:
-
+```sh
+LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-x86_64-macos-none ./myclang/build.sh
 ```
+
+There are also wrapper scripts to help with testing, which invokes clang with the appropriate flags:
+
+```sh
 LLVM_ROOT=/dev/shm/llvm-host utils/cc test/hello.c -o test/hello_c
 LLVM_ROOT=/dev/shm/llvm-host utils/c++ test/hello.cc -o test/hello_cc
 ```
 
+Another useful utility is `utils/config` which prints compiler and linker flags. For example, it can be used to configure builds:
 
+```sh
+#!/bin/sh
+export LLVM_ROOT=$HOME/tmp/llvm-x86_64-macos-none
+MY_CXXFLAGS="$(utils/config --cxxflags)"
+MY_LDFLAGS="$(utils/config --ldflags-cxx)"
+"$LLVM_ROOT/bin/clang++" $MY_CXXFLAGS -c main.cc -o main.o
+"$LLVM_ROOT/bin/clang++" $MY_LDFLAGS main.o -o myprogram
+```
 
-## Current status
-
-
-- macOS 10.15 x86_64 build host: dist build FAILING
-- Ubuntu x86_64 build host: dist build FAILING
 
 
 ## Issues

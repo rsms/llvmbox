@@ -46,13 +46,10 @@ echo LLVM_LDFLAGS=${LLVM_LDFLAGS[@]}
 
 
 EXTRA_CMAKE_ARGS=()  # extra args added to cmake invocation (depending on target)
-# LLVM_RUNTIME_TARGETS=$TARGET
-# note: for darwin target,
 # LLVM_RUNTIME_TARGETS seem to conflict with LLVM_DEFAULT_TARGET_TRIPLE
 
 case "$TARGET_SYS" in
   apple|darwin|macos|ios)
-    # LLVM_RUNTIME_TARGETS=$TARGET_ARCH-apple-darwin
     EXTRA_CMAKE_ARGS+=(
       -DRUNTIMES_BUILD_ALLOW_DARWIN=ON \
       -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
@@ -61,6 +58,9 @@ case "$TARGET_SYS" in
       -DCOMPILER_RT_ENABLE_TVOS=OFF \
       -DCOMPILER_RT_ENABLE_WATCHOS=OFF \
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+      \
+      -DLLVM_BUILTIN_TARGETS=default \
+      -DLLVM_RUNTIME_TARGETS=default \
       \
       -DLIBUNWIND_ENABLE_SHARED=OFF \
       -DLIBUNWIND_USE_COMPILER_RT=ON \

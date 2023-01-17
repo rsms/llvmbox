@@ -1,5 +1,7 @@
 #!/bin/bash
-set -e ; source "$(dirname "$0")/config.sh"
+set -e
+source "$(dirname "$0")/config.sh"
+source "$(dirname "$0")/config-target-env.sh"
 
 _fetch_source_tar \
   https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz \
@@ -7,13 +9,10 @@ _fetch_source_tar \
 
 _pushd "$ZSTD_SRC"
 
-if [ "$HOST_SYS" = "Darwin" ]; then
-  CFLAGS="$CFLAGS -mmacosx-version-min=10.10"
-  LDFLAGS="$LDFLAGS -mmacosx-version-min=10.10"
-fi
-
-CFLAGS="$CFLAGS -O2" \
-LDFLAGS="$LDFLAGS" \
+CC=$HOST_CC \
+LD=$HOST_LD \
+CFLAGS="${TARGET_CFLAGS[@]} -O2" \
+LDFLAGS="${TARGET_LDFLAGS[@]}" \
 make ZSTD_LIB_MINIFY=1 prefix= -j$(nproc) lib-mt
 
 rm -rf "$ZSTD_DESTDIR"

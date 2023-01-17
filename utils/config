@@ -1,0 +1,95 @@
+#!/bin/bash
+set -e
+_err() { echo "$0:" "$@" >&2; exit 1; }
+
+TARGET_SYS=$(uname -s)
+TARGET_ARCH=$(uname -m)
+
+
+_c_and_cxx_flags() {
+  case "$TARGET_SYS" in
+    Darwin)
+      [ -d /Library/Developer/CommandLineTools/SDKs ] ||
+        _err "missing /Library/Developer/CommandLineTools/SDKs; try running: xcode-select --install"
+      MACOS_SDK=$(
+        /bin/ls -d /Library/Developer/CommandLineTools/SDKs/MacOSX1*.sdk |
+        sort -V | head -n1)
+      [ -d "$MACOS_SDK" ] ||
+        _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
+      printf "%s '%s'" -isystem "$MACOS_SDK/usr/include"
+      printf "%s " -Wno-nullability-completeness
+      printf "%s " -DTARGET_OS_EMBEDDED=0
+      printf "%s " -DTARGET_OS_IPHONE=0
+      ;;
+  esac
+}
+
+
+_cflags() {
+  # nothing else, for now
+  _c_and_cxx_flags
+}
+
+
+_cxxflags() {
+  _c_and_cxx_flags
+  printf "%s " -nostdinc++
+  printf "%s '%s' " -isystem "$LLVM_ROOT/include/c++/v1"
+  printf "%s'%s' " -I "$LLVM_ROOT/include/c++/v1"
+  # on linux, a c++ __config_site header is placed in a subdirectory
+  # "include/HOST_TRIPLE/c++/v1/__config_site"
+  # e.g. include/x86_64-unknown-linux-gnu/c++/v1/__config_site
+  [ "$TARGET_SYS" = Linux -a "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" ] &&
+    printf "%s'%s' " -I "$(echo "$LLVM_ROOT/include/$TARGET_ARCH-"*)/c++/v1" || true
+}
+
+
+_ldflags() {
+  printf "%s " -fuse-ld=lld
+  printf "%s " -L"$LLVM_ROOT/lib"
+}
+
+
+_ldflags_cxx() {
+  _ldflags
+  printf "%s " -nostdlib++
+  printf "%s " -lc++
+  [ "$TARGET_SYS" = Linux -a "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" ] &&
+    printf "%s'%s' " -L "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" || true
+}
+
+
+CMDS=()
+
+
+while [ $# -gt 0 ]; do case "$1" in
+  -h|--help) cat << EOF
+usage: $0 [options]
+options:
+  --cflags           C compiler flags
+  --cxxflags         C++ compiler flags
+  --ldflags          Print linker flags for C targets
+  --ldflags-cxx      Print linker flags for C++ targets
+  --llvm-root=<dir>  Path to llvm (so that clang is found at <dir>/bin/clang)
+EOF
+    exit ;;
+  --cflags)      CMDS+=( cflags ); shift ;;
+  --cxxflags)    CMDS+=( cxxflags ); shift ;;
+  --ldflags)     CMDS+=( ldflags ); shift ;;
+  --ldflags-cxx) CMDS+=( ldflags_cxx ); shift ;;
+  --llvm-root=*) LLVM_ROOT=${1:12}; shift ;;
+  -*) _err "Unexpected option $1" ;;
+  *)  _err "Unexpected argument $1" ;;
+esac; done
+
+[ -n "$LLVM_ROOT" ] ||
+  _err "LLVM_ROOT not set in env and no --llvm-root=<dir> option provided"
+
+D=$PWD; cd "$LLVM_ROOT"; LLVM_ROOT=$PWD; cd "$D"
+
+[ ${#CMDS[@]} -gt 0 ] || _err "Expected at least one option. See $0 --help"
+
+for cmd in "${CMDS[@]}"; do
+  _$cmd
+done
+echo

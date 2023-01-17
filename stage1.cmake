@@ -155,8 +155,8 @@ endif()
 
 # Setting up the stage2 LTO option needs to be done on the stage1 build so that
 # the proper LTO library dependencies can be connected.
-# set(BOOTSTRAP_LLVM_ENABLE_LTO ON CACHE BOOL "")
-set(BOOTSTRAP_LLVM_ENABLE_LTO OFF CACHE BOOL "")
+set(BOOTSTRAP_LLVM_ENABLE_LTO ON CACHE BOOL "")
+# set(BOOTSTRAP_LLVM_ENABLE_LTO OFF CACHE BOOL "")
 
 # if (NOT APPLE)
   set(BOOTSTRAP_LLVM_ENABLE_LLD ON CACHE BOOL "")

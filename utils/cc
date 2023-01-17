@@ -12,6 +12,9 @@ CLANG=$LLVM_ROOT/bin/clang
 CFLAGS=()
 LDFLAGS=( -fuse-ld=lld "-L$LLVM_ROOT/lib" )
 
+# since we are passing LDFLAGS unconditionally...
+CFLAGS+=( -Wno-unused-command-line-argument )
+
 # c++ (note: -nostdinc++ must come first, before other -I or -isystem args)
 if [ "${0##*/}" = "c++" ]; then
   CLANG=$LLVM_ROOT/bin/clang++
@@ -22,7 +25,7 @@ if [ "${0##*/}" = "c++" ]; then
   )
   LDFLAGS+=(
     -nostdlib++ \
-    -lc++ -lc++abi \
+    -lc++ \
   )
   # on linux, a c++ __config_site header is placed in a subdirectory
   # "include/HOST_TRIPLE/c++/v1/__config_site"
