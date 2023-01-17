@@ -26,6 +26,21 @@ You should be able to build your own compiler suite by:
 
 ## Build
 
+TL;DR: (mac)
+
+```sh
+utils/macos-tmpfs.sh ~/tmp
+export LLVMBOX_BUILD_DIR=$HOME/tmp
+for f in $(echo 01*.sh | sort); do echo "———— $f ————"; bash $f; done
+for f in $(echo 02*.sh | sort); do echo "———— $f ————"; bash $f; done
+# test hello
+export LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-$(uname -m)-macos-none
+utils/c++ test/hello.cc -o test/hello_cc && test/hello_cc
+# test full-featured program linking with llvm libs
+./myclang/build.sh
+```
+
+
 Host requirements:
 
 - compiler that can build clang (e.g. gcc)
