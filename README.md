@@ -187,7 +187,7 @@ MY_LDFLAGS="$(utils/config --ldflags-cxx)"
 Testing musl with host compiler (linux only)
 
 ```
-export LLVMBOX_MUSL=$(echo $LLVMBOX_BUILD_DIR/musl-$(uname -m)-linux-*)
+export LLVMBOX_MUSL=`realpath $(echo $LLVMBOX_BUILD_DIR/musl-$(uname -m)-linux-*)`
 $LLVMBOX_BUILD_DIR/llvm-host/bin/clang \
   -isystem $LLVMBOX_MUSL/include \
   -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
