@@ -31,8 +31,7 @@ TL;DR: (mac)
 ```sh
 utils/macos-tmpfs.sh ~/tmp
 export LLVMBOX_BUILD_DIR=$HOME/tmp
-for f in $(echo 01*.sh | sort); do echo "———— $f ————"; bash $f; done
-for f in $(echo 02*.sh | sort); do echo "———— $f ————"; bash $f; done
+bash build.sh # --dryrun
 # test hello
 export LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-$(uname -m)-macos-none
 utils/c++ test/hello.cc -o test/hello_cc && test/hello_cc
@@ -58,7 +57,8 @@ Tested host systems:
 If you have a lot of RAM, it is usually much faster to build in a ramfs:
 
 - Linux: `export LLVMBOX_BUILD_DIR=/dev/shm`
-- macOS: `utils/macos-tmpfs.sh build && export LLVMBOX_BUILD_DIR=build`
+- Linux with tmpfs: `mkdir -p ~/tmp && sudo mount -t tmpfs -o size=16G tmpfs ~/tmp && export LLVMBOX_BUILD_DIR=$HOME/tmp`
+- macOS: `utils/macos-tmpfs.sh ~/tmp && export LLVMBOX_BUILD_DIR=$HOME/tmp`
 
 
 Define your build directory
@@ -144,6 +144,25 @@ For example:
 LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-x86_64-macos-none ./myclang/build.sh
 ```
 
+
+### Test host compiler
+
+After building the host compiler, you should be able to compile C++ programs:
+
+```
+$LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ test/hello.cc -o test/hello_cc
+test/hello_cc
+```
+
+The final program should be statically linked with libc++, ie. not contain any links to c++ libraries (but may contain links to shared host system libc.)
+
+```
+$LLVMBOX_BUILD_DIR/llvm-host/bin/llvm-objdump -p test/hello_cc | grep -E 'NEEDED|\.dylib'
+```
+
+
+### Test utilities
+
 There are also wrapper scripts to help with testing, which invokes clang with the appropriate flags:
 
 ```sh
@@ -160,6 +179,44 @@ MY_CXXFLAGS="$(utils/config --cxxflags)"
 MY_LDFLAGS="$(utils/config --ldflags-cxx)"
 "$LLVM_ROOT/bin/clang++" $MY_CXXFLAGS -c main.cc -o main.o
 "$LLVM_ROOT/bin/clang++" $MY_LDFLAGS main.o -o myprogram
+```
+
+
+### Testing musl
+
+Testing musl with host compiler (linux only)
+
+```
+export LLVMBOX_MUSL=$(echo $LLVMBOX_BUILD_DIR/musl-$(uname -m)-linux-*)
+$LLVMBOX_BUILD_DIR/llvm-host/bin/clang \
+  -isystem $LLVMBOX_MUSL/include \
+  -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
+  -nostdlib -L$LLVMBOX_MUSL/lib -lc \
+  test/hello.c -o test/hello_c
+test/hello_c
+# this should not print anything:
+$LLVMBOX_BUILD_DIR/llvm-host/bin/llvm-objdump -p test/hello_c | grep NEEDED
+```
+
+
+This dose _NOT_ work for C++ using the host compiler since the host compiler is likely linked with glibc, not musl. I.e:
+
+```
+$LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ \
+  -nostdinc++ -isystem $LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
+  -I$LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
+  -I$(echo $LLVMBOX_BUILD_DIR/llvm-host/include/$(uname -m)-unknown-linux-*)/c++/v1 \
+  -L$(echo $LLVMBOX_BUILD_DIR/llvm-host/lib/$(uname -m)-unknown-linux-*) \
+  -nostdlib++ -L$LLVMBOX_BUILD_DIR/llvm-host/lib \
+  -lc++ \
+  \
+  -isystem $LLVMBOX_MUSL/include \
+  -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
+  -nostdlib -L$LLVMBOX_MUSL/lib -lc \
+  test/hello.cc -o test/hello_cc
+
+LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1/__locale:572:13: error: unknown type name 'mask'
+    bool is(mask __m, char_type __c) const
 ```
 
 
@@ -189,3 +246,4 @@ Linux llvm host build _"warning: Using 'NAME' in statically linked applications 
 - https://git.alpinelinux.org/aports/tree/main/llvm-runtimes
 - https://git.alpinelinux.org/aports/tree/main/clang15
 - https://github.com/Homebrew/homebrew-core/blob/master/Formula/llvm.rb
+- [llvm-dev mailing list: "Building LLVM with LLVM with no dependence on GCC"](https://lists.llvm.org/pipermail/llvm-dev/2019-September/135199.html)

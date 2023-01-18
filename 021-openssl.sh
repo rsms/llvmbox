@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source "$(dirname "$0")/config.sh"
-source "$(dirname "$0")/config-mac.sh"
+source "$(dirname "$0")/config-target-env.sh"
 
 # xar DEPENDS_ON openssl
 
@@ -11,6 +11,10 @@ _fetch_source_tar \
 
 _pushd "$OPENSSL_SRC"
 
+CC=$HOST_CC \
+LD=$HOST_LD \
+CFLAGS="${TARGET_CFLAGS[@]}" \
+LDFLAGS="${TARGET_LDFLAGS[@]}" \
 ./config \
   --prefix=/ \
   --libdir=lib \

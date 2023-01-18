@@ -1,0 +1,89 @@
+fts.lo: fts.c config.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/param.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/resource.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/features.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/time.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/select.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/alltypes.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/resource.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/endian.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/limits.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/limits.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/stat.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/stat.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/assert.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/dirent.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/dirent.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/errno.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/errno.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/fcntl.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/fcntl.h fts.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/stdint.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/stdint.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/types.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/stdlib.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/alloca.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/string.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/strings.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/unistd.h \
+  /home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/posix.h
+
+config.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/param.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/resource.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/features.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/time.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/select.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/alltypes.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/resource.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/endian.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/limits.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/limits.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/stat.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/stat.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/assert.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/dirent.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/dirent.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/errno.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/errno.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/fcntl.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/fcntl.h:
+
+fts.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/stdint.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/stdint.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/sys/types.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/stdlib.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/alloca.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/string.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/strings.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/unistd.h:
+
+/home/rsms/tmp/musl-x86_64-linux-gnu/include/bits/posix.h:

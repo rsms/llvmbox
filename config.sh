@@ -52,7 +52,7 @@ ZLIB_DIST=${ZLIB_DIST:-$BUILD_DIR/zlib-$TARGET}
 ZSTD_VERSION=1.5.2
 ZSTD_SHA256=7c42d56fac126929a6a85dbc73ff1db2411d04f104fae9bdea51305663a83fd0
 ZSTD_SRC=${ZSTD_SRC:-$BUILD_DIR/src/zstd}
-ZSTD_DESTDIR=${ZSTD_DESTDIR:-$BUILD_DIR/zstd-$TARGET}
+ZSTD_DIST=${ZSTD_DIST:-$BUILD_DIR/zstd-$TARGET}
 
 XC_VERSION=5.2.5
 XC_SHA256=3e1e518ffc912f86608a8cb35e4bd41ad1aec210df2a47aaa1f95e7f5576ef56
@@ -69,8 +69,16 @@ LIBXML2_SHA256=5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c
 LIBXML2_SRC=${LIBXML2_SRC:-$BUILD_DIR/src/libxml2}
 LIBXML2_DESTDIR=${LIBXML2_DESTDIR:-$BUILD_DIR/libxml2-$TARGET}
 
-XAR_SRC=$PROJECT/xar
+XAR_SRC=${XAR_SRC:-$BUILD_DIR/src/xar}
 XAR_DESTDIR=${XAR_DESTDIR:-$BUILD_DIR/xar-$TARGET}
+
+MUSLFTS_SRC=${MUSLFTS_SRC:-$BUILD_DIR/src/musl-fts}
+MUSLFTS_DESTDIR=${MUSLFTS_DESTDIR:-$BUILD_DIR/musl-fts-$TARGET}
+
+MUSL_VERSION=1.2.3
+MUSL_SHA256=7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4
+MUSL_SRC=${MUSL_SRC:-$BUILD_DIR/src/musl}
+MUSL_DESTDIR=${MUSL_DESTDIR:-$BUILD_DIR/musl-$TARGET}
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
@@ -83,6 +91,15 @@ HOST_AR="$LLVM_HOST/bin/llvm-ar"
 HOST_RANLIB="$LLVM_HOST/bin/llvm-ranlib"
 
 [ -z "$CC" ] && command -v clang >/dev/null && export CC=clang
+
+# set MACOS_SDK
+case "$TARGET_SYS" in
+  apple|darwin|macos|ios)
+    MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
+    [ -d "$MACOS_SDK" ] ||
+      _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
+  ;;
+esac
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
@@ -107,7 +124,12 @@ _popd() {
 
 _array_join() { # <gluechar> <element> ...
   local IFS="$1"; shift; echo "$*"
-};
+}
+
+_relpath() { # <path>
+  local f="${1/$HOME\//~/}"
+  echo "${f##$PWD0/}"
+}
 
 _sha256_test() { # <file> <sha256>
   [ "$(sha256sum "$1" | cut -d' ' -f1)" = "$2" ] || return 1

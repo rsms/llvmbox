@@ -11,6 +11,8 @@ TARGET_RC=$HOST_RC
 TARGET_AR=$HOST_AR
 TARGET_RANLIB=$HOST_RANLIB
 
+export PATH=$LLVM_HOST/bin:$PATH
+
 # case "$TARGET_SYS" in
 #   linux) TARGET_LLD=$LLVM_HOST/bin/ld.lld ;;
 #   macos) TARGET_LLD=$LLVM_HOST/bin/ld64.lld ;;
@@ -18,11 +20,13 @@ TARGET_RANLIB=$HOST_RANLIB
 
 TARGET_CFLAGS=(
   --target="$TARGET" \
+  -Wno-unused-command-line-argument \
 )
 TARGET_LDFLAGS=(
   -fuse-ld=lld \
-  -L"$LLVM_HOST"/lib \
 )
+TARGET_EXE_LDFLAGS=()
+TARGET_ARFLAGS=()
 
 TARGET_CXXFLAGS=(
   -nostdinc++ \
@@ -31,7 +35,8 @@ TARGET_CXXFLAGS=(
 )
 TARGET_CXX_LDFLAGS=(
   -nostdlib++ \
-  -lc++ \
+  -L"$LLVM_HOST"/lib \
+  -lc++ -lc++abi -lunwind \
 )
 
 # note: for dylib linking to work, set '-Wl,-rpath,"$LLVM_HOST/lib"' in LDFLAGS
@@ -49,9 +54,6 @@ TARGET_CXX_LDFLAGS=(
 
 
 case "$TARGET_SYS" in
-  linux)
-    TARGET_LDFLAGS=( -static "${TARGET_LDFLAGS[@]}" )
-    ;;
   apple|darwin|macos|ios)
     [ -d /Library/Developer/CommandLineTools/SDKs ] ||
       _err "missing /Library/Developer/CommandLineTools/SDKs; try running: xcode-select --install"
@@ -60,6 +62,7 @@ case "$TARGET_SYS" in
       sort -V | head -n1)
     [ -d "$MACOS_SDK" ] ||
       _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
+    MACOS_SYSROOT=$MACOS_SDK
     TARGET_CFLAGS+=(
       -isystem "$MACOS_SDK/usr/include" \
       -Wno-nullability-completeness \
@@ -69,6 +72,31 @@ case "$TARGET_SYS" in
     )
     TARGET_LDFLAGS+=( \
       -mmacosx-version-min=10.10 \
+    )
+    ;;
+  linux)
+    TARGET_LDFLAGS=( \
+      -static \
+      -nostdlib \
+      -nodefaultlibs \
+      -nostartfiles \
+      $LLVMBOX_MUSL/lib/crt1.o \
+      -L$LLVMBOX_MUSL/lib -lc \
+      "${TARGET_LDFLAGS[@]}" \
+    )
+    # musl startfiles:
+    #   crt1.o  [exe]position-dependent _start
+    #   Scrt1.o [exe] position-Independent _start
+    #   crti.o  [exe, shlib] function prologs for the .init and .fini sections
+    #   crtn.o  [exe, shlib] function epilogs for the .init/.fini sections
+    #   note: musl has no crt0
+    #   linking order: crt1 crti [-L paths] [objects] [C libs] crtn
+    TARGET_EXE_LDFLAGS+=( $LLVMBOX_MUSL/lib/crt1.o )
+    TARGET_CFLAGS=( \
+      -nostdinc \
+      -nostdlib \
+      -isystem $LLVMBOX_MUSL/include \
+      "${TARGET_CFLAGS[@]}" \
     )
     ;;
 esac

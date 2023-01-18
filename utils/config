@@ -16,7 +16,7 @@ _c_and_cxx_flags() {
         sort -V | head -n1)
       [ -d "$MACOS_SDK" ] ||
         _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
-      printf "%s '%s'" -isystem "$MACOS_SDK/usr/include"
+      printf "%s %s " -isystem "$MACOS_SDK/usr/include"
       printf "%s " -Wno-nullability-completeness
       printf "%s " -DTARGET_OS_EMBEDDED=0
       printf "%s " -DTARGET_OS_IPHONE=0
@@ -34,19 +34,18 @@ _cflags() {
 _cxxflags() {
   _c_and_cxx_flags
   printf "%s " -nostdinc++
-  printf "%s '%s' " -isystem "$LLVM_ROOT/include/c++/v1"
-  printf "%s'%s' " -I "$LLVM_ROOT/include/c++/v1"
+  printf "%s %s " -isystem "$LLVM_ROOT/include/c++/v1"
+  printf "%s%s " -I "$LLVM_ROOT/include/c++/v1"
   # on linux, a c++ __config_site header is placed in a subdirectory
   # "include/HOST_TRIPLE/c++/v1/__config_site"
   # e.g. include/x86_64-unknown-linux-gnu/c++/v1/__config_site
   [ "$TARGET_SYS" = Linux -a "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" ] &&
-    printf "%s'%s' " -I "$(echo "$LLVM_ROOT/include/$TARGET_ARCH-"*)/c++/v1" || true
+    printf "%s%s " -I "$(echo "$LLVM_ROOT/include/$TARGET_ARCH-"*)/c++/v1" || true
 }
 
 
 _ldflags() {
   printf "%s " -fuse-ld=lld
-  printf "%s " -L"$LLVM_ROOT/lib"
 }
 
 
@@ -54,8 +53,9 @@ _ldflags_cxx() {
   _ldflags
   printf "%s " -nostdlib++
   printf "%s " -lc++
+  printf "%s " -L"$LLVM_ROOT/lib"
   [ "$TARGET_SYS" = Linux -a "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" ] &&
-    printf "%s'%s' " -L "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" || true
+    printf "%s%s " -L "$(echo "$LLVM_ROOT/lib/$TARGET_ARCH-"*)" || true
 }
 
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source "$(dirname "$0")/config.sh"
-source "$(dirname "$0")/config-mac.sh"
+source "$(dirname "$0")/config-target-env.sh"
 
 # xar     DEPENDS_ON libxml2
 # libxml2 DEPENDS_ON zlib
@@ -18,6 +18,10 @@ rm -f test/icu_parse_test.xml  # we don't build libxml2 with icu
 
 # note: need to use --prefix instead of DESTDIR during install
 # for xml2-config to function properly
+CC=$HOST_CC \
+LD=$HOST_LD \
+CFLAGS="${TARGET_CFLAGS[@]}" \
+LDFLAGS="${TARGET_LDFLAGS[@]}" \
 ./configure \
   "--prefix=$LIBXML2_DESTDIR" \
   --enable-static \

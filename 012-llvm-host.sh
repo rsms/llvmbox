@@ -30,6 +30,7 @@ _pushd "$BUILD_DIR/llvm-host-build"
 
 CMAKE_C_FLAGS=( -w -I"$ZLIB_HOST/include" )
 CMAKE_LD_FLAGS=( -L"$ZLIB_HOST/lib" )
+EXTRA_CMAKE_EXE_LINKER_FLAGS=()
 
 case "$(${CC:-cc} --version || true)" in
   *'Free Software Foundation'*) # GCC
@@ -39,16 +40,28 @@ case "$(${CC:-cc} --version || true)" in
 esac
 
 CMAKE_ARGS=()
-if [ "$HOST_SYS" = "Darwin" ]; then
-  CMAKE_ARGS+=( \
-    -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
-  )
-  LLVM_HOST_COMPONENTS+=( llvm-libtool-darwin )
-fi
+case "$HOST_SYS" in
+  Darwin)
+    CMAKE_ARGS+=( \
+      -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
+    )
+    LLVM_HOST_COMPONENTS+=( llvm-libtool-darwin )
+    EXTRA_CMAKE_ARGS+=( \
+      -DCMAKE_SYSROOT=$MACOS_SDK \
+      -DCMAKE_OSX_SYSROOT=$MACOS_SDK \
+      -DDEFAULT_SYSROOT=$MACOS_SDK \
+    )
+    ;;
+  linux)
+    CMAKE_C_FLAGS+=( -fPIC )
+    EXTRA_CMAKE_EXE_LINKER_FLAGS+=( -static )
+    # EXTRA_CMAKE_ARGS+=( -DLLVM_ENABLE_LLD=ON )
+esac
 
 CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]}"
 CMAKE_LD_FLAGS="${CMAKE_LD_FLAGS[@]}"
+EXTRA_CMAKE_EXE_LINKER_FLAGS="${EXTRA_CMAKE_EXE_LINKER_FLAGS[@]}"
 
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCMAKE_BUILD_TYPE=Release \
@@ -57,11 +70,11 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   \
   -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
-  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
+  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS $EXTRA_CMAKE_EXE_LINKER_FLAGS" \
   -DCMAKE_SHARED_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   -DCMAKE_MODULE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   \
-  -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;WebAssembly;X86" \
+  -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;X86" \
   -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
   -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
   -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${LLVM_HOST_COMPONENTS[@]}")" \
@@ -89,11 +102,26 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCLANG_ENABLE_OBJC_REWRITER=OFF \
   -DCLANG_ENABLE_ARCMT=OFF \
   -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
-  -DLIBCLANG_BUILD_STATIC=ON \
+  -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
+  -DCLANG_DEFAULT_RTLIB=compiler-rt \
+  -DCLANG_DEFAULT_UNWINDLIB=libunwind \
+  -DCLANG_DEFAULT_LINKER=lld \
+  -DCLANG_DEFAULT_OBJCOPY=llvm-objcopy \
+  -DCLANG_PLUGIN_SUPPORT=OFF \
   \
+  -DLIBCXX_ENABLE_STATIC=ON \
   -DLIBCXX_ENABLE_SHARED=OFF \
   -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
+  -DLIBCXX_ENABLE_EXPERIMENTAL_LIBRARY=OFF \
+  -DLIBCXX_ENABLE_RTTI=OFF \
+  -DLIBCXX_ENABLE_EXCEPTIONS=ON \
+  -DLIBCXX_INCLUDE_TESTS=OFF \
+  -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
   -DLIBCXX_LINK_TESTS_WITH_SHARED_LIBCXX=OFF \
+  -DLIBCXX_CXX_ABI=libcxxabi \
+  -DLIBCXX_ABI_VERSION=1 \
+  -DLIBCXX_USE_COMPILER_RT=ON \
+  \
   -DLIBCXXABI_ENABLE_SHARED=OFF \
   -DLIBCXXABI_INCLUDE_TESTS=OFF \
   -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
@@ -128,12 +156,9 @@ ninja \
   install-compiler-rt \
   install-llvm-objcopy \
   install-llvm-tblgen \
-  install-llvm-libraries \
-  install-llvm-headers \
-  install-libclang \
-  install-clang-libraries \
-  install-clang-headers
+  install-cxxabi
 
 cp -a bin/clang-tblgen "$LLVM_HOST/bin/clang-tblgen"
+ln -s llvm-objcopy "$LLVM_HOST/bin/llvm-strip"
 
 echo "$LLVM_RELEASE" > "$LLVM_HOST/version"
