@@ -11,3 +11,6 @@ Call Stack (most recent call first):
   cmake/config-ix.cmake:411 (include)
   CMakeLists.txt:776 (include)
 ```
+
+(Chris)
+Building clang on alpine, very helpful example https://github.com/boxdot/alpine-clang/blob/master/build.sh
