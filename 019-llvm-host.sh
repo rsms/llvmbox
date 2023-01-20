@@ -31,6 +31,7 @@ _pushd "$BUILD_DIR/llvm-host-build"
 CMAKE_C_FLAGS=( -w -I"$ZLIB_HOST/include" )
 CMAKE_LD_FLAGS=( -L"$ZLIB_HOST/lib" )
 EXTRA_CMAKE_EXE_LINKER_FLAGS=()
+EXTRA_CMAKE_ARGS=()
 
 case "$(${CC:-cc} --version || true)" in
   *'Free Software Foundation'*) # GCC
@@ -39,24 +40,40 @@ case "$(${CC:-cc} --version || true)" in
     ;;
 esac
 
-CMAKE_ARGS=()
 case "$HOST_SYS" in
   Darwin)
-    CMAKE_ARGS+=( \
-      -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
-    )
     LLVM_HOST_COMPONENTS+=( llvm-libtool-darwin )
     EXTRA_CMAKE_ARGS+=( \
+      -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
       -DCMAKE_SYSROOT=$MACOS_SDK \
       -DCMAKE_OSX_SYSROOT=$MACOS_SDK \
       -DDEFAULT_SYSROOT=$MACOS_SDK \
     )
     ;;
-  linux)
+  Linux)
     CMAKE_C_FLAGS+=( -fPIC )
-    EXTRA_CMAKE_EXE_LINKER_FLAGS+=( -static )
+    # EXTRA_CMAKE_EXE_LINKER_FLAGS+=( -static )
     # EXTRA_CMAKE_ARGS+=( -DLLVM_ENABLE_LLD=ON )
+    # # musl-host
+    # EXTRA_CMAKE_ARGS+=( \
+    #   -DLLVM_DEFAULT_TARGET_TRIPLE=$TARGET_ARCH-linux-musl \
+    # )
+    # CMAKE_C_FLAGS+=( \
+    #   -nostdinc \
+    #   -nostdlib \
+    #   -ffreestanding \
+    #   -isystem $MUSL_HOST/include \
+    # )
+    # CMAKE_LD_FLAGS+=( \
+    #   -static \
+    #   -nostdlib \
+    #   -nodefaultlibs \
+    #   -nostartfiles \
+    #   -L$MUSL_HOST/lib -lc -lm \
+    # )
+    # EXTRA_CMAKE_EXE_LINKER_FLAGS+=( $MUSL_HOST/lib/crt1.o )
+    ;;
 esac
 
 CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]}"
@@ -83,6 +100,9 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_ENABLE_LIBXML2=OFF \
   -DLLVM_ENABLE_TERMINFO=OFF \
+  -DLLVM_ENABLE_EH=OFF \
+  -DLLVM_ENABLE_RTTI=OFF \
+  -DLLVM_ENABLE_FFI=OFF \
   -DLLVM_INCLUDE_UTILS=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \
   -DLLVM_INCLUDE_GO_TESTS=OFF \
@@ -135,7 +155,7 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
   -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
   \
-  "${CMAKE_ARGS[@]}"
+  "${EXTRA_CMAKE_ARGS[@]}"
 
 # echo "building libc++ ..."
 # # ninja cxx cxxabi

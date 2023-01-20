@@ -25,7 +25,6 @@ TARGET_CFLAGS=(
 TARGET_LDFLAGS=(
   -fuse-ld=lld \
 )
-TARGET_EXE_LDFLAGS=()
 TARGET_ARFLAGS=()
 
 TARGET_CXXFLAGS=(
@@ -55,14 +54,9 @@ TARGET_CXX_LDFLAGS=(
 
 case "$TARGET_SYS" in
   apple|darwin|macos|ios)
-    [ -d /Library/Developer/CommandLineTools/SDKs ] ||
-      _err "missing /Library/Developer/CommandLineTools/SDKs; try running: xcode-select --install"
-    MACOS_SDK=$(
-      /bin/ls -d /Library/Developer/CommandLineTools/SDKs/MacOSX1*.sdk |
-      sort -V | head -n1)
+    MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
     [ -d "$MACOS_SDK" ] ||
-      _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
-    MACOS_SYSROOT=$MACOS_SDK
+      _err "macos sdk not found ($MACOS_SDK); try running: xcode-select --install"
     TARGET_CFLAGS+=(
       -isystem "$MACOS_SDK/usr/include" \
       -Wno-nullability-completeness \
@@ -75,13 +69,19 @@ case "$TARGET_SYS" in
     )
     ;;
   linux)
+    TARGET_CFLAGS=( \
+      -nostdinc \
+      -nostdlib \
+      -isystem $MUSL_DESTDIR/include \
+      "${TARGET_CFLAGS[@]}" \
+    )
     TARGET_LDFLAGS=( \
       -static \
       -nostdlib \
       -nodefaultlibs \
       -nostartfiles \
-      $LLVMBOX_MUSL/lib/crt1.o \
-      -L$LLVMBOX_MUSL/lib -lc \
+      $MUSL_DESTDIR/lib/crt1.o \
+      -L$MUSL_DESTDIR/lib -lc \
       "${TARGET_LDFLAGS[@]}" \
     )
     # musl startfiles:
@@ -91,13 +91,6 @@ case "$TARGET_SYS" in
     #   crtn.o  [exe, shlib] function epilogs for the .init/.fini sections
     #   note: musl has no crt0
     #   linking order: crt1 crti [-L paths] [objects] [C libs] crtn
-    TARGET_EXE_LDFLAGS+=( $LLVMBOX_MUSL/lib/crt1.o )
-    TARGET_CFLAGS=( \
-      -nostdinc \
-      -nostdlib \
-      -isystem $LLVMBOX_MUSL/include \
-      "${TARGET_CFLAGS[@]}" \
-    )
     ;;
 esac
 

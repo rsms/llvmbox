@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 PWD0=${PWD0:-$PWD}
+SELF_SCRIPT=$(realpath "$0")
 cd "$(dirname "$0")"
 PROJECT=$(realpath "$PWD/..")
 
@@ -42,11 +43,12 @@ LDFLAGS=(
   $("$LLVM_ROOT"/bin/llvm-config --link-static --libfiles "${LLVM_COMPONENTS[@]}") \
   "$LLVM_ROOT"/lib/libclang*.a \
   "$LLVM_ROOT"/lib/liblld*.a \
-  "$LLVM_ROOT"/lib/libz.a \
 )
+# LDFLAGS+=( "$LLVM_ROOT"/lib/libz.a )
+LDFLAGS+=( $HOME/tmp/stage2-zlib/lib/libz.a ) # FIXME TODO
 
 for f in "${SOURCES[@]}"; do
-  [ "$f" -nt "$f.o" ] || continue
+  [ "$f" -nt "$f.o" -o "$SELF_SCRIPT" -nt "$f.o" ] || continue
   if [[ "$f" == *.cc ]]; then
     echo "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $f.o $f
          "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $f.o $f

@@ -247,3 +247,5 @@ Linux llvm host build _"warning: Using 'NAME' in statically linked applications 
 - https://git.alpinelinux.org/aports/tree/main/clang15
 - https://github.com/Homebrew/homebrew-core/blob/master/Formula/llvm.rb
 - [llvm-dev mailing list: "Building LLVM with LLVM with no dependence on GCC"](https://lists.llvm.org/pipermail/llvm-dev/2019-September/135199.html)
+- https://libc.llvm.org/full_host_build.html
+

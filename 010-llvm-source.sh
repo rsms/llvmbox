@@ -12,3 +12,11 @@ else
 fi
 
 _fetch_source_tar "$LLVM_SRC_URL" "$LLVM_SHA256" "$LLVM_SRC"
+
+_pushd "$LLVM_SRC"
+
+for f in $(echo "$PROJECT"/llvm-$LLVM_RELEASE-*.patch | sort); do
+  [ -e "$f" ] || _err "no patches found at $PROJECT/llvm-$LLVM_RELEASE-*.patch"
+  [ -f "$f" ] || _err "$f is not a file"
+  patch -p1 < "$f"
+done

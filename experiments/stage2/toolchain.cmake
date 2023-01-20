@@ -17,7 +17,7 @@ endif()
 set(HOST_PLATFORM "${HOST_OS}-${HOST_CPU}")
 
 if(NOT LLVMBOX_SOURCE_DIR)
-  get_filename_component(LLVMBOX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
+  get_filename_component(LLVMBOX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
   # message("LLVMBOX_SOURCE_DIR=${LLVMBOX_SOURCE_DIR}")
 endif()
 
@@ -36,8 +36,6 @@ if(NOT CLANG_PREFIX)
   endif()
   # message("CLANG_PREFIX=${CLANG_PREFIX}")
 endif()
-
-set(GOMA_DIR "${LLVMBOX_SOURCE_DIR}/prebuilt/third_party/goma/${HOST_PLATFORM}")
 
 if(NOT CLANG_TARGET)
   exec_program("${CLANG_PREFIX}/clang" ARGS --version OUTPUT_VARIABLE CLANG_VERSION)
@@ -121,9 +119,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 # if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-#   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
-#   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
-#   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
+#   # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
+#   # set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
+#   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--thinlto-jobs=2")
+#   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 # endif()
 
 # set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})

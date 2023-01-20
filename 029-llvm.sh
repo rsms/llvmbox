@@ -4,9 +4,16 @@ source "$(dirname "$0")/config.sh"
 source "$(dirname "$0")/config-target-env.sh"
 
 # useful documentation
+#   https://llvm.org/docs/CMake.html
 #   https://llvm.org/docs/HowToCrossCompileLLVM.html#hacks
 #   https://libcxx.llvm.org/BuildingLibcxx.html
 #   https://libcxx.llvm.org/UsingLibcxx.html#alternate-libcxx
+#
+# LLVM_STATIC_LINK_CXX_STDLIB:BOOL
+#   Statically link to the C++ standard library if possible. This uses the flag
+#   "-static-libstdc++", but a Clang host compiler will statically link to libc++ if
+#   used in conjunction with the LLVM_ENABLE_LIBCXX flag.
+#
 
 LLVM_DIST_COMPONENTS=(
   dsymutil \
@@ -84,7 +91,7 @@ else
 fi
 
 case "$TARGET_SYS" in
-  apple|darwin|macos|ios)
+  darwin|apple|macos|ios)
     # note: LLVM_RUNTIME_TARGETS seem to conflict with LLVM_DEFAULT_TARGET_TRIPLE
     EXTRA_CMAKE_ARGS+=(
       -DRUNTIMES_BUILD_ALLOW_DARWIN=ON \
@@ -232,7 +239,6 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DENABLE_X86_RELAX_RELOCATIONS=ON \
   \
   "${EXTRA_CMAKE_ARGS[@]}"
-
 
 ninja
 rm -rf "$LLVM_DIST" ; mkdir -p "$LLVM_DIST"
