@@ -26,51 +26,42 @@ You should be able to build your own compiler suite by:
 
 ## Build
 
-TL;DR: (mac)
+TL;DR:
 
 ```sh
-utils/macos-tmpfs.sh ~/tmp
 export LLVMBOX_BUILD_DIR=$HOME/tmp
-bash build.sh # --dryrun
-# test hello
-export LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-$(uname -m)-macos-none
-utils/c++ test/hello.cc -o test/hello_cc && test/hello_cc
-# test full-featured program linking with llvm libs
-./myclang/build.sh
-```
+utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
 
-TL;DR: (linux)
+# build stage1 compiler
+bash 010-llvm-source-stage1.sh &&
+bash 010-zlib-stage1.sh &&
+bash 019-llvm-stage1.sh
 
-```
-mkdir -p ~/tmp
-sudo mount -t tmpfs -o size=16G tmpfs ~/tmp
-export LLVMBOX_BUILD_DIR=$HOME/tmp
-
-# build stage 1
-bash 009-gcc-musl.sh &&
-bash 010-llvm-source.sh &&
-bash 010-zlib-host.sh &&
-bash 019-llvm-host.sh
-
-# test host compiler
-utils/musl-clang -v -static test/hello.c -o test/hello_c_musl
-
-# build deps for stage 2
-bash 020-sysroot.sh
-bash 021-linux-headers.sh
+# build sysroot (some scripts are no-op on non-linux)
+bash 020-sysroot.sh &&
+bash 021-linux-headers.sh &&
 bash 022-musl-libc.sh
-bash 023-musl-fts.sh
-bash 023-xc.sh
-bash 023-zlib.sh
-bash 023-zstd.sh
-bash 024-libxml2.sh
+
+# test stage1 compiler
+bash 023-test-llvm-stage1.sh
+
+# build packages for stage2 in sysroot
+bash 023-musl-fts.sh &&
+bash 023-xc.sh &&
+bash 023-zlib.sh &&
+bash 023-zstd.sh &&
+bash 024-libxml2.sh &&
 bash 025-xar.sh
 
-# build stage 2
+# build stage2 compiler
+bash 030-llvm-source-stage2.sh
 bash 050-llvm-stage2.sh
 
-# test
+# test stage2 compiler
 bash 090-test-hello.sh
+
+# test full-featured program linking with llvm libs
+./myclang/build.sh
 ```
 
 Host requirements:
