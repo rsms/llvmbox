@@ -72,13 +72,21 @@ LIBXML2_DESTDIR=${LIBXML2_DESTDIR:-$BUILD_DIR/libxml2-$TARGET}
 XAR_SRC=${XAR_SRC:-$BUILD_DIR/src/xar}
 XAR_DESTDIR=${XAR_DESTDIR:-$BUILD_DIR/xar-$TARGET}
 
+LINUX_VERSION=6.1.7
+LINUX_SHA256=4ab048bad2e7380d3b827f1fad5ad2d2fc4f2e80e1c604d85d1f8781debe600f
+LINUX_SRC=${LINUX_SRC:-$BUILD_DIR/src/linux}
+LINUX_HEADERS_DESTDIR=${LINUX_HEADERS_DESTDIR:-$BUILD_DIR/linux-${LINUX_VERSION}-headers}
+
 MUSLFTS_SRC=${MUSLFTS_SRC:-$BUILD_DIR/src/musl-fts}
 MUSLFTS_DESTDIR=${MUSLFTS_DESTDIR:-$BUILD_DIR/musl-fts-$TARGET}
 
 MUSL_VERSION=1.2.3
 MUSL_SHA256=7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4
 MUSL_SRC=${MUSL_SRC:-$BUILD_DIR/src/musl}
+MUSL_HOST=${MUSL_HOST:-$BUILD_DIR/musl-host}
 MUSL_DESTDIR=${MUSL_DESTDIR:-$BUILD_DIR/musl-$TARGET}
+
+GCC_MUSL=${GCC_MUSL:-$BUILD_DIR/gcc-musl}
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
@@ -131,35 +139,50 @@ _relpath() { # <path>
   echo "${f##$PWD0/}"
 }
 
-_sha256_test() { # <file> <sha256>
-  [ "$(sha256sum "$1" | cut -d' ' -f1)" = "$2" ] || return 1
+_sha_test() { # <file> [<sha256> | <sha512>]
+  local file=$1 ; local expect=$2
+  [ -f "$file" ] || return 1
+  case "${#expect}" in
+    128) kind=512; actual=$(sha512sum "$file" | cut -d' ' -f1) ;;
+    64)  kind=256; actual=$(sha256sum "$file" | cut -d' ' -f1) ;;
+    *)   _err "checksum $expect has incorrect length (not sha256 nor sha512)" ;;
+  esac
+  [ "$actual" = "$actual" ] || return 1
 }
 
-_sha256_verify() { # <file> <sha256>
+_sha_verify() { # <file> [<sha256> | <sha512>]
   local file=$1
-  local expected_sha256=$2
-  local actual_sha256=$(sha256sum "$file" | cut -d' ' -f1)
-  if [ "$actual_sha256" != "$expected_sha256" ]; then
-    echo "$file: SHA-256 sum mismatch:" >&2
-    echo "  actual:   $actual_sha256" >&2
-    echo "  expected: $expected_sha256" >&2
+  local expect=$2
+  local actual=
+  case "${#expect}" in
+    128) kind=512; actual=$(sha512sum "$file" | cut -d' ' -f1) ;;
+    64)  kind=256; actual=$(sha256sum "$file" | cut -d' ' -f1) ;;
+    *)   _err "checksum $expect has incorrect length (not sha256 nor sha512)" ;;
+  esac
+  if [ "$actual" != "$expect" ]; then
+    echo "$file: SHA-$kind sum mismatch:" >&2
+    echo "  actual:   $actual" >&2
+    echo "  expected: $expect" >&2
     return 1
   fi
 }
 
-_download() { # <url> <outfile> [<sha256>]
-  local url=$1
-  local outfile=$2
-  local sha256=$3
-  if [ -f "$outfile" ] && ([ -z "$sha256" ] || _sha256_test "$outfile" "$sha256"); then
-    return 0
-  fi
+_download_nocache() { # <url> <outfile> [<sha256> | <sha512>]
+  local url=$1 ; local outfile=$2 ; local checksum=$3
   rm -f "$outfile"
   echo "${outfile##$PWD0/}: fetch $url"
   command -v wget >/dev/null &&
     wget -q --show-progress -O "$outfile" "$url" ||
     curl -L '-#' -o "$outfile" "$url"
-  [ -z "$sha256" ] || _sha256_verify "$outfile" "$sha256"
+  [ -z "$checksum" ] || _sha_verify "$outfile" "$checksum"
+}
+
+_download() { # <url> <outfile> [<sha256> | <sha512>]
+  local url=$1 ; local outfile=$2 ; local checksum=$3
+  if [ -f "$outfile" -a -z "$checksum" ] || _sha_test "$outfile" "$checksum"; then
+    return 0
+  fi
+  _download_nocache "$url" "$outfile" "$checksum"
 }
 
 _extract_tar() { # <file> <outdir>
@@ -183,20 +206,14 @@ _extract_tar() { # <file> <outdir>
   rm -rf "$extract_dir"
 }
 
-_fetch_source_tar() { # <url> <sha256> <outdir>
-  [ $# -eq 3 ] || _err "_fetch_source_tar ($#)"
+_fetch_source_tar() { # <url> [<sha256> | <sha512>] <outdir> [<tarfile>]
+  [ $# -gt 2 ] || _err "_fetch_source_tar ($#)"
   local url=$1
-  local sha256=$2
+  local checksum=$2
   local outdir=$3
-  local tarfile=$DOWNLOAD_DIR/$(basename "$url")
-  local stampfile=$tarfile.sha256
-  if [ "$(cat "$stampfile" 2>/dev/null)" = "$sha256" ]; then
-    echo "${outdir##$PWD0/}: up-to-date"
-  else
-    _download    "$url" "$tarfile" "$sha256"
-    _extract_tar "$tarfile" "$outdir"
-    echo "$sha256" > "$outdir/_download_tar_source.sha256"
-  fi
+  local tarfile=${4:-$DOWNLOAD_DIR/$(basename "$url")}
+  _download    "$url" "$tarfile" "$checksum"
+  _extract_tar "$tarfile" "$outdir"
 }
 
 _print_exe_links() { # <exefile>

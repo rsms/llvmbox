@@ -15,7 +15,7 @@ CC=$HOST_CC \
 LD=$HOST_LD \
 AR=$HOST_AR \
 RANLIB=$HOST_RANLIB \
-CFLAGS="${TARGET_CFLAGS[@]}" \
+CFLAGS="${TARGET_CFLAGS[@]} -I$LINUX_HEADERS_DESTDIR/include" \
 LDFLAGS="${TARGET_LDFLAGS[@]}" \
 ./configure --target=$TARGET --disable-shared --prefix="$MUSL_DESTDIR"
 

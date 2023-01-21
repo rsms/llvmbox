@@ -1,0 +1,104 @@
+#!/bin/bash
+set -e
+source "$(dirname "$0")/config.sh"
+source "$(dirname "$0")/config-target-env.sh"
+
+# see https://libcxx.llvm.org/BuildingLibcxx.html
+
+EXTRA_CMAKE_ARGS=()  # extra args added to cmake invocation (depending on target)
+
+CMAKE_C_COMPILER="$TARGET_CC"
+CMAKE_CXX_COMPILER="$TARGET_CXX"
+CMAKE_ASM_COMPILER="$TARGET_ASM"
+
+CMAKE_C_FLAGS=()
+CMAKE_CXX_FLAGS=()
+CMAKE_STATIC_LINKER_FLAGS=() # passed to ar, not ld
+CMAKE_EXE_LINKER_FLAGS=()
+CMAKE_SHARED_LINKER_FLAGS=()
+COMMON_LDFLAGS=() # extra for CMAKE_{EXE,SHARED}_LINKER_FLAGS
+
+case "$TARGET_SYS" in
+  linux)
+    CMAKE_C_FLAGS+=( -fPIC )
+    CMAKE_CXX_FLAGS+=( -fPIC )
+    EXTRA_CMAKE_ARGS+=( \
+      -DLIBCXX_HAS_GCC_S_LIB=OFF \
+    )
+    # musl-host
+    EXTRA_CMAKE_ARGS+=( \
+      -DLLVM_DEFAULT_TARGET_TRIPLE=$TARGET_ARCH-linux-musl \
+    )
+    CMAKE_C_FLAGS+=( \
+      -nostdinc \
+      -nostdlib \
+      -isystem $MUSL_HOST/include \
+      -I$LINUX_HEADERS_DESTDIR/include \
+      -I$LLVM_HOST/lib/clang/$LLVM_RELEASE/include \
+    )
+    COMMON_LDFLAGS+=( \
+      -static \
+      -nostdlib \
+      -nodefaultlibs \
+      -nostartfiles \
+      -L$MUSL_HOST/lib -lc -lm \
+    )
+    CMAKE_EXE_LINKER_FLAGS+=( $MUSL_HOST/lib/crt1.o )
+    ;;
+esac
+
+# bake flags
+CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]}"
+CMAKE_CXX_FLAGS="${CMAKE_C_FLAGS[@]} ${CMAKE_CXX_FLAGS[@]}"
+CMAKE_STATIC_LINKER_FLAGS="${CMAKE_STATIC_LINKER_FLAGS[@]}" # ar, not ld
+CMAKE_EXE_LINKER_FLAGS="${COMMON_LDFLAGS[@]} ${CMAKE_EXE_LINKER_FLAGS[@]}"
+CMAKE_SHARED_LINKER_FLAGS="${COMMON_LDFLAGS[@]} ${CMAKE_SHARED_LINKER_FLAGS[@]}"
+
+mkdir -p "$BUILD_DIR/llvm-runtimes-build"
+_pushd "$BUILD_DIR/llvm-runtimes-build"
+
+LLVM_RUNTIMES_DESTDIR=$BUILD_DIR/llvm-runtimes
+
+
+cmake -G Ninja -Wno-dev "$LLVM_SRC/runtimes" \
+  -DCMAKE_BUILD_TYPE=MinSizeRel \
+  -DCMAKE_SYSTEM_NAME="$TARGET_CMAKE_SYSTEM_NAME" \
+  -DCMAKE_INSTALL_PREFIX="$LLVM_RUNTIMES_DESTDIR" \
+  -DCMAKE_PREFIX_PATH="$LLVM_RUNTIMES_DESTDIR" \
+  \
+  -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" \
+  -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" \
+  -DCMAKE_ASM_COMPILER="$CMAKE_ASM_COMPILER" \
+  -DCMAKE_AR="$TARGET_AR" \
+  -DCMAKE_RANLIB="$TARGET_RANLIB" \
+  \
+  -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
+  -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" \
+  -DCMAKE_STATIC_LINKER_FLAGS="$CMAKE_STATIC_LINKER_FLAGS" \
+  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_EXE_LINKER_FLAGS" \
+  -DCMAKE_SHARED_LINKER_FLAGS="$CMAKE_SHARED_LINKER_FLAGS" \
+  -DCMAKE_MODULE_LINKER_FLAGS="$CMAKE_SHARED_LINKER_FLAGS" \
+  \
+  -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+  \
+  -DLIBCXX_ENABLE_STATIC=ON \
+  -DLIBCXX_ENABLE_SHARED=OFF \
+  -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
+  -DLIBCXX_ENABLE_RTTI=OFF \
+  -DLIBCXX_ENABLE_EXCEPTIONS=OFF \
+  -DLIBCXX_INCLUDE_TESTS=OFF \
+  -DLIBCXX_INCLUDE_BENCHMARKS=OFF \
+  \
+  -DLIBCXXABI_ENABLE_SHARED=OFF \
+  -DLIBCXXABI_INCLUDE_TESTS=OFF \
+  -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
+  \
+  -DLIBUNWIND_ENABLE_SHARED=OFF \
+  -DLIBUNWIND_USE_COMPILER_RT=ON \
+  -DLIBUNWIND_ENABLE_STATIC=ON \
+  \
+  "${EXTRA_CMAKE_ARGS[@]}"
+
+ninja cxx cxxabi unwind
+# ninja check-cxx check-cxxabi check-unwind
+ninja install-cxx install-cxxabi install-unwind

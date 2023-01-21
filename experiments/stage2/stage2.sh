@@ -1,57 +1,108 @@
-# ————————————————————————————————————————————————————————————————————————————————————
-# build llvm host compiler (stage2)
-#
-# this works on ubuntu, but not mac
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+STAGE2_PROJECT=$PWD
+cd ../..
+source config.sh
 
-LLVM_STAGE2=$BUILD_DIR/llvm-stage2
-LLVM_STAGE2_BUILD=$LLVM_STAGE2/build
+[ -d "$LLVM_HOST" ] || _err "llvm-host must be built before running this script"
 
-if [ ! -x "$LLVM_STAGE2/bin/clang" ] ||
-   [ "$PROJECT/stage1.cmake" -nt "$LLVM_STAGE2/bin/clang" ] ||
-   [ "$PROJECT/stage2.cmake" -nt "$LLVM_STAGE2/bin/clang" ]
-then
-  if [ "$PROJECT/stage1.cmake" -nt "$LLVM_STAGE2/bin/clang" ] ||
-     [ "$PROJECT/stage2.cmake" -nt "$LLVM_STAGE2/bin/clang" ]
-  then
-    rm -rf "$LLVM_STAGE2_BUILD"
+LLVM_DESTDIR=${LLVM_DESTDIR:-$BUILD_DIR/llvm2}
+
+CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
+case $CMAKE_SYSTEM_NAME in
+  apple|macos|darwin) CMAKE_SYSTEM_NAME="Darwin";;
+  freebsd)            CMAKE_SYSTEM_NAME="FreeBSD";;
+  windows)            CMAKE_SYSTEM_NAME="Windows";;
+  linux)              CMAKE_SYSTEM_NAME="Linux";;
+  native)             CMAKE_SYSTEM_NAME="";;
+esac
+
+LLVM_STAGE2_BUILD_DIR=${LLVM_STAGE2_BUILD_DIR:-$BUILD_DIR/llvm-stage2}
+mkdir -p "$LLVM_STAGE2_BUILD_DIR"
+_pushd "$LLVM_STAGE2_BUILD_DIR"
+
+cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
+  -C "$STAGE2_PROJECT/stage1.cmake" \
+  -DCMAKE_TOOLCHAIN_FILE=$STAGE2_PROJECT/toolchain.cmake \
+  -DCMAKE_SYSTEM_NAME="$CMAKE_SYSTEM_NAME" \
+  -DCMAKE_C_FLAGS="-w" \
+  -DCMAKE_CXX_FLAGS="-w" \
+  -DCMAKE_INSTALL_PREFIX= \
+  -DCLANG_PREFIX="$LLVM_HOST/bin" \
+  -DLLVMBOX_BUILD_DIR="$BUILD_DIR"
+
+ninja \
+  stage2-distribution \
+  llvm-libraries \
+  clang-libraries
+
+rm -rf "$LLVM_DESTDIR"
+mkdir -p "$LLVM_DESTDIR"
+DESTDIR=${LLVM_DESTDIR} ninja \
+  stage2-install-distribution-stripped \
+  install-llvm-libraries \
+  install-clang-libraries \
+  liblldCOFF.a \
+  liblldCommon.a \
+  liblldELF.a \
+  liblldMachO.a \
+  liblldMinGW.a \
+  liblldWasm.a \
+
+# install extras not installed by stage2-install-distribution
+# lib/*.a
+error=
+for f in \
+  tools/clang/stage2-bins/bin/llvm-tblgen \
+  tools/clang/stage2-bins/bin/llvm-config \
+  tools/clang/stage2-bins/bin/clang-tblgen \
+  tools/clang/stage2-bins/lib/liblld*.a \
+  tools/clang/stage2-bins/lib/libLLVMWebAssembly*.a \
+;do
+  dst=$(basename "$(dirname "$f")")/$(basename "$f") # e.g. /a/b/c/d => c/d
+  if [ ! -e "$f" ]; then
+    echo "MISSING: $PWD/$f" >&2
+    error=1
+    continue
   fi
-  mkdir -p "$LLVM_STAGE2_BUILD"
-  _pushd "$LLVM_STAGE2_BUILD"
+  if [ -e "$LLVM_DESTDIR/$dst" ]; then
+    echo "SKIP DUPLICATE $LLVM_DESTDIR/$dst"
+    continue
+  fi
+  echo "install $LLVM_DESTDIR/$dst"
+  cp -a $f "$LLVM_DESTDIR/$dst" &
+done
+wait
+[ -z "$error" ] || exit 1
 
-  STAGE1_CMAKE_C_FLAGS="-w"
-  # note: -w silences warnings (nothing we can do about those)
-  # -fcompare-debug-second silences "note: ..." in GCC.
-  case "$(${CC:-cc} --version || true)" in
-    *'Free Software Foundation'*) # GCC
-      STAGE1_CMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS -fcompare-debug-second"
-      STAGE1_CMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS -Wno-misleading-indentation"
-      ;;
-  esac
+for f in \
+  lib/libLLVMOrcShared.a \
+  lib/libLLVMOrcTargetProcess.a \
+  lib/libLLVMRuntimeDyld.a \
+  lib/libLLVMExecutionEngine.a \
+  lib/libLLVMInterpreter.a \
+  lib/libLLVMMCA.a \
+  lib/libLLVMX86TargetMCA.a \
+  lib/libLLVMJITLink.a \
+  lib/libLLVMOrcJIT.a \
+  lib/libLLVMMCJIT.a \
+;do
+  [ -e "$LLVM_DESTDIR/$f" ] || _err "$LLVM_DESTDIR/$f: missing"
+  echo "$LLVM_DESTDIR/$f: ok"
+done
 
-  echo "cmake ... ($PWD/cmake-config.log)"
-  cmake -G Ninja "$LLVM_SRC/llvm" \
-    -C "$PROJECT/stage1.cmake" \
-    -DCMAKE_C_FLAGS="$STAGE1_CMAKE_C_FLAGS" \
-    -DCMAKE_CXX_FLAGS="$STAGE1_CMAKE_C_FLAGS" \
-    -DCMAKE_INSTALL_PREFIX="$LLVM_STAGE2" \
-    -DCMAKE_PREFIX_PATH="$LLVM_STAGE2" \
-    > cmake-config.log ||
-    _err "cmake failed. See $PWD/cmake-config.log"
-
-  echo ninja stage2-distribution
-  ninja stage2-distribution
-
-  echo ninja stage2-install-distribution
-  ninja stage2-install-distribution
-
-  cp -a "$LLVM_STAGE2_BUILD"/bin/llvm-{ar,ranlib,tblgen} "$LLVM_STAGE2"/bin
-  cp -a "$LLVM_STAGE2_BUILD"/bin/clang-tblgen            "$LLVM_STAGE2"/bin
-
-  cp -a "$LLVM_STAGE2_BUILD"/bin/lld   "$LLVM_STAGE2"/bin
-  ln -fs "$LLVM_STAGE2_BUILD"/bin/lld  "$LLVM_STAGE2"/bin/ld64.lld
-  ln -fs "$LLVM_STAGE2_BUILD"/bin/lld  "$LLVM_STAGE2"/bin/ld.lld
-
-  touch "$LLVM_STAGE2/bin/clang"
-
-  _popd
-fi
+# TODO: (when _DIST & _DESTDIR paths are correct)
+# # copy-merge dependencies into llvm root
+# for lib in \
+#   "$ZLIB_DIST" \
+#   "$ZSTD_DIST" \
+#   "$XC_DESTDIR" \
+#   "$OPENSSL_DESTDIR" \
+#   "$LIBXML2_DESTDIR" \
+#   "$XAR_DESTDIR"
+# do
+#   [ -d "$lib" ] || continue
+#   echo "install-lib $lib -> $LLVM_DIST"
+#   rsync -au "$lib/" "$LLVM_DIST/"
+# done
