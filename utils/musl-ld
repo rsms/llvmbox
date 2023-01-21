@@ -1,0 +1,54 @@
+#!/bin/sh
+# based on musl/tools/ld.musl-clang.in
+set -eu
+cc="$LLVMBOX_LLVM_HOST/bin/clang"
+arch=${LLVMBOX_SYSROOT##*/}; arch=${arch%%-*} # e.g. x86_64-linux-musl, x86_64
+ldso="$LLVMBOX_SYSROOT/lib/ld-musl-$arch.so.1"
+# ldso="$LLVMBOX_SYSROOT/lib/libc.so"
+cleared=
+shared=
+userlinkdir=
+userlink=
+
+for x ; do
+    test "$cleared" || set -- ; cleared=1
+
+    case "$x" in
+        -L-user-start)
+            userlinkdir=1
+            ;;
+        -L-user-end)
+            userlinkdir=
+            ;;
+        -L*)
+            test "$userlinkdir" && set -- "$@" "$x"
+            ;;
+        -l-user-start)
+            userlink=1
+            ;;
+        -l-user-end)
+            userlink=
+            ;;
+        crtbegin*.o|crtend*.o)
+            set -- "$@" $($cc -print-file-name=$x)
+            ;;
+        -lgcc|-lgcc_eh)
+            file=lib${x#-l}.a
+            set -- "$@" $($cc -print-file-name=$file)
+            ;;
+        -l*)
+            test "$userlink" && set -- "$@" "$x"
+            ;;
+        -shared)
+            shared=1
+            set -- "$@" -shared
+            ;;
+        -sysroot=*|--sysroot=*)
+            ;;
+        *)
+            set -- "$@" "$x"
+            ;;
+    esac
+done
+
+exec $($cc -print-prog-name=ld) -nostdlib "$@" -lc -dynamic-linker "$ldso"

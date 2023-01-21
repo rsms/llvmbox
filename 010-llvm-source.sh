@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e ; source "$(dirname "$0")/config.sh"
+set -euo pipefail
+source "$(dirname "$0")/config.sh"
 
 LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive
 
@@ -15,8 +16,13 @@ _fetch_source_tar "$LLVM_SRC_URL" "$LLVM_SHA256" "$LLVM_SRC"
 
 _pushd "$LLVM_SRC"
 
-for f in $(echo "$PROJECT"/llvm-$LLVM_RELEASE-*.patch | sort); do
-  [ -e "$f" ] || _err "no patches found at $PROJECT/llvm-$LLVM_RELEASE-*.patch"
-  [ -f "$f" ] || _err "$f is not a file"
+for f in $(echo "$PROJECT"/patches/llvm-$LLVM_RELEASE-*.patch | sort); do
+  [ -e "$f" ] || _err "no patches found at $f"
+  patch -p1 < "$f"
+done
+
+# linux patches adopted from https://git.alpinelinux.org/aports/tree/main/llvm-runtimes
+for f in $(echo "$PROJECT"/patches/$TARGET_SYS-llvm-$LLVM_RELEASE-*.patch | sort); do
+  [ -e "$f" ] || continue
   patch -p1 < "$f"
 done

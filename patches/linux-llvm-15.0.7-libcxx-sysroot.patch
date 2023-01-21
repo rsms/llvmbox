@@ -1,0 +1,29 @@
+Set sysroot for libcxx
+
+--- a/libcxx/CMakeLists.txt  2023-01-20 17:09:34.197956961 -0800
++++ b/libcxx/CMakeLists.txt  2023-01-20 17:09:17.941544478 -0800
+@@ -454,8 +454,8 @@
+ # LIBCXX_COMPILE_FLAGS: Compile only flags.
+ # LIBCXX_LINK_FLAGS: Linker only flags.
+ # LIBCXX_LIBRARIES: libraries libc++ is linked to.
+-set(LIBCXX_COMPILE_FLAGS "")
+-set(LIBCXX_LINK_FLAGS "")
++set(LIBCXX_COMPILE_FLAGS "--sysroot=$ENV{LLVMBOX_SYSROOT}")
++set(LIBCXX_LINK_FLAGS "--sysroot=$ENV{LLVMBOX_SYSROOT}")
+ set(LIBCXX_LIBRARIES "")
+
+ # Include macros for adding and removing libc++ flags.
+
+--- a/libcxxabi/CMakeLists.txt  2023-01-20 16:51:18.305311769 -0800
++++ b/libcxxabi/CMakeLists.txt  2023-01-20 17:07:50.127324192 -0800
+@@ -225,8 +225,8 @@
+
+ set(LIBCXXABI_C_FLAGS "")
+ set(LIBCXXABI_CXX_FLAGS "")
+-set(LIBCXXABI_COMPILE_FLAGS "")
+-set(LIBCXXABI_LINK_FLAGS "")
++set(LIBCXXABI_COMPILE_FLAGS "--sysroot=$ENV{LLVMBOX_SYSROOT}")
++set(LIBCXXABI_LINK_FLAGS "--sysroot=$ENV{LLVMBOX_SYSROOT}")
+ set(LIBCXXABI_LIBRARIES "")
+
+ # Include macros for adding and removing libc++abi flags.

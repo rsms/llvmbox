@@ -1,0 +1,39 @@
+#!/bin/sh
+# based on musl/tools/musl-clang.in
+# see https://clang.llvm.org/docs/ClangCommandLineReference.html
+set -eu
+thisdir="`cd "$(dirname "$0")"; pwd`"
+
+# prevent clang from running the linker (and erroring) on no input.
+sflags=
+eflags=
+for x ; do
+  case "$x" in
+    -l*) input=1 ;;
+    *) input= ;;
+  esac
+  if test "$input" ; then
+    sflags="-l-user-start"
+    eflags="-l-user-end"
+    break
+  fi
+done
+
+# note: must set rtlib explicitly
+# even though llvm-host is compiled with CLANG_DEFAULT_RTLIB=compiler-rt
+
+set -x
+exec "$LLVMBOX_LLVM_HOST/bin/clang" \
+  -Wno-unused-command-line-argument \
+  -B"$LLVMBOX_LLVM_HOST/bin" \
+  -fuse-ld=lld \
+  --rtlib=compiler-rt \
+  -nostdinc \
+  --sysroot "$LLVMBOX_SYSROOT" \
+  -isystem "$LLVMBOX_SYSROOT/include" \
+  -L-user-start \
+  $sflags \
+  "$@" \
+  $eflags \
+  -L"$LLVMBOX_SYSROOT/lib" \
+  -L-user-end

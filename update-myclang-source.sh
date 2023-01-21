@@ -9,7 +9,7 @@ cp -v "$LLVM_SRC"/clang/tools/driver/driver.cpp     myclang/driver.cc
 cp -v "$LLVM_SRC"/clang/tools/driver/cc1_main.cpp   myclang/driver_cc1_main.cc
 cp -v "$LLVM_SRC"/clang/tools/driver/cc1as_main.cpp myclang/driver_cc1as_main.cc
 
-for f in $(echo myclang-$LLVM_RELEASE-*.patch | sort); do
+for f in $(echo patches/myclang-$LLVM_RELEASE-*.patch | sort); do
   [ -e "$f" ] || _err "no patches found at $PROJECT/llvm-$LLVM_RELEASE-*.patch"
   [ -f "$f" ] || _err "$f is not a file"
   if ! patch -p0 < "$f"; then
