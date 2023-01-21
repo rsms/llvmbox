@@ -2,7 +2,9 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-LLVM_HOST_COMPONENTS=(
+LLVM_SRC="$LLVM_SRC_STAGE1"
+
+LLVM_STAGE1_COMPONENTS=(
   dsymutil \
   llvm-ar \
   llvm-config \
@@ -20,26 +22,16 @@ LLVM_HOST_COMPONENTS=(
   runtimes \
 )
 
-mkdir -p "$BUILD_DIR/llvm-host-build"
-_pushd "$BUILD_DIR/llvm-host-build"
+mkdir -p "$BUILD_DIR/llvm-stage1-build"
+_pushd "$BUILD_DIR/llvm-stage1-build"
 
-ZLIB=$BUILD_DIR/stage1-zlib
-CMAKE_C_FLAGS=( -w -I"$ZLIB/include" )
-CMAKE_LD_FLAGS=( -L"$ZLIB/lib" )
-
-EXTRA_CMAKE_EXE_LINKER_FLAGS=()
+CMAKE_C_FLAGS=( -w -I"$ZLIB_STAGE1/include" )
+CMAKE_LD_FLAGS=( -L"$ZLIB_STAGE1/lib" )
 EXTRA_CMAKE_ARGS=()
-
-case "$(${CC:-cc} --version || true)" in
-  *'Free Software Foundation'*) # GCC
-    # -fcompare-debug-second silences "note: ..." in GCC
-    CMAKE_C_FLAGS+=( -fcompare-debug-second -Wno-misleading-indentation )
-    ;;
-esac
 
 case "$HOST_SYS" in
   Darwin)
-    LLVM_HOST_COMPONENTS+=( llvm-libtool-darwin )
+    LLVM_STAGE1_COMPONENTS+=( llvm-libtool-darwin )
     EXTRA_CMAKE_ARGS+=( \
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
       -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
@@ -49,41 +41,39 @@ case "$HOST_SYS" in
     )
     ;;
   Linux)
-    CMAKE_C_FLAGS+=(
-      -fPIC \
-      --sysroot="$OUT_DIR/gcc-musl" \
-    )
-    CMAKE_LD_FLAGS+=(
-      --sysroot="$OUT_DIR/gcc-musl" \
+    # -fcompare-debug-second silences "note: ..." in GCC
+    [[ "$STAGE1_CC" == *"gcc" ]] && CMAKE_C_FLAGS+=(
+      -fcompare-debug-second -Wno-misleading-indentation \
     )
     EXTRA_CMAKE_ARGS+=(
-      -DCMAKE_SYSROOT="$OUT_DIR/gcc-musl" \
-      -DCMAKE_FIND_ROOT_PATH="$OUT_DIR/gcc-musl" \
-      -DLIBCXX_HAS_MUSL_LIBC=ON \
       -DLIBUNWIND_HAS_NODEFAULTLIBS_FLAG=OFF \
-      -DLLVM_DEFAULT_TARGET_TRIPLE=$HOST_ARCH-linux-musl \
       -DCOMPILER_RT_BUILD_MEMPROF=OFF \
+      -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
     )
+    # -D_GLIBCXX_USE_CXX11_ABI=1
+
+    # EXTRA_CMAKE_ARGS+=( -DLLVM_DEFAULT_TARGET_TRIPLE=$HOST_ARCH-linux-musl )
+    #
+    # COMPILER_RT_USE_BUILTINS_LIBRARY
+    #   Use compiler-rt builtins instead of libgcc.
+    #   Must be OFF during stage 1 since we don't have builtins_* yet.
+    #   Test is in llvm/compiler-rt/cmake/Modules/AddCompilerRT.cmake:285
     # COMPILER_RT_BUILD_MEMPROF=OFF
     #   if left enabled, the memprof cmake will try to unconditionally create a shared
     #   lib which will fail with errors like "undefined reference to '_Unwind_GetIP'".
     ;;
 esac
 
-CMAKE_C_FLAGS="$STAGE1_CFLAGS ${CMAKE_C_FLAGS[@]}"
-CMAKE_LD_FLAGS="$STAGE1_LDFLAGS ${CMAKE_LD_FLAGS[@]}"
+CMAKE_C_FLAGS="$STAGE1_CFLAGS ${CMAKE_C_FLAGS[@]:-}"
+CMAKE_LD_FLAGS="$STAGE1_LDFLAGS ${CMAKE_LD_FLAGS[@]:-}"
 
-if [ -n "${EXTRA_CMAKE_EXE_LINKER_FLAGS:-}" ]; then
-  EXTRA_CMAKE_EXE_LINKER_FLAGS="${EXTRA_CMAKE_EXE_LINKER_FLAGS[@]}"
-else
-  EXTRA_CMAKE_EXE_LINKER_FLAGS=
-fi
+# try: build libcxx;libcxxabi;libunwind as projects instead of runtimes
+# -DCMAKE_SYSTEM_NAME="$TARGET_CMAKE_SYSTEM_NAME"
 
-LLVMBOX_SYSROOT=$OUT_DIR/gcc-musl \
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DCMAKE_INSTALL_PREFIX="$LLVM_HOST" \
-  -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$LLVM_STAGE1" \
+  -DCMAKE_PREFIX_PATH="$LLVM_STAGE1" \
   \
   -DCMAKE_C_COMPILER="$STAGE1_CC" \
   -DCMAKE_CXX_COMPILER="$STAGE1_CXX" \
@@ -94,16 +84,14 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   \
   -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
-  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS $EXTRA_CMAKE_EXE_LINKER_FLAGS" \
+  -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   -DCMAKE_SHARED_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   -DCMAKE_MODULE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
   \
-  -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Mips;RISCV;X86" \
+  -DLLVM_TARGETS_TO_BUILD=Native \
   -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
   -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
-  -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${LLVM_HOST_COMPONENTS[@]}")" \
-  -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
-  -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${LLVM_STAGE1_COMPONENTS[@]}")" \
   -DLLVM_ENABLE_MODULES=OFF \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_ENABLE_LIBXML2=OFF \
@@ -121,10 +109,13 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
   -DLLVM_ENABLE_Z3_SOLVER=OFF \
   -DLLVM_INCLUDE_DOCS=OFF \
+  -DLLVM_BUILD_LLVM_DYLIB=OFF \
+  -DLLVM_BUILD_LLVM_C_DYLIB=OFF \
+  -DLLVM_ENABLE_PIC=OFF \
   \
   -DLLVM_ENABLE_ZLIB=1 \
-  -DZLIB_LIBRARY="$ZLIB/lib/libz.a" \
-  -DZLIB_INCLUDE_DIR="$ZLIB/include" \
+  -DZLIB_LIBRARY="$ZLIB_STAGE1/lib/libz.a" \
+  -DZLIB_INCLUDE_DIR="$ZLIB_STAGE1/include" \
   \
   -DLLVM_ENABLE_ZSTD=OFF \
   \
@@ -165,34 +156,34 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCOMPILER_RT_BUILD_GWP_ASAN=OFF \
   -DSANITIZER_USE_STATIC_CXX_ABI=ON \
   -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
-  -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
   \
-  "${EXTRA_CMAKE_ARGS[@]}"
+  "${EXTRA_CMAKE_ARGS[@]:-}"
 
-# -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON  works on macos, not ubuntu
-  # -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON
+# note: the "distribution" target builds LLVM_DISTRIBUTION_COMPONENTS
+ninja -j$NCPU \
+  distribution \
+  lld \
+  builtins \
+  compiler-rt \
+  llvm-objcopy \
+  llvm-tblgen \
+  llvm-libraries \
+  llvm-headers \
+  cxxabi
 
-ninja distribution
-# note: the "distribution" target builds only LLVM_DISTRIBUTION_COMPONENTS
+rm -rf "$LLVM_STAGE1"
+mkdir -p "$LLVM_STAGE1"
 
-rm -rf "$LLVM_HOST"
-mkdir -p "$LLVM_HOST"
+ninja -j$NCPU \
+  install-distribution-stripped \
+  install-lld-stripped \
+  install-builtins-stripped \
+  install-compiler-rt-stripped \
+  install-llvm-objcopy-stripped \
+  install-llvm-tblgen-stripped \
+  install-llvm-libraries-stripped \
+  install-llvm-headers \
+  install-cxxabi-stripped
 
-ninja \
-  install-distribution \
-  install-lld \
-  install-builtins \
-  install-compiler-rt \
-  install-llvm-objcopy \
-  install-llvm-tblgen \
-  install-cxxabi
-
-# TODO: consider installing *-stripped targets instead
-
-cp -a bin/clang-tblgen "$LLVM_HOST/bin/clang-tblgen"
-ln -s llvm-objcopy "$LLVM_HOST/bin/llvm-strip"
-
-# _pushd $PROJECT
-# set -x
-# utils/musl-clang -v -static test/hello.c -o test/hello_c_musl
-# test/hello_c_musl
+cp -a bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
+ln -fs llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"

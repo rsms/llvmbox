@@ -265,6 +265,40 @@ Linux llvm host build _"warning: Using 'NAME' in statically linked applications 
 
 
 
+## Dev notes
+
+### Navigating cmake
+
+ack is useful for looking around for cmake stuff, e.g.
+
+    ack --type=cmake '\bCOMPILER_RT_USE_' ~/tmp/src/llvm
+
+
+### Core dumps on Ubuntu
+
+Enable saving of core dumps on ubuntu:
+
+```sh
+sudo systemctl enable apport.service
+sudo service apport start
+mkdir -p ~/.config/apport
+cat << END >> ~/.config/apport/settings
+[main]
+unpackaged=true
+END
+```
+
+Now, when a process crashes:
+
+```sh
+rm -rf /tmp/crash && mkdir /tmp/crash
+apport-unpack /var/crash/_path_to_program.1000.crash /tmp/crash
+ls -l /tmp/crash
+(cd /tmp/crash && tar czf ../some-core-dump.tar.gz .)
+```
+
+
+
 ## Useful resources
 
 - https://llvm.org/docs/HowToCrossCompileLLVM.html#hacks
