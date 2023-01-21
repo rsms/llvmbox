@@ -39,6 +39,39 @@ utils/c++ test/hello.cc -o test/hello_cc && test/hello_cc
 ./myclang/build.sh
 ```
 
+TL;DR: (linux)
+
+```
+mkdir -p ~/tmp
+sudo mount -t tmpfs -o size=16G tmpfs ~/tmp
+export LLVMBOX_BUILD_DIR=$HOME/tmp
+
+# build stage 1
+bash 009-gcc-musl.sh &&
+bash 010-llvm-source.sh &&
+bash 010-zlib-host.sh &&
+bash 019-llvm-host.sh
+
+# test host compiler
+utils/musl-clang -v -static test/hello.c -o test/hello_c_musl
+
+# build deps for stage 2
+bash 020-sysroot.sh
+bash 021-linux-headers.sh
+bash 022-musl-libc.sh
+bash 023-musl-fts.sh
+bash 023-xc.sh
+bash 023-zlib.sh
+bash 023-zstd.sh
+bash 024-libxml2.sh
+bash 025-xar.sh
+
+# build stage 2
+bash 050-llvm-stage2.sh
+
+# test
+bash 090-test-hello.sh
+```
 
 Host requirements:
 

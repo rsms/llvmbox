@@ -81,7 +81,7 @@ fi
 
 LLVMBOX_SYSROOT=$OUT_DIR/gcc-musl \
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
-  -DCMAKE_BUILD_TYPE=MinSizeRel \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_INSTALL_PREFIX="$LLVM_HOST" \
   -DCMAKE_PREFIX_PATH="$LLVM_HOST" \
   \
