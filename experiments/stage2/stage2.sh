@@ -1,13 +1,13 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 cd "$(dirname "$0")"
 STAGE2_PROJECT=$PWD
 cd ../..
+LLVMBOX_PROJECT=$PWD  # remove when moving this script to srcroot
 source config.sh
 
-[ -d "$LLVM_HOST" ] || _err "llvm-host must be built before running this script"
-
-LLVM_DESTDIR=${LLVM_DESTDIR:-$BUILD_DIR/llvm2}
+[ -d "$LLVM_HOST" ] ||
+  _err "llvm-host must be built before running this script (LLVM_HOST=$LLVM_HOST)"
 
 CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
 case $CMAKE_SYSTEM_NAME in
@@ -22,6 +22,9 @@ LLVM_STAGE2_BUILD_DIR=${LLVM_STAGE2_BUILD_DIR:-$BUILD_DIR/llvm-stage2}
 mkdir -p "$LLVM_STAGE2_BUILD_DIR"
 _pushd "$LLVM_STAGE2_BUILD_DIR"
 
+LLVMBOX_BUILD_DIR=$LLVMBOX_BUILD_DIR \
+LLVMBOX_SYSROOT=$LLVMBOX_SYSROOT \
+LLVM_HOST=$LLVM_HOST \
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -C "$STAGE2_PROJECT/stage1.cmake" \
   -DCMAKE_TOOLCHAIN_FILE=$STAGE2_PROJECT/toolchain.cmake \
@@ -35,14 +38,16 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
 ninja \
   stage2-distribution \
   llvm-libraries \
-  clang-libraries
+  clang-libraries \
+  clang-resource-headers \
 
-rm -rf "$LLVM_DESTDIR"
-mkdir -p "$LLVM_DESTDIR"
-DESTDIR=${LLVM_DESTDIR} ninja \
+DESTDIR=$LLVMBOX_SYSROOT ninja \
   stage2-install-distribution-stripped \
   install-llvm-libraries \
   install-clang-libraries \
+  install-clang-resource-headers \
+  install-builtins \
+  install-compiler-rt \
   liblldCOFF.a \
   liblldCommon.a \
   liblldELF.a \
@@ -50,12 +55,18 @@ DESTDIR=${LLVM_DESTDIR} ninja \
   liblldMinGW.a \
   liblldWasm.a \
 
+# move lib/TARGET/ files to lib/
+LIB_FOR_TARGET="$(echo "$LLVMBOX_SYSROOT"/lib/$TARGET_ARCH-*linux-*)"
+if [ -d "$LIB_FOR_TARGET" ]; then
+  mv "$LIB_FOR_TARGET"/*.* "$LLVMBOX_SYSROOT/lib/"
+  rmdir "$LIB_FOR_TARGET" # rmdir instead of "rm -rf" so we get an error if non-empty
+fi
+
 # install extras not installed by stage2-install-distribution
-# lib/*.a
+# TODO: consider: tools/clang/stage2-bins/lib/clang/15.0.7/include/*.h + dirs
 error=
 for f in \
   tools/clang/stage2-bins/bin/llvm-tblgen \
-  tools/clang/stage2-bins/bin/llvm-config \
   tools/clang/stage2-bins/bin/clang-tblgen \
   tools/clang/stage2-bins/lib/liblld*.a \
   tools/clang/stage2-bins/lib/libLLVMWebAssembly*.a \
@@ -66,17 +77,19 @@ for f in \
     error=1
     continue
   fi
-  if [ -e "$LLVM_DESTDIR/$dst" ]; then
-    echo "SKIP DUPLICATE $LLVM_DESTDIR/$dst"
+  if [ -e "$LLVMBOX_SYSROOT/$dst" ]; then
+    echo "SKIP DUPLICATE $LLVMBOX_SYSROOT/$dst"
     continue
   fi
-  echo "install $LLVM_DESTDIR/$dst"
-  cp -a $f "$LLVM_DESTDIR/$dst" &
+  echo "install $LLVMBOX_SYSROOT/$dst"
+  cp -a $f "$LLVMBOX_SYSROOT/$dst" &
 done
 wait
 [ -z "$error" ] || exit 1
 
+# verify that required components were installed
 for f in \
+  bin/llvm-config \
   lib/libLLVMOrcShared.a \
   lib/libLLVMOrcTargetProcess.a \
   lib/libLLVMRuntimeDyld.a \
@@ -88,8 +101,8 @@ for f in \
   lib/libLLVMOrcJIT.a \
   lib/libLLVMMCJIT.a \
 ;do
-  [ -e "$LLVM_DESTDIR/$f" ] || _err "$LLVM_DESTDIR/$f: missing"
-  echo "$LLVM_DESTDIR/$f: ok"
+  [ -e "$LLVMBOX_SYSROOT/$f" ] || _err "$LLVMBOX_SYSROOT/$f: missing"
+  echo "$LLVMBOX_SYSROOT/$f: ok"
 done
 
 # TODO: (when _DIST & _DESTDIR paths are correct)
@@ -103,6 +116,6 @@ done
 #   "$XAR_DESTDIR"
 # do
 #   [ -d "$lib" ] || continue
-#   echo "install-lib $lib -> $LLVM_DIST"
-#   rsync -au "$lib/" "$LLVM_DIST/"
+#   echo "install-lib $lib -> $LLVMBOX_SYSROOT"
+#   rsync -au "$lib/" "$LLVMBOX_SYSROOT/"
 # done

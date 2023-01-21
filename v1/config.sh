@@ -12,42 +12,36 @@
 set -e
 _err() { echo "$0:" "$@" >&2; exit 1; }
 PWD0=${PWD0:-$PWD}
-[ -n "${LLVMBOX_BUILD_DIR:-}" ] || _err "LLVMBOX_BUILD_DIR is not set in env"
+[ -n "$LLVMBOX_BUILD_DIR" ] || _err "LLVMBOX_BUILD_DIR is not set in env"
 
-PROJECT=${LLVMBOX_PROJECT:-$(realpath "$(dirname "$0")")}
+PROJECT=$(realpath "$(dirname "$0")")
 BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
 DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
-OUT_DIR=$(realpath "${LLVMBOX_OUT_DIR:-$PROJECT/out}")
 mkdir -p "$DOWNLOAD_DIR" "$BUILD_DIR"
 # ————————————————————————————————————————————————————————————————————————————————————
 
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
 
-TARGET=${LLVMBOX_TARGET:-}  # e.g. x86_64-macos-none, aarch64-linux-musl
+TARGET=$LLVMBOX_TARGET  # e.g. x86_64-macos-none, aarch64-linux-gnu
 if [ -z "$TARGET" ]; then
   case "$HOST_SYS" in
     Darwin) TARGET=$HOST_ARCH-macos-none ;;
-    Linux)  TARGET=$HOST_ARCH-linux-musl ;;
+    Linux)  TARGET=$HOST_ARCH-linux-gnu ;;
     *)      _err "couldn't guess TARGET from $HOST_SYS"
   esac
 fi
-TARGET_SYS_AND_ABI=${TARGET#*-}     # e.g. linux-musl
+TARGET_SYS_AND_ABI=${TARGET#*-} # e.g. linux-musl
 TARGET_SYS=${TARGET_SYS_AND_ABI%-*} # e.g. linux
-TARGET_ARCH=${TARGET%%-*}           # e.g. x86_64
+TARGET_ARCH=${TARGET%%-*} # e.g. x86_64
 
 # ————————————————————————————————————————————————————————————————————————————————————
-
-LLVMBOX_SYSROOT_BASE=${LLVMBOX_SYSROOT_BASE:-$OUT_DIR/sysroot}
-LLVMBOX_SYSROOT=${LLVMBOX_SYSROOT:-$LLVMBOX_SYSROOT_BASE/$TARGET}
-export LLVMBOX_SYSROOT
 
 LLVM_RELEASE=15.0.7
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
 LLVM_SRC=${LLVM_SRC:-$BUILD_DIR/src/llvm}
-LLVM_HOST=${LLVM_HOST:-$OUT_DIR/llvm-host}
-LLVM_DESTDIR=${LLVM_DESTDIR:-$OUT_DIR/llvm-$TARGET}
-export LLVMBOX_LLVM_HOST=$LLVM_HOST
+LLVM_HOST=${LLVM_HOST:-$BUILD_DIR/llvm-host}
+LLVM_DIST=${LLVM_DIST:-$BUILD_DIR/llvm-$TARGET}
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
@@ -96,29 +90,6 @@ GCC_MUSL=${GCC_MUSL:-$BUILD_DIR/gcc-musl}
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
-STAGE1_CC="${CC:-cc}"
-STAGE1_CXX="${CC:-c++}"
-STAGE1_RC=rc
-STAGE1_AR="${AR:-ar}"
-STAGE1_RANLIB="${RANLIB:-ranlib}"
-STAGE1_CFLAGS=
-STAGE1_LDFLAGS=
-if [ "$HOST_SYS" = "Linux" ]; then
-  STAGE1_CC="$OUT_DIR/gcc-musl/bin/gcc"
-  STAGE1_CXX="$OUT_DIR/gcc-musl/bin/g++"
-  STAGE1_AR="$OUT_DIR/gcc-musl/bin/ar"
-  STAGE1_RANLIB="$OUT_DIR/gcc-musl/bin/ranlib"
-  STAGE1_LD="$OUT_DIR/gcc-musl/bin/ld.gold"
-  STAGE1_LDFLAGS="-static-libgcc -static"
-elif [ "$HOST_SYS" = "Darwin" ]; then
-  STAGE1_CC="${CC:-clang}"
-  STAGE1_CXX="${CC:-clang++}"
-  STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=10.10"
-  STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=10.10"
-fi
-STAGE1_ASM=${STAGE1_ASM:-$STAGE1_CC}
-STAGE1_LD=${STAGE1_LD:-$STAGE1_CXX}
-
 HOST_CC="$LLVM_HOST/bin/clang"
 HOST_CXX="$LLVM_HOST/bin/clang++"
 HOST_ASM=$HOST_CC
@@ -127,50 +98,15 @@ HOST_RC="$LLVM_HOST/bin/llvm-rc"
 HOST_AR="$LLVM_HOST/bin/llvm-ar"
 HOST_RANLIB="$LLVM_HOST/bin/llvm-ranlib"
 
-HOST_STAGE2_CC=$HOST_CC
-HOST_STAGE2_CXX=$HOST_CXX
-HOST_STAGE2_ASM=$HOST_STAGE2_CC
-HOST_STAGE2_LD=$HOST_STAGE2_CC
-HOST_STAGE2_RC=$HOST_RC
-HOST_STAGE2_AR=$HOST_AR
-HOST_STAGE2_RANLIB=$HOST_RANLIB
+[ -z "$CC" ] && command -v clang >/dev/null && export CC=clang
 
-# prefer clang from current system over gcc
-[ -z "${CC:-}" ]  && command -v clang >/dev/null && export CC=clang
-[ -z "${CXX:-}" ] && command -v clang++ >/dev/null && export CXX=clang++
-
-# flags for compiling for target, after sysroot has been initialized
-TARGET_COMMON_FLAGS=(
-  -B"$LLVMBOX_SYSROOT/bin" \
-  --sysroot="$LLVMBOX_SYSROOT" \
-  -isystem "$LLVMBOX_SYSROOT/include" \
-  --target=$TARGET \
-)
-TARGET_CFLAGS=(
-  "${TARGET_COMMON_FLAGS[@]}" \
-)
-TARGET_LDFLAGS=(
-  "${TARGET_COMMON_FLAGS[@]}" \
-  -fuse-ld=lld \
-)
-
+# set MACOS_SDK
 case "$TARGET_SYS" in
-  apple|darwin|macos)
+  apple|darwin|macos|ios)
     MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
     [ -d "$MACOS_SDK" ] ||
       _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
-    TARGET_CFLAGS+=( -mmacosx-version-min=10.10 )
-    TARGET_LDFLAGS+=( -mmacosx-version-min=10.10 )
-    ;;
-  linux)
-    HOST_STAGE2_CC=$PROJECT/utils/musl-clang
-    HOST_STAGE2_CXX=$PROJECT/utils/musl-clang++
-    HOST_STAGE2_ASM=$HOST_STAGE2_CC
-    HOST_STAGE2_LD=$HOST_STAGE2_CC
-    TARGET_LDFLAGS+=(\
-      -static-libgcc \
-    )
-    ;;
+  ;;
 esac
 
 # ————————————————————————————————————————————————————————————————————————————————————
@@ -232,7 +168,7 @@ _sha_verify() { # <file> [<sha256> | <sha512>]
 }
 
 _download_nocache() { # <url> <outfile> [<sha256> | <sha512>]
-  local url=$1 ; local outfile=$2 ; local checksum=${3:-}
+  local url=$1 ; local outfile=$2 ; local checksum=$3
   rm -f "$outfile"
   echo "${outfile##$PWD0/}: fetch $url"
   command -v wget >/dev/null &&
@@ -242,7 +178,7 @@ _download_nocache() { # <url> <outfile> [<sha256> | <sha512>]
 }
 
 _download() { # <url> <outfile> [<sha256> | <sha512>]
-  local url=$1 ; local outfile=$2 ; local checksum=${3:-}
+  local url=$1 ; local outfile=$2 ; local checksum=$3
   if [ -f "$outfile" -a -z "$checksum" ] || _sha_test "$outfile" "$checksum"; then
     return 0
   fi
@@ -270,7 +206,7 @@ _extract_tar() { # <file> <outdir>
   rm -rf "$extract_dir"
 }
 
-_fetch_source_tar() { # <url> (<sha256> | <sha512> | "") <outdir> [<tarfile>]
+_fetch_source_tar() { # <url> [<sha256> | <sha512>] <outdir> [<tarfile>]
   [ $# -gt 2 ] || _err "_fetch_source_tar ($#)"
   local url=$1
   local checksum=$2
