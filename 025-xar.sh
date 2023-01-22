@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
 # dependency graph:

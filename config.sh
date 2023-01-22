@@ -18,11 +18,18 @@ PROJECT=${LLVMBOX_PROJECT:-$(realpath "$(dirname "$0")")}
 BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
 DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
 OUT_DIR=$(realpath "${LLVMBOX_OUT_DIR:-$PROJECT/out}")
+NCPU=${LLVMBOX_NCPU:-$(nproc)}
 mkdir -p "$DOWNLOAD_DIR" "$BUILD_DIR"
 # ————————————————————————————————————————————————————————————————————————————————————
 
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
+HOST_TARGET=${HOST_TARGET:-}
+[ -n "$HOST_TARGET" ] || case "$HOST_SYS" in
+  Linux)  HOST_TARGET=$HOST_ARCH-linux-gnu ;;
+  Darwin) HOST_TARGET=$HOST_ARCH-apple-darwin ;;
+  *)      HOST_TARGET=$HOST_ARCH-$HOST_SYS ;;
+esac
 
 TARGET=${LLVMBOX_TARGET:-}  # e.g. x86_64-macos-none, aarch64-linux-musl
 if [ -z "$TARGET" ]; then
@@ -36,6 +43,15 @@ TARGET_SYS_AND_ABI=${TARGET#*-}     # e.g. linux-musl
 TARGET_SYS=${TARGET_SYS_AND_ABI%-*} # e.g. linux
 TARGET_ARCH=${TARGET%%-*}           # e.g. x86_64
 
+TARGET_CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
+case $TARGET_CMAKE_SYSTEM_NAME in
+  apple|macos|darwin) TARGET_CMAKE_SYSTEM_NAME="Darwin";;
+  freebsd)            TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
+  windows)            TARGET_CMAKE_SYSTEM_NAME="Windows";;
+  linux)              TARGET_CMAKE_SYSTEM_NAME="Linux";;
+  native)             TARGET_CMAKE_SYSTEM_NAME="";;
+esac
+
 # ————————————————————————————————————————————————————————————————————————————————————
 
 LLVMBOX_SYSROOT_BASE=${LLVMBOX_SYSROOT_BASE:-$OUT_DIR/sysroot}
@@ -44,15 +60,20 @@ export LLVMBOX_SYSROOT
 
 LLVM_RELEASE=15.0.7
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
-LLVM_SRC=${LLVM_SRC:-$BUILD_DIR/src/llvm}
-LLVM_HOST=${LLVM_HOST:-$OUT_DIR/llvm-host}
+LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/llvmorg-${LLVM_RELEASE}.tar.gz
+[[ "$LLVM_RELEASE" != *"."* ]] && # git snapshot
+  LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/${LLVM_RELEASE}.tar.gz
+LLVM_SRC_STAGE1=${LLVM_SRC_STAGE1:-$OUT_DIR/src/llvm-stage1}
+LLVM_SRC=${LLVM_SRC:-$OUT_DIR/src/llvm}
+LLVM_STAGE1=${LLVM_HOST:-$OUT_DIR/llvm-stage1}
+LLVM_HOST=$LLVM_STAGE1
 LLVM_DESTDIR=${LLVM_DESTDIR:-$OUT_DIR/llvm-$TARGET}
 export LLVMBOX_LLVM_HOST=$LLVM_HOST
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
 ZLIB_SRC=${ZLIB_SRC:-$BUILD_DIR/src/zlib}
-ZLIB_HOST=${ZLIB_HOST:-$BUILD_DIR/zlib-host}
+ZLIB_STAGE1=${ZLIB_HOST:-$BUILD_DIR/zlib-stage1}
 ZLIB_DIST=${ZLIB_DIST:-$BUILD_DIR/zlib-$TARGET}
 
 ZSTD_VERSION=1.5.2
@@ -96,28 +117,38 @@ GCC_MUSL=${GCC_MUSL:-$BUILD_DIR/gcc-musl}
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
-STAGE1_CC="${CC:-cc}"
-STAGE1_CXX="${CC:-c++}"
-STAGE1_RC=rc
-STAGE1_AR="${AR:-ar}"
-STAGE1_RANLIB="${RANLIB:-ranlib}"
+STAGE1_CC=cc
+STAGE1_CXX=c++
+STAGE1_AR=ar
+STAGE1_RANLIB=ranlib
 STAGE1_CFLAGS=
 STAGE1_LDFLAGS=
 if [ "$HOST_SYS" = "Linux" ]; then
-  STAGE1_CC="$OUT_DIR/gcc-musl/bin/gcc"
-  STAGE1_CXX="$OUT_DIR/gcc-musl/bin/g++"
-  STAGE1_AR="$OUT_DIR/gcc-musl/bin/ar"
-  STAGE1_RANLIB="$OUT_DIR/gcc-musl/bin/ranlib"
-  STAGE1_LD="$OUT_DIR/gcc-musl/bin/ld.gold"
+  STAGE1_CC="$(command -v  gcc || true)"
+  STAGE1_CXX="$(command -v g++ || true)"
   STAGE1_LDFLAGS="-static-libgcc -static"
+  # STAGE1_CC="$OUT_DIR/gcc-musl/bin/gcc"
+  # STAGE1_CXX="$OUT_DIR/gcc-musl/bin/g++"
+  # STAGE1_AR="$OUT_DIR/gcc-musl/bin/ar"
+  # STAGE1_RANLIB="$OUT_DIR/gcc-musl/bin/ranlib"
+  # STAGE1_LD="$OUT_DIR/gcc-musl/bin/ld"
+  # STAGE1_LDFLAGS="-static-libgcc -static"
 elif [ "$HOST_SYS" = "Darwin" ]; then
-  STAGE1_CC="${CC:-clang}"
-  STAGE1_CXX="${CC:-clang++}"
+  STAGE1_CC="$(command -v  clang || true)"
+  STAGE1_CXX="$(command -v clang++ || true)"
   STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=10.10"
   STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=10.10"
 fi
 STAGE1_ASM=${STAGE1_ASM:-$STAGE1_CC}
 STAGE1_LD=${STAGE1_LD:-$STAGE1_CXX}
+# canonicalize paths and check that all tools exist
+for tool in CC CXX AR RANLIB LD; do
+  var=STAGE1_$tool
+  tool=${!var}
+  [[ "$tool" == *"/"* ]] || declare "$var=$(command -v "$tool" || true)"
+  tool=${!var}
+  [ -x "$tool" ] || _err "$tool not found ($var)"
+done
 
 HOST_CC="$LLVM_HOST/bin/clang"
 HOST_CXX="$LLVM_HOST/bin/clang++"

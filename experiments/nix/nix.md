@@ -52,6 +52,11 @@ nix-repl>
 
 ## llvm
 
+```
+nix build -f '<nixpkgs>' pkgsCross.musl64.llvm_14.dev
+result-dev/bin/llvm-config --link-static --libfiles
+```
+
 LLVM can be built statically with `nix build -f '<nixpkgs>' pkgsStatic.llvmPackages_14`,
 however the llvm libs will not be ABI compatible with musl since pkgsStatic will use libstdc++. So here's an attempt at a custom llvm build in nix:
 

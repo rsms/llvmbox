@@ -26,19 +26,43 @@ You should be able to build your own compiler suite by:
 
 ## Build
 
-TL;DR: (mac)
+TL;DR:
 
 ```sh
-utils/macos-tmpfs.sh ~/tmp
 export LLVMBOX_BUILD_DIR=$HOME/tmp
-bash build.sh # --dryrun
-# test hello
-export LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-$(uname -m)-macos-none
-utils/c++ test/hello.cc -o test/hello_cc && test/hello_cc
+utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
+
+# build stage1 compiler
+bash 010-llvm-source-stage1.sh &&
+bash 010-zlib-stage1.sh &&
+bash 019-llvm-stage1.sh
+
+# build sysroot (some scripts are no-op on non-linux)
+bash 020-sysroot.sh &&
+bash 021-linux-headers.sh &&
+bash 022-musl-libc.sh
+
+# test stage1 compiler
+bash 023-test-llvm-stage1.sh
+
+# build packages for stage2 in sysroot
+bash 023-musl-fts.sh &&
+bash 023-xc.sh &&
+bash 023-zlib.sh &&
+bash 023-zstd.sh &&
+bash 024-libxml2.sh &&
+bash 025-xar.sh
+
+# build stage2 compiler
+bash 030-llvm-source-stage2.sh
+bash 050-llvm-stage2.sh
+
+# test stage2 compiler
+bash 090-test-hello.sh
+
 # test full-featured program linking with llvm libs
 ./myclang/build.sh
 ```
-
 
 Host requirements:
 
@@ -229,6 +253,40 @@ Linux llvm host build _"warning: Using 'NAME' in statically linked applications 
     [567/3170] Linking CXX executable bin/llvm-config
     /usr/bin/ld: lib/libLLVMSupport.a(Path.cpp.o): in function `llvm::sys::fs::expandTildeExpr(llvm::SmallVectorImpl<char>&)':
     Path.cpp:(.text._ZN4llvm3sys2fsL15expandTildeExprERNS_15SmallVectorImplIcEE+0x1a6): warning: Using 'getpwnam' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
+
+
+
+## Dev notes
+
+### Navigating cmake
+
+ack is useful for looking around for cmake stuff, e.g.
+
+    ack --type=cmake '\bCOMPILER_RT_USE_' ~/tmp/src/llvm
+
+
+### Core dumps on Ubuntu
+
+Enable saving of core dumps on ubuntu:
+
+```sh
+sudo systemctl enable apport.service
+sudo service apport start
+mkdir -p ~/.config/apport
+cat << END >> ~/.config/apport/settings
+[main]
+unpackaged=true
+END
+```
+
+Now, when a process crashes:
+
+```sh
+rm -rf /tmp/crash && mkdir /tmp/crash
+apport-unpack /var/crash/_path_to_program.1000.crash /tmp/crash
+ls -l /tmp/crash
+(cd /tmp/crash && tar czf ../some-core-dump.tar.gz .)
+```
 
 
 

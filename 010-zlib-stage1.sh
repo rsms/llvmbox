@@ -18,7 +18,6 @@ LDFLAGS="$STAGE1_LDFLAGS" \
 make -j$(nproc)
 make check
 
-DESTDIR=$BUILD_DIR/stage1-zlib
-rm -rf "$DESTDIR"
-mkdir -p "$DESTDIR"
-make DESTDIR="$DESTDIR" install
+rm -rf "$ZLIB_STAGE1"
+mkdir -p "$ZLIB_STAGE1"
+make DESTDIR="$ZLIB_STAGE1" install
