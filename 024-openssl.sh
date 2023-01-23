@@ -33,11 +33,10 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   no-weak-ssl-ciphers \
   -Wa,--noexecstack
 
-make -j$(nproc)
+make -j$NCPU
 
-rm -rf "$LLVMBOX_SYSROOT"
 mkdir -p "$LLVMBOX_SYSROOT"
-make DESTDIR="$LLVMBOX_SYSROOT" install_sw
+make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install_sw
 
 _popd
 rm -rf "$OPENSSL_SRC"
