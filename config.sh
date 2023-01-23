@@ -22,6 +22,9 @@ NCPU=${LLVMBOX_NCPU:-$(nproc)}
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
 
+# apple still uses the legacy name "arm64" (renamed to aarch64 in llvm, may 2014)
+[ "$HOST_ARCH" != "arm64" ] || HOST_ARCH=aarch64
+
 # ————————————————————————————————————————————————————————————————————————————————————
 
 _version_gte() { # <v> <minv>
