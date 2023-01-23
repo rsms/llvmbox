@@ -25,23 +25,11 @@ _pushd "$XAR_SRC"
 #   ln -s "$LLVMBOX_SYSROOT/lib/libSystem.tbd" libtmp/libfts.tbd
 # fi
 
-# # Workaround for a bug in xar's build process which generates incorrect paths to
-# # libxml2 headers in xar/src/xar.d.
-# # Instead of e.g. /tmp/libxml2-TARGET/include/libxml2/libxml/xmlreader.h
-# # it writes e.g. /tmp/libxml2/include/libxml2/libxml/xmlreader.h
-# # The bug manifests itself like this during a build:
-# #   make: *** No rule to make target `/tmp/libxml2/include/libxml2/libxml/xmlreader.h',
-# #   needed by `src/xar.o'.  Stop.
-# #
-# rm -f "$(dirname "$LIBXML2_DESTDIR")/libxml2"
-# ln -s "$(basename "$LIBXML2_DESTDIR")" "$(dirname "$LIBXML2_DESTDIR")/libxml2"
-
-
 CC=$STAGE2_CC \
 LD=$STAGE2_LD \
 AR=$STAGE2_AR \
 RANLIB=$STAGE2_RANLIB \
-CFLAGS="${STAGE2_CFLAGS[@]}" \
+CFLAGS="${STAGE2_CFLAGS[@]} -Wno-deprecated-declarations" \
 CPPFLAGS="${STAGE2_CFLAGS[@]}" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./configure \
@@ -54,10 +42,12 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 
 make -j$NCPU
 
-rm -rf "$LLVMBOX_SYSROOT"
-mkdir -p "$LLVMBOX_SYSROOT"
-make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
-# rm -rf "$LLVMBOX_SYSROOT/bin" "$LLVMBOX_SYSROOT/share"
+mkdir -p out
+make DESTDIR=out -j$NCPU install
+
+mkdir -p "$LLVMBOX_SYSROOT/include/xar"
+install -vm 0644 out/include/xar/xar.h "$LLVMBOX_SYSROOT/include/xar/xar.h"
+install -vm 0644 out/lib/libxar.a "$LLVMBOX_SYSROOT/lib/libxar.a"
 
 _popd
 rm -rf "$XAR_SRC"
