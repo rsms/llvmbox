@@ -2,8 +2,8 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-echo "mkdir $(_relpath "$LLVMBOX_SYSROOT")"
-rm -rf "$LLVMBOX_SYSROOT"
+# rm -rf "$LLVMBOX_SYSROOT"
+echo "mkdir $(_relpath "$LLVMBOX_SYSROOT")/{lib,include}"
 mkdir -p "$LLVMBOX_SYSROOT"/{lib,include}
 
 _pushd "$SYSROOTS_DIR"
