@@ -1,9 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
+#
+# usage: 020-sysroot.sh [-incr]
+# -incr  Incremental; don't delete exising sysroot but instead add to it
+#
 
-# rm -rf "$LLVMBOX_SYSROOT"
 echo "mkdir $(_relpath "$LLVMBOX_SYSROOT")/{lib,include}"
+[ "$1" = "-incr" ] || rm -rf "$LLVMBOX_SYSROOT"
 mkdir -p "$LLVMBOX_SYSROOT"/{lib,include}
 
 _pushd "$SYSROOTS_DIR"
