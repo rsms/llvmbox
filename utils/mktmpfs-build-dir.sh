@@ -1,15 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 _err() { echo "$0:" "$@" >&2; exit 1; }
-PROJECT="`cd "$(dirname "$0")"; pwd`"
+PROJECT="`cd "$(dirname "$0")/.."; pwd`"
 
 MB=${1:-16384}  # default to 16G
 
 [ -n "${LLVMBOX_BUILD_DIR:-}" ] || _err "LLVMBOX_BUILD_DIR is not set"
 
 # make sure LLVMBOX_BUILD_DIR is a dir and is empty, if it exists (else error)
-[ -e "$LLVMBOX_BUILD_DIR" ] && rmdir "$LLVMBOX_BUILD_DIR" ||
-  _err "LLVMBOX_BUILD_DIR is not an empty directory"
+if [ -e "$LLVMBOX_BUILD_DIR" ]; then
+  rmdir "$LLVMBOX_BUILD_DIR" || _err "$LLVMBOX_BUILD_DIR is not an empty directory"
+fi
 mkdir "$LLVMBOX_BUILD_DIR"
 
 case "$(uname -s)" in
