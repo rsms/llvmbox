@@ -104,11 +104,12 @@ _import_headers() { # <sdk-dir> <sysversion>
 
   echo "  finding headers"
   "$STAGE1_CC" --sysroot="$sdkdir" \
-    -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
+    -o "$tmpfile" "$PROJECT/headers-macos.c" -MD -MV -MF "$tmpfile.d"
 
   echo "  copying headers -> $(_relpath "$dst_incdir")/"
   while read -r line; do
     [[ "$line" != *":"* ]] || continue        # ignore first line
+    [[ "$line" != *"/headers-macos.c"* ]] || continue
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
     path=${line/ \\/}                         # "foo \" => "foo"
     name="${path/*\/usr\/include\//}"         # /a/b/usr/include/foo/bar.h => foo/bar.h
