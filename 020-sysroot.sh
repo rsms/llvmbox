@@ -1,43 +1,34 @@
 #!/bin/bash
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
-#
-# usage 1/2: $0  # use TARGET from config.sh
-# usage 2/2: $0 <arch> <sys> <sysversion>
-#
-ARCH=${1:-$TARGET_ARCH}
-SYS=${2:-$TARGET_SYS}
-SYSVER=${3:-$TARGET_SYS_VERSION}
-SYSVER_MAJOR=${SYSVER%%.*}
-SYSROOT=$LLVMBOX_SYSROOT_BASE/$TARGET_ARCH-$TARGET_SYS-$SYSVER
 
-echo "mkdir $(_relpath "$SYSROOT")"
-rm -rf "$SYSROOT"
-mkdir -p "$SYSROOT"/{lib,include}
+echo "mkdir $(_relpath "$LLVMBOX_SYSROOT")"
+rm -rf "$LLVMBOX_SYSROOT"
+mkdir -p "$LLVMBOX_SYSROOT"/{lib,include}
 
 _pushd "$SYSROOTS_DIR"
 
 for key in \
   any-any \
-  $ARCH-any \
-  any-$SYS \
-  any-$SYS.$SYSVER_MAJOR \
-  any-$SYS.$SYSVER \
-  $ARCH-$SYS \
-  $ARCH-$SYS.$SYSVER_MAJOR \
-  $ARCH-$SYS.$SYSVER \
+  $TARGET_ARCH-any \
+  any-$TARGET_SYS \
+  any-$TARGET_SYS.$TARGET_SYS_VERSION_MAJOR \
+  any-$TARGET_SYS.$TARGET_SYS_VERSION \
+  $TARGET_ARCH-$TARGET_SYS \
+  $TARGET_ARCH-$TARGET_SYS.$TARGET_SYS_VERSION_MAJOR \
+  $TARGET_ARCH-$TARGET_SYS.$TARGET_SYS_VERSION \
 ;do
   include_dir=libc/include/$key
   lib_dir=libc/lib/$key
   if [ -d "$include_dir" ]; then
-    echo "rsync $include_dir/ -> $(_relpath "$SYSROOT")/include/"
-    rsync -a "$include_dir/" "$SYSROOT/include/"
+    echo "rsync $include_dir/ -> $(_relpath "$LLVMBOX_SYSROOT")/include/"
+    rsync -a "$include_dir/" "$LLVMBOX_SYSROOT/include/"
   fi
   if [ -d "$lib_dir" ]; then
-    echo "rsync $lib_dir/ -> $(_relpath "$SYSROOT")/lib/"
-    rsync -a "$lib_dir/" "$SYSROOT/lib/"
+    echo "rsync $lib_dir/ -> $(_relpath "$LLVMBOX_SYSROOT")/lib/"
+    rsync -a "$lib_dir/" "$LLVMBOX_SYSROOT/lib/"
   fi
 done
 
-# echo "creating sysroot base snapshot $(_relpath "$SYSROOT").tar.xz"
-# XZ_OPT='-T0' tar -C "$SYSROOT" -cJpf "$SYSROOT.tar.xz" .
+# echo "creating sysroot base snapshot $(_relpath "$LLVMBOX_SYSROOT").tar.xz"
+# XZ_OPT='-T0' tar -C "$LLVMBOX_SYSROOT" -cJpf "$LLVMBOX_SYSROOT.tar.xz" .
