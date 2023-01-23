@@ -3,21 +3,27 @@ set -e ; source "$(dirname "$0")/config.sh"
 
 DRYRUN=false
 VERBOSE=false
+PREFIX=
 
 while [ $# -gt 0 ]; do case "$1" in
   -h|--help) cat << EOF
-Builds the entire thing; runs all build scripts
-usage: $0 [options]
+Builds the entire thing; runs all build scripts with <prefix>
+usage: $0 [options] [<prefix>]
 options:
   --dryrun       Don't actually run scripts, just print what would be done
-  -v, --verbose  Show all output on stdout and stderr (disables parallelism)
+  -jN            Limit paralellism to N (defaults to $NCPU on this machine)
+  -v, --verbose  Show all output on stdout and stderr
   -h, --help     Print help on stdout and exit
+<prefix>
+  If set, only run scripts with this prefix. If empty or not set, all scripts
+  are run. Example: "02"
 EOF
     exit ;;
   --dryrun)     DRYRUN=true; shift ;;
   -v|--verbose) VERBOSE=true; shift ;;
+  -j*)          NCPU=${1:2}; [ -n "$NCPU" ] || NCPU=$(nproc); export LLVMBOX_NCPU=NCPU;;
   -*) _err "Unexpected option $1" ;;
-  *)  _err "Unexpected argument $1" ;;
+  *)  [ -z "$PREFIX" ] || _err "Unexpected argument $1"; PREFIX=$1; shift ;;
 esac; done
 
 
@@ -27,6 +33,9 @@ _pushd "$PROJECT"
 prefixes=()
 for f in $(echo 0*.sh | sort); do
   prefix=${f:0:3}
+  if [ -n "$PREFIX" ] && [[ "$prefix" != "$PREFIX"* ]]; then
+    continue
+  fi
   declare "sets_$prefix=$sets_$prefix $f"
   prefix_key="prefixes_$prefix"
   if [ -z "${!prefix_key}" ]; then
@@ -57,15 +66,15 @@ for prefix in "${prefixes[@]}"; do
     if $DRYRUN; then
       x=( $(echo $prefix*.sh | sort) )
       if [ ${#x[@]} -eq 1 ]; then
-        echo "bash '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")'"
+        echo "run '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")'"
       else
-        echo "bash '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")' &"
+        echo "run '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")' &"
       fi
     elif $VERBOSE; then
-      echo bash $script
+      echo "run $script"
       (bash "$script" | tee "$outlog") 3>&1 1>&2 2>&3 | tee "$errlog"
     else
-      printf "$script  "
+      printf "$script "
       bash "$script" > "$outlog" 2> "$errlog" &
     fi
   done
