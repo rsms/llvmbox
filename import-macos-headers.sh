@@ -2,6 +2,9 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 #
+# You need to run this script on both an x86_64 mac an an arm one
+# since headers are resolved by clang.
+#
 # Manual first steps:
 # 1. Download all SDKs you'd like to import from
 #    https://developer.apple.com/download/all/?q=command%20line
@@ -12,7 +15,6 @@ source "$(dirname "$0")/config.sh"
 # 3. Run this script
 #
 PBZX=$BUILD_DIR/pbzx  # https://github.com/NiklasRosenstein/pbzx
-CC=$STAGE2_CC ; [ -x "$CC" ] || CC=$STAGE1_CC
 CLT_TMP_DIR="$BUILD_DIR/apple-clt-tmp"
 SDKS=()
 SDK_VERSIONS=()
@@ -101,7 +103,8 @@ _import_headers() { # <sdk-dir> <sysversion>
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
 
   echo "  finding headers"
-  "$CC" --sysroot="$sdkdir" -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
+  "$$STAGE1_CC" --sysroot="$sdkdir" \
+    -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
 
   echo "  copying headers -> $(_relpath "$dst_incdir")/"
   while read -r line; do
