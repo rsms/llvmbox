@@ -103,7 +103,7 @@ _import_headers() { # <sdk-dir> <sysversion>
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
 
   echo "  finding headers"
-  "$$STAGE1_CC" --sysroot="$sdkdir" \
+  "$STAGE1_CC" --sysroot="$sdkdir" \
     -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
 
   echo "  copying headers -> $(_relpath "$dst_incdir")/"
@@ -122,19 +122,31 @@ _import_headers() { # <sdk-dir> <sysversion>
 _import_libs() { # <sdk-dir> <sysversion>
   local sdkdir=$1
   local sysver=$2
-  local sysroot_name dst_libdir name src
+  local sysroot_name dst_libdir name ent alias src srcdir dst
   local libs_anyarch=( libSystem.tbd )
 
   # import libs for any arch
   sysroot_name="any-macos.$sysver"
   dst_libdir="$SYSROOTS_DIR/libc/lib/$sysroot_name"
+  rm -rf "$dst_libdir"
   for name in "${libs_anyarch[@]}"; do
-    src="$sdkdir/usr/lib/$name"
+    srcdir="$sdkdir/usr/lib"
+    src="$srcdir/$name"
     [ -e "$src" ] || continue
     src="$(realpath "$src")"
     echo "  copying lib $name -> $(_relpath "$dst_libdir")/"
     mkdir -p "$dst_libdir"
     install -m 0644 "$src" "$dst_libdir/$name"
+
+    # match symlinks
+    for ent in "$srcdir/"*; do
+      [ -L "$ent" ] || continue
+      dst="$(readlink "$ent")"
+      [ "$dst" = "$name" ] || continue
+      alias="$(basename "$ent")"
+      echo "  symlink $alias -> $name"
+      ln -s "$name" "$dst_libdir/$alias"
+    done
   done
 }
 
