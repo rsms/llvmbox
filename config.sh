@@ -86,11 +86,10 @@ case "$TARGET_SYS" in
     TARGET_TRIPLE=$TARGET_ARCH-linux-musl ;;
   *) _err "unsupported TARGET system '$TARGET_SYS' in '$TARGET'"
 esac
-# set TARGET_SYS_MINVERSION (oldest OS ABI we support)
-# for macos, we mirror what Go does for x86_64. I.e.
-#   llvm-objdump -p go1.19.5-amd64 | grep -A3 LC_VERSION_MIN_MACOSX  # 10.13
+# set TARGET_SYS_MINVERSION (oldest OS ABI we support.)
+# Note: macOS SDKs didn't ship with complete libSystem.tbd files until 10.15
 case "$TARGET_ARCH-$TARGET_SYS" in
-  x86_64-macos)  TARGET_SYS_MINVERSION=10.13 ;;
+  x86_64-macos)  TARGET_SYS_MINVERSION=10.15 ;;
   aarch64-macos) TARGET_SYS_MINVERSION=11.0 ;;
   *)             TARGET_SYS_MINVERSION=1.0 ;;
 esac

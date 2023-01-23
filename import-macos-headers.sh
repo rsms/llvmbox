@@ -91,20 +91,19 @@ _add_sdks() { # <path> ...
   done
 }
 
-_import_headers() { # <sdk-dir> <sysroot-name> <arch>
+_import_headers() { # <sdk-dir> <sysversion>
   local sdkdir=$1
-  local sysroot_name=$2
-  local arch=$3
+  local sysver=$2
+  local sysroot_name="$HOST_ARCH-macos.$sysver"
   local dst_incdir="$SYSROOTS_DIR/libc/include/$sysroot_name"
   rm -rf "$dst_incdir"
   mkdir -p "$dst_incdir"
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
 
   echo "  finding headers"
-  "$CC" --sysroot="$sdkdir" --target=$arch-apple-darwin \
-        -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
+  "$CC" --sysroot="$sdkdir" -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
 
-  echo "  copying headers -> $(_relpath "$dst_incdir")"
+  echo "  copying headers -> $(_relpath "$dst_incdir")/"
   while read -r line; do
     [[ "$line" != *":"* ]] || continue        # ignore first line
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
@@ -117,6 +116,25 @@ _import_headers() { # <sdk-dir> <sysroot-name> <arch>
   wait
 }
 
+_import_libs() { # <sdk-dir> <sysversion>
+  local sdkdir=$1
+  local sysver=$2
+  local sysroot_name dst_libdir name src
+  local libs_anyarch=( libSystem.tbd )
+
+  # import libs for any arch
+  sysroot_name="any-macos.$sysver"
+  dst_libdir="$SYSROOTS_DIR/libc/lib/$sysroot_name"
+  for name in "${libs_anyarch[@]}"; do
+    src="$sdkdir/usr/lib/$name"
+    [ -e "$src" ] || continue
+    src="$(realpath "$src")"
+    echo "  copying lib $name -> $(_relpath "$dst_libdir")/"
+    mkdir -p "$dst_libdir"
+    install -m 0644 "$src" "$dst_libdir/$name"
+  done
+}
+
 _import_sdk() { # <path> <version>
   local sdkdir=$1
   local sysver=$2
@@ -127,7 +145,8 @@ _import_sdk() { # <path> <version>
   [[ "$(basename "$sdkdir" .sdk)" == "MacOSX"* ]] ||
     _err "SDK doesn't start with 'MacOSX'; bailing out ($sdkdir)"
 
-  _import_headers "$sdkdir" "$sysroot_name" "$HOST_ARCH"
+  _import_headers "$sdkdir" "$sysver"
+  _import_libs    "$sdkdir" "$sysver"
 }
 
 # ———————————————————————————————————————————————————————————————————————————————————
@@ -206,17 +225,11 @@ done
 IFS=$'\n' SDKS_SORTED=($(sort -r <<< "${SDKS_TMP[*]}")); unset IFS
 
 # Filter SDKs: select only the most recent SDK per major version.
-# Special case for macOS 10 where we filter per minor version:
-#   Prior to macOS 11, each ABI-altering macOS release had the minor version
-#   incremented, after macOS 10 the major version is incremented.
-#   I.e. macOS 10.14 and 10.15 are two separate "major releases" whereas
-#   macOS 11.1 and 11.2 are minor versions of the same "major release" (11.)
 SDKS=()
 SDK_MAJOR_VERSIONS=()
 for key_ver_path in "${SDKS_SORTED[@]}"; do
   IFS=: read -r key ver path <<< "$key_ver_path"
   IFS=. read -r ver_key ver_min <<< "$ver"
-  [ $ver_key -gt 10 ] || ver_key=$ver
   if _strset_add SDK_MAJOR_VERSIONS "$ver_key"; then
     SDKS+=( "$ver_key:$path" )
   fi

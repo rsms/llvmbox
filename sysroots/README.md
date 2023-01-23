@@ -32,3 +32,8 @@ for f in *-none; do mv -v $f ${f/-none/}; done
 for f in any-*-any; do mv -v $f ${f/-any/}; done
 ```
 
+
+## .tbd files
+
+A .tbd file is a text-based stub (yaml), that lists all the symbols of a dynamic library, that can be linked against in leui of the full dylib. This allows more parallelisation in the build system, allowing linking of libraries to proceed in parallel, even if they have dependencies between them.
+
