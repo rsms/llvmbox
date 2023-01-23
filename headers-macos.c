@@ -144,11 +144,12 @@ SOFTWARE.
 #include <mach/vm_param.h>
 #include <sys/acl.h>
 #include <sys/attr.h>
+#include <sys/clonefile.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/param.h>
 #include <sys/sysctl.h>
-#include <sys/clonefile.h>
+#include <sys/xattr.h>
 #include <libproc.h>
 
 // Depended on by libcxx
@@ -202,8 +203,13 @@ SOFTWARE.
 #include <sys/file.h>
 #include <malloc/malloc.h>
 
+// Depended on by libxar
+#include <sys/vnode.h>
+#include <getopt.h> // getopt_long
+
 // Provided by macOS LibC
 #include <memory.h>
+#include <fts.h> // libxar
 
 #define _XOPEN_SOURCE
 #include <ucontext.h>
