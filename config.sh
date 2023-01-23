@@ -18,7 +18,7 @@ PROJECT=${LLVMBOX_PROJECT:-$(realpath "$(dirname "$0")")}
 BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
 DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
 OUT_DIR=$(realpath "${LLVMBOX_OUT_DIR:-$PROJECT/out}")
-NCPU=${LLVMBOX_NCPU:-$(nproc)}
+NCPU=${LLVMBOX_NCPU:-$(nproc)}; [ -n "$NCPU" ] || NCPU=$(nproc)
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
 
