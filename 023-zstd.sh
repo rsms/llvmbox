@@ -58,7 +58,7 @@ echo "create archive $LLVMBOX_SYSROOT/lib/libzstd.a"
 "$STAGE2_RANLIB" "$LLVMBOX_SYSROOT/lib/libzstd.a"
 
 echo "install header $LLVMBOX_SYSROOT/include/zstd.h"
-cp lib/zstd.h "$LLVMBOX_SYSROOT/include/zstd.h"
+install -m 0644 lib/zstd.h "$LLVMBOX_SYSROOT/include/zstd.h"
 
 # CC=$STAGE2_CC \
 # LD=$STAGE2_LD \
