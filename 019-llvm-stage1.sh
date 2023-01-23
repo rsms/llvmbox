@@ -34,10 +34,10 @@ case "$HOST_SYS" in
     LLVM_STAGE1_COMPONENTS+=( llvm-libtool-darwin )
     EXTRA_CMAKE_ARGS+=( \
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
-      -DCMAKE_SYSROOT=$MACOS_SDK \
-      -DCMAKE_OSX_SYSROOT=$MACOS_SDK \
-      -DDEFAULT_SYSROOT=$MACOS_SDK \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$STAGE1_MACOS_VERSION \
+      -DCMAKE_SYSROOT=$HOST_MACOS_SDK \
+      -DCMAKE_OSX_SYSROOT=$HOST_MACOS_SDK \
+      -DDEFAULT_SYSROOT=$HOST_MACOS_SDK \
     )
     ;;
   Linux)
@@ -51,7 +51,6 @@ case "$HOST_SYS" in
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
     )
     # -D_GLIBCXX_USE_CXX11_ABI=1
-
     # EXTRA_CMAKE_ARGS+=( -DLLVM_DEFAULT_TARGET_TRIPLE=$HOST_ARCH-linux-musl )
     #
     # COMPILER_RT_USE_BUILTINS_LIBRARY
@@ -185,5 +184,7 @@ ninja -j$NCPU \
   install-llvm-headers \
   install-cxxabi-stripped
 
-cp -a bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
-ln -fs llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
+cp -av bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
+ln -fsv llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
+cp -av "$ZLIB_STAGE1"/include/{zconf,zlib}.h "$LLVM_STAGE1"/include/
+cp -av "$ZLIB_STAGE1"/lib/libz.a "$LLVM_STAGE1"/lib/

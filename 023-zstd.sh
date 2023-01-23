@@ -49,22 +49,22 @@ OBJECTS=()
 for f in "${SOURCES[@]}"; do
   OBJECTS+=( "$f.o" )
   echo "compile $f"
-  "$HOST_STAGE2_CC" --target=$TARGET -O2 -c "$f" -o "$f.o" &
+  "$STAGE2_CC" "${STAGE2_CFLAGS[@]}" -O2 -c "$f" -o "$f.o" &
 done
 wait
 
 echo "create archive $LLVMBOX_SYSROOT/lib/libzstd.a"
-"$HOST_STAGE2_AR" cr "$LLVMBOX_SYSROOT/lib/libzstd.a" "${OBJECTS[@]}"
-"$HOST_STAGE2_RANLIB" "$LLVMBOX_SYSROOT/lib/libzstd.a"
+"$STAGE2_AR" cr "$LLVMBOX_SYSROOT/lib/libzstd.a" "${OBJECTS[@]}"
+"$STAGE2_RANLIB" "$LLVMBOX_SYSROOT/lib/libzstd.a"
 
 echo "install header $LLVMBOX_SYSROOT/include/zstd.h"
 cp lib/zstd.h "$LLVMBOX_SYSROOT/include/zstd.h"
 
-# CC=$HOST_STAGE2_CC \
-# LD=$HOST_STAGE2_LD \
-# AR=$HOST_STAGE2_AR \
-# CFLAGS="-O2 -DBACKTRACE_ENABLE=0 -flto=auto -ffat-lto-objects" \
-# CXXFLAGS="-O2 -DBACKTRACE_ENABLE=0 -flto=auto -ffat-lto-objects" \
+# CC=$STAGE2_CC \
+# LD=$STAGE2_LD \
+# AR=$STAGE2_AR \
+# CFLAGS="${STAGE2_CFLAGS[@]} -O2 -DBACKTRACE_ENABLE=0 -flto=auto -ffat-lto-objects" \
+# LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 # make HAVE_PTHREAD=1 ZSTD_LIB_MINIFY=1 prefix= -j$(nproc) lib-mt
 # install -vDm 0644 lib/zstd.h "$LLVMBOX_SYSROOT"/include/zstd.h
 # install -vDm 0644 lib/libzstd.a "$LLVMBOX_SYSROOT"/lib/libzstd.a

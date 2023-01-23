@@ -2,33 +2,24 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-[ -d "$LLVM_HOST" ] ||
-  _err "llvm-host must be built before running this script (LLVM_HOST=$LLVM_HOST)"
-
-CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
-case $CMAKE_SYSTEM_NAME in
-  apple|macos|darwin) CMAKE_SYSTEM_NAME="Darwin";;
-  freebsd)            CMAKE_SYSTEM_NAME="FreeBSD";;
-  windows)            CMAKE_SYSTEM_NAME="Windows";;
-  linux)              CMAKE_SYSTEM_NAME="Linux";;
-  native)             CMAKE_SYSTEM_NAME="";;
-esac
+[ -d "$LLVM_STAGE1" ] ||
+  _err "llvm-stage1 must be built before running this script (LLVM_STAGE1=$LLVM_STAGE1)"
 
 LLVM_STAGE2_BUILD_DIR=${LLVM_STAGE2_BUILD_DIR:-$BUILD_DIR/llvm-stage2}
 mkdir -p "$LLVM_STAGE2_BUILD_DIR"
 _pushd "$LLVM_STAGE2_BUILD_DIR"
 
-LLVMBOX_BUILD_DIR=$LLVMBOX_BUILD_DIR \
-LLVMBOX_SYSROOT=$LLVMBOX_SYSROOT \
-LLVM_HOST=$LLVM_HOST \
+LLVMBOX_BUILD_DIR="$LLVMBOX_BUILD_DIR" \
+LLVMBOX_SYSROOT="$LLVMBOX_SYSROOT" \
+LLVM_STAGE1="$LLVM_STAGE1" \
 cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -C "$PROJECT/stage1.cmake" \
   -DCMAKE_TOOLCHAIN_FILE=$PROJECT/toolchain.cmake \
-  -DCMAKE_SYSTEM_NAME="$CMAKE_SYSTEM_NAME" \
+  -DCMAKE_SYSTEM_NAME="$TARGET_CMAKE_SYSTEM_NAME" \
   -DCMAKE_C_FLAGS="-w" \
   -DCMAKE_CXX_FLAGS="-w" \
   -DCMAKE_INSTALL_PREFIX= \
-  -DCLANG_PREFIX="$LLVM_HOST/bin" \
+  -DCLANG_PREFIX="$LLVM_STAGE1/bin" \
   -DLLVMBOX_BUILD_DIR="$BUILD_DIR"
 
 ninja \

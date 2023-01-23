@@ -12,7 +12,10 @@ CXXFLAGS=( -nostdinc++ -I"$LLVM_STAGE1/include/c++/v1" )
 CXX_LDFLAGS=( -nostdlib++ -L"$LLVM_STAGE1/lib" -lc++ -lc++abi )
 
 # flags for using LLVMBOX_SYSROOT instead of host system
-CFLAGS_SYSROOT=( -ferror-limit=1 --sysroot="$LLVMBOX_SYSROOT" )
+CFLAGS_SYSROOT=( -ferror-limit=1 \
+  --sysroot="$LLVMBOX_SYSROOT" \
+  -isystem "$LLVMBOX_SYSROOT/include" \
+)
 LDFLAGS_SYSROOT=(
   --sysroot="$LLVMBOX_SYSROOT" \
   -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
@@ -25,7 +28,7 @@ CXX_STAGE1_LDFLAGS=()
 case "$HOST_SYS" in
 Darwin)
   CFLAGS+=(
-    -isystem "$MACOS_SDK/usr/include" \
+    -isystem "$HOST_MACOS_SDK/usr/include" \
     -Wno-nullability-completeness \
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
@@ -35,7 +38,8 @@ Darwin)
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
   )
-  CXX_STAGE1_LDFLAGS+=( -L"$MACOS_SDK/usr/lib" -lc++ -lc++abi )
+  LDFLAGS_SYSROOT+=( -L"$HOST_MACOS_SDK/usr/lib" )
+  CXX_STAGE1_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" -lc++ -lc++abi )
   ;;
 Linux)
   CXX_TARGET_I=$(echo "$LLVM_STAGE1/include/$TARGET_ARCH-"*)/c++/v1
@@ -120,6 +124,15 @@ echo "c++ shared libc"; out=$BUILD_DIR/_hello_cc
 _cxx -std=c++17 test/hello.cc -o "$out"
 "$out" ; _print_linking "$out"
 
+# macos: building against LLVMBOX_SYSROOT works with C, but not C++
+if [ "$HOST_SYS" = Darwin ]; then
+  echo "————————————————————————————————————————————————————————————"
+  echo "cc shared sysroot-libc"; out=$BUILD_DIR/_hello_c_sysroot
+  _cc_sysroot test/hello.c -o "$out"
+  "$out" ; _print_linking "$out"
+fi
+
+# linux: building against LLVMBOX_SYSROOT
 if [ "$HOST_SYS" = Linux ]; then
   # Linux stage1 build is currently unable to statically link using glibc.
   # If we try the below C build, we get the following errors:
@@ -166,11 +179,12 @@ if [ "$HOST_SYS" = Linux ]; then
   fi
 fi
 
+# llvm libs
 echo "————————————————————————————————————————————————————————————"
 echo "cc shared libc + llvm-c libs"; out=$BUILD_DIR/_hello_llvm_c
 _cc $("$LLVM_STAGE1/bin/llvm-config" --cflags) -c test/hello-llvm.c -o "$out.o"
 _ldxx_stage1 \
   $("$LLVM_STAGE1/bin/llvm-config" --cxxflags --ldflags --libs core native) \
-  -I"$ZLIB_STAGE1/include" "$ZLIB_STAGE1/lib/libz.a" \
+  "$LLVM_STAGE1/lib/libz.a" \
   "$out.o" -o "$out"
 "$out" ; _print_linking "$out"

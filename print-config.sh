@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+source "$(dirname "$0")/config.sh"
+
+cat << _END_
+LLVMBOX_BUILD_DIR          $LLVMBOX_BUILD_DIR
+PROJECT                    $PROJECT
+BUILD_DIR                  $BUILD_DIR
+DOWNLOAD_DIR               $DOWNLOAD_DIR
+HOST_SYS                   $HOST_SYS
+HOST_ARCH                  $HOST_ARCH
+TARGET                     $TARGET
+  TARGET_ARCH              $TARGET_ARCH
+  TARGET_SYS               $TARGET_SYS
+  TARGET_SYS_VERSION       $TARGET_SYS_VERSION
+  TARGET_SYS_MINVERSION    $TARGET_SYS_MINVERSION
+  TARGET_SYS               $TARGET_SYS
+  TARGET_TRIPLE            $TARGET_TRIPLE
+  TARGET_CMAKE_SYSTEM_NAME $TARGET_CMAKE_SYSTEM_NAME
+LLVMBOX_SYSROOT            $LLVMBOX_SYSROOT
+  LLVMBOX_SYSROOT_BASE     $LLVMBOX_SYSROOT_BASE
+  SYSROOT_TEMPLATE         $SYSROOT_TEMPLATE
+LLVM_RELEASE               $LLVM_RELEASE
+  LLVM_SRC_STAGE1          $LLVM_SRC_STAGE1
+  LLVM_SRC                 $LLVM_SRC
+_END_

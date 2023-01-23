@@ -13,7 +13,10 @@ _fetch_source_tar \
 _pushd "$LINUX_SRC"
 
 mkdir -p "$LLVMBOX_SYSROOT"
-make ARCH=$TARGET_ARCH headers_install INSTALL_HDR_PATH="$LLVMBOX_SYSROOT"
+make \
+  ARCH=$TARGET_ARCH \
+  INSTALL_HDR_PATH="$LLVMBOX_SYSROOT" \
+  headers_install
 
 _popd
 rm -rf "$LINUX_SRC"

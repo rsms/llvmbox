@@ -19,14 +19,14 @@ _fetch_source_tar \
 
 _pushd "$MUSL_SRC"
 
-CC=$HOST_CC \
-LD=$HOST_LD \
-AR=$HOST_AR \
-RANLIB=$HOST_RANLIB \
-CFLAGS="--target=$TARGET -I$LLVMBOX_SYSROOT/include" \
-LDFLAGS="--target=$TARGET --sysroot=$LLVMBOX_SYSROOT -fuse-ld=lld --rtlib=compiler-rt" \
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
+RANLIB=$STAGE2_RANLIB \
+CFLAGS="${STAGE2_CFLAGS[@]}" \
+LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 LIBCC=-lclang_rt.builtins \
-./configure --target=$TARGET --disable-shared --prefix=
+./configure --target=$TARGET_TRIPLE --disable-shared --prefix=
 
 make -j$(nproc)
 

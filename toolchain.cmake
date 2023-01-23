@@ -28,7 +28,7 @@ if(NOT LLVMBOX_BUILD_DIR)
 endif()
 
 if(NOT CLANG_PREFIX)
-  set(CLANG_PREFIX $ENV{LLVM_HOST})
+  set(CLANG_PREFIX $ENV{LLVM_STAGE1})
   # if(NOT CLANG_PREFIX)
   #   set(CLANG_PREFIX "${LLVMBOX_BUILD_DIR}/llvm-host/bin")
   # else()
