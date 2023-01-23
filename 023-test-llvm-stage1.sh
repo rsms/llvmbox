@@ -20,6 +20,7 @@ LDFLAGS_SYSROOT=(
   --sysroot="$LLVMBOX_SYSROOT" \
   -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
   -L"$LLVM_STAGE1/lib" \
+  -L"$LLVMBOX_SYSROOT/lib" \
 )
 
 # flags for linking c++ along with libs from LLVM_STAGE1 (uses host libc++)
@@ -28,7 +29,6 @@ CXX_STAGE1_LDFLAGS=()
 case "$HOST_SYS" in
 Darwin)
   CFLAGS+=(
-    -isystem "$HOST_MACOS_SDK/usr/include" \
     -Wno-nullability-completeness \
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
@@ -38,8 +38,7 @@ Darwin)
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
   )
-  LDFLAGS_SYSROOT+=( -L"$HOST_MACOS_SDK/usr/lib" )
-  CXX_STAGE1_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" -lc++ -lc++abi )
+  CXX_STAGE1_LDFLAGS+=( -lc++ -lc++abi )
   ;;
 Linux)
   CXX_TARGET_I=$(echo "$LLVM_STAGE1/include/$TARGET_ARCH-"*)/c++/v1
@@ -115,20 +114,30 @@ _print_linking() { # <file>
 _pushd "$PROJECT"
 
 echo "————————————————————————————————————————————————————————————"
-echo "cc shared libc"; out=$BUILD_DIR/_hello_c
+echo "cc shared default libc"; out=$BUILD_DIR/_hello_c
 _cc test/hello.c -o "$out"
 "$out" ; _print_linking "$out"
 
 echo "————————————————————————————————————————————————————————————"
-echo "c++ shared libc"; out=$BUILD_DIR/_hello_cc
+echo "c++ shared default libc"; out=$BUILD_DIR/_hello_cc
 _cxx -std=c++17 test/hello.cc -o "$out"
 "$out" ; _print_linking "$out"
+
+echo "————————————————————————————————————————————————————————————"
+echo "c++ shared default libc, atomics"; out=$BUILD_DIR/_cxx-atomic_cc
+_cxx -std=c++17 test/cxx-atomic.cc -o "$out"
+"$out" || true ; _print_linking "$out"
 
 # macos: building against LLVMBOX_SYSROOT works with C, but not C++
 if [ "$HOST_SYS" = Darwin ]; then
   echo "————————————————————————————————————————————————————————————"
-  echo "cc shared sysroot-libc"; out=$BUILD_DIR/_hello_c_sysroot
+  echo "cc shared sysroot libc"; out=$BUILD_DIR/_hello_c_sysroot
   _cc_sysroot test/hello.c -o "$out"
+  "$out" ; _print_linking "$out"
+
+  echo "————————————————————————————————————————————————————————————"
+  echo "cc shared sysroot libc, explicit libSystem"; out=$BUILD_DIR/_hello_c_sysroot2
+  _cc_sysroot -lSystem test/hello.c -o "$out"
   "$out" ; _print_linking "$out"
 fi
 
@@ -155,12 +164,12 @@ if [ "$HOST_SYS" = Linux ]; then
   # however, it works with musl (must have run 022-musl-libc.sh)
   if [ -f "$LLVMBOX_SYSROOT/lib/libc.a" ]; then
     echo "————————————————————————————————————————————————————————————"
-    echo "cc shared musl-libc"; out=$BUILD_DIR/_hello_c_musl
+    echo "cc shared musl libc"; out=$BUILD_DIR/_hello_c_musl
     _cc_sysroot test/hello.c -o "$out"
     "$out" ; _print_linking "$out"
 
     echo "————————————————————————————————————————————————————————————"
-    echo "cc static musl-libc"; out=$BUILD_DIR/_hello_c_musl_static
+    echo "cc static musl libc"; out=$BUILD_DIR/_hello_c_musl_static
     _cc_sysroot -static test/hello.c -o "$out"
     "$out" ; _print_linking "$out"
 
@@ -181,7 +190,7 @@ fi
 
 # llvm libs
 echo "————————————————————————————————————————————————————————————"
-echo "cc shared libc + llvm-c libs"; out=$BUILD_DIR/_hello_llvm_c
+echo "cc shared default libc + llvm-c libs"; out=$BUILD_DIR/_hello_llvm_c
 _cc $("$LLVM_STAGE1/bin/llvm-config" --cflags) -c test/hello-llvm.c -o "$out.o"
 _ldxx_stage1 \
   $("$LLVM_STAGE1/bin/llvm-config" --cxxflags --ldflags --libs core native) \
