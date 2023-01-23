@@ -17,6 +17,7 @@ CC=$STAGE2_CC ; [ -x "$CC" ] || CC=$STAGE1_CC
 CLT_TMP_DIR="$BUILD_DIR/apple-clt-tmp"
 SDKS=()
 SDK_VERSIONS=()
+IFS=. read -r MIN_VER_MAJ MIN_VER_MIN <<< "$TARGET_SYS_MINVERSION"
 
 _pbzx() {
   if [ ! -x "$PBZX" ]; then
@@ -26,12 +27,35 @@ _pbzx() {
   "$PBZX" "$@"
 }
 
+_strset_add() { # <setvar> <value>  => 0 if added, 1 if duplicate
+  local setvar=$1
+  local valkey=$2
+  re='(.*)[\.\-](.*)'  # e.g. "macos.10.15" => "macos_10_15"
+  while [[ $valkey =~ $re ]]; do
+    valkey=${BASH_REMATCH[1]}_${BASH_REMATCH[2]}
+  done
+  local key="keyset_${setvar}_${valkey}"
+  [ -z "${!key:-}" ] || return 1
+  eval "$key=1" # can't use 'declare -rg "$key=1"' in bash<4
+  eval "$setvar+=( $2 )"
+}
+
 _sdk_version() { # <sdkpath>
   local re='Mac[a-zA-Z]+([0-9]+\.[0-9]+)'
   while [[ $1 =~ $re ]]; do
     echo ${BASH_REMATCH[1]}
     return 0
   done
+}
+
+_is_sdk_version_gte_minver() { # <version>
+  local ver_maj ver_min
+  IFS=. read -r ver_maj ver_min <<< "$1"
+  if [ $ver_maj -lt $MIN_VER_MAJ ] ||
+     [ $ver_maj -eq $MIN_VER_MAJ -a $ver_min -lt $MIN_VER_MIN ]; then
+    return 1
+  fi
+  return 0
 }
 
 _add_sdks() { # <path> ...
@@ -47,6 +71,10 @@ _add_sdks() { # <path> ...
     [ -d "$path" ] || continue
     ver=$(_sdk_version "$d" || true)
     [ -n "$ver" ] || _err "invalid version in '$d'"
+    if ! _is_sdk_version_gte_minver "$ver"; then
+      echo "ignoring SDK $ver; version older than TARGET_SYS_MINVERSION ($TARGET_SYS_MINVERSION)"
+      continue
+    fi
     found=
     for v in "${SDK_VERSIONS[@]:-}"; do
       if [ "$v" = "$ver" ]; then
@@ -64,27 +92,27 @@ _add_sdks() { # <path> ...
 _import_headers() { # <sdk-dir> <sysroot-name> <arch>
   local sdkdir=$1
   local sysroot_name=$2
-  local arch=$2
-  local dst_incdir="$SYSROOT_TEMPLATE/libc/include/$sysroot_name"
+  local arch=$3
+  local dst_incdir="$SYSROOTS_DIR/libc/include/$sysroot_name"
+  rm -rf "$dst_incdir"
   mkdir -p "$dst_incdir"
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
 
+  echo "  finding headers"
   "$CC" --sysroot="$sdkdir" --target=$arch-apple-darwin \
         -o "$tmpfile" "$PROJECT/headers.c" -MD -MV -MF "$tmpfile.d"
 
-  # printf "  cp"
+  echo "  copying headers -> $(_relpath "$dst_incdir")"
   while read -r line; do
     [[ "$line" != *":"* ]] || continue        # ignore first line
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
     path=${line/ \\/}                         # "foo \" => "foo"
     name="${path/*\/usr\/include\//}"         # /a/b/usr/include/foo/bar.h => foo/bar.h
     [[ "$name" != "/"* ]] || _err "expected path to contain /usr/include/: '$line'"
-    # printf " $name"
     ( mkdir -p "$(dirname "$dst_incdir/$name")" &&
       install -m 0644 "$path" "$dst_incdir/$name" ) &
   done < "$tmpfile.d"
   wait
-  # echo
 }
 
 _import_sdk() { # <path> <version>
@@ -160,6 +188,32 @@ if command -v xcrun >/dev/null; then
   _add_sdks "$(xcrun --show-sdk-path)"
   _add_sdks "$(xcrun -sdk macosx --show-sdk-path)"
 fi
+
+# sort SDKs by version so that a later minor version is processed after an earlier one
+SDKS_TMP=()
+for ver_path in "${SDKS[@]}"; do
+  IFS=: read -r ver path <<< "$ver_path"
+  IFS=. read -r v1 v2 <<< "$ver"
+  SDKS_TMP+=( $(printf "%02d%02d:%s" $v1 $v2 "$ver_path") )
+done
+IFS=$'\n' SDKS_SORTED=($(sort -r <<< "${SDKS_TMP[*]}")); unset IFS
+
+# Filter SDKs: select only the most recent SDK per major version.
+# Special case for macOS 10 where we filter per minor version:
+#   Prior to macOS 11, each ABI-altering macOS release had the minor version
+#   incremented, after macOS 10 the major version is incremented.
+#   I.e. macOS 10.14 and 10.15 are two separate "major releases" whereas
+#   macOS 11.1 and 11.2 are minor versions of the same "major release" (11.)
+SDKS=()
+SDK_MAJOR_VERSIONS=()
+for key_ver_path in "${SDKS_SORTED[@]}"; do
+  IFS=: read -r key ver path <<< "$key_ver_path"
+  IFS=. read -r ver_key ver_min <<< "$ver"
+  [ $ver_key -gt 10 ] || ver_key=$ver
+  if _strset_add SDK_MAJOR_VERSIONS "$ver_key"; then
+    SDKS+=( "$ver_key:$path" )
+  fi
+done
 
 # print what will be imported
 echo "Importing ${#SDKS[@]} macOS SDKs:"

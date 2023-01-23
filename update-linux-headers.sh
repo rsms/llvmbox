@@ -37,11 +37,11 @@ rm -rf "$LINUX_SRC"
 
 _pushd "$ZIGSRC"
 
-rm -rf "$SYSROOT_TEMPLATE"/libc/include/*-linux
+rm -rf "$SYSROOTS_DIR"/libc/include/*-linux
 zig run tools/update-linux-headers.zig -- \
   --search-path "$LINUX_HEADERS" \
-  --out "$SYSROOT_TEMPLATE"/libc/include
+  --out "$SYSROOTS_DIR"/libc/include
 
 # x-linux-any -> x-linux
-_pushd "$SYSROOT_TEMPLATE"/libc/include
+_pushd "$SYSROOTS_DIR"/libc/include
 for f in *-linux-any; do mv -v $f ${f/-any/}; done

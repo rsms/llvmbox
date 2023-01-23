@@ -67,8 +67,8 @@ _build_sysroot() { # <arch> <sys> <sysversion>
 END
   ))
   for key in "${combinations[@]}"; do
-    include_dir="$SYSROOT_TEMPLATE/libc/include/$key"
-    lib_dir="$SYSROOT_TEMPLATE/libc/lib/$key"
+    include_dir="$SYSROOTS_DIR/libc/include/$key"
+    lib_dir="$SYSROOTS_DIR/libc/lib/$key"
     [ -d "$include_dir" -o -d "$lib_dir" ] || continue
     if [ -z "$destdir" ]; then
       destdir=$DESTDIR/${arch}-${sys}.${sysver}
@@ -89,8 +89,8 @@ mkdir -p "$DESTDIR"
 
 targets=()
 
-_scan_targets "$SYSROOT_TEMPLATE"/libc/include
-_scan_targets "$SYSROOT_TEMPLATE"/libc/lib
+_scan_targets "$SYSROOTS_DIR"/libc/include
+_scan_targets "$SYSROOTS_DIR"/libc/lib
 
 for target in "${targets[@]:-}"; do
   # parse e.g. "x86_64-macos.10" => (x86_64, macos, 10)

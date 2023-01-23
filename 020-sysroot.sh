@@ -15,7 +15,7 @@ echo "mkdir $(_relpath "$SYSROOT")"
 rm -rf "$SYSROOT"
 mkdir -p "$SYSROOT"/{lib,include}
 
-_pushd "$SYSROOT_TEMPLATE"
+_pushd "$SYSROOTS_DIR"
 
 for key in \
   any-any \
