@@ -11,7 +11,6 @@ source "$(dirname "$0")/config.sh"
 #    so that you have e.g. "/Volumes/Command Line Developer Tools"
 # 3. Run this script
 #
-CLT_PKG="/Volumes/Command Line Developer Tools/Command Line Tools.pkg"
 PBZX=$BUILD_DIR/pbzx  # https://github.com/NiklasRosenstein/pbzx
 CC=$STAGE2_CC ; [ -x "$CC" ] || CC=$STAGE1_CC
 CLT_TMP_DIR="$BUILD_DIR/apple-clt-tmp"
@@ -67,10 +66,13 @@ _add_sdks() { # <path> ...
     # Resolve symlinks since some versioned SDK dirs point to unversioned dirs, e.g.
     #   MacOSX10.13.sdk -> MacOSX.sdk
     # For newer versions it's the other way around and this has no effect.
+    [ -d "$d" ] || continue
     path="$(realpath "$d")"
-    [ -d "$path" ] || continue
     ver=$(_sdk_version "$d" || true)
-    [ -n "$ver" ] || _err "invalid version in '$d'"
+    if [ -z "$ver" ]; then
+      echo "ignoring version-less '$d'"
+      continue
+    fi
     if ! _is_sdk_version_gte_minver "$ver"; then
       echo "ignoring SDK $ver; version older than TARGET_SYS_MINVERSION ($TARGET_SYS_MINVERSION)"
       continue
@@ -134,6 +136,7 @@ mkdir -p "$CLT_TMP_DIR"
 
 # extract mounted "Command Line Developer Tools" installers
 for d in "/Volumes/Command Line Developer Tools"*; do
+  [ -d "$d" ] || continue
   ID=
   DISK_IMAGE="$(hdiutil info | grep -B20 "$d" | grep image-path |
     awk '{print $3 $4 $5 $6 $7}' || true)"
@@ -188,6 +191,10 @@ if command -v xcrun >/dev/null; then
   _add_sdks "$(xcrun --show-sdk-path)"
   _add_sdks "$(xcrun -sdk macosx --show-sdk-path)"
 fi
+
+# did we find any SDKs?
+[ "${#SDKS[@]:-}" -gt 0 ] ||
+  _err "no SDKs found"
 
 # sort SDKs by version so that a later minor version is processed after an earlier one
 SDKS_TMP=()
