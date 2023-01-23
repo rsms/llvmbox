@@ -32,28 +32,20 @@
  * <mach/machine.h> is needed here for the cpu_type_t and cpu_subtype_t types
  * and contains the constants for the possible values of these types.
  */
-#if __has_include(<mach/machine.h>)
 #include <mach/machine.h>
-#endif
 
 /*
  * <mach/vm_prot.h> is needed here for the vm_prot_t type and contains the 
  * constants that are or'ed together for the possible values of this type.
  */
-#if __has_include(<mach/vm_prot.h>)
 #include <mach/vm_prot.h>
-#endif
 
 /*
  * <machine/thread_status.h> is expected to define the flavors of the thread
  * states and the structures of those flavors for each machine.
  */
-#if __has_include(<mach/machine/thread_status.h>)
 #include <mach/machine/thread_status.h>
-#endif
-#if __has_include(<architecture/byte_order.h>)
 #include <architecture/byte_order.h>
-#endif
 
 /*
  * The 32-bit mach header appears at the very beginning of the object file for
@@ -61,8 +53,8 @@
  */
 struct mach_header {
 	uint32_t	magic;		/* mach magic number identifier */
-	int32_t		cputype;	/* cpu specifier */
-	int32_t		cpusubtype;	/* machine specifier */
+	cpu_type_t	cputype;	/* cpu specifier */
+	cpu_subtype_t	cpusubtype;	/* machine specifier */
 	uint32_t	filetype;	/* type of file */
 	uint32_t	ncmds;		/* number of load commands */
 	uint32_t	sizeofcmds;	/* the size of all the load commands */
@@ -79,8 +71,8 @@ struct mach_header {
  */
 struct mach_header_64 {
 	uint32_t	magic;		/* mach magic number identifier */
-	int32_t		cputype;	/* cpu specifier */
-	int32_t		cpusubtype;	/* machine specifier */
+	cpu_type_t	cputype;	/* cpu specifier */
+	cpu_subtype_t	cpusubtype;	/* machine specifier */
 	uint32_t	filetype;	/* type of file */
 	uint32_t	ncmds;		/* number of load commands */
 	uint32_t	sizeofcmds;	/* the size of all the load commands */
@@ -123,17 +115,11 @@ struct mach_header_64 {
 #define	MH_DYLIB	0x6		/* dynamically bound shared library */
 #define	MH_DYLINKER	0x7		/* dynamic link editor */
 #define	MH_BUNDLE	0x8		/* dynamically bound bundle file */
-#define	MH_DYLIB_STUB	0x9		/* shared library stub for static
-					   linking only, no section contents */
-#define	MH_DSYM		0xa		/* companion file with only debug
-					   sections */
+#define	MH_DYLIB_STUB	0x9		/* shared library stub for static */
+					/*  linking only, no section contents */
+#define	MH_DSYM		0xa		/* companion file with only debug */
+					/*  sections */
 #define	MH_KEXT_BUNDLE	0xb		/* x86_64 kexts */
-#define MH_FILESET	0xc		/* a file composed of other Mach-Os to
-					   be run in the same userspace sharing
-					   a single linkedit. */
-#define	MH_GPU_EXECUTE	0xd		/* gpu program */
-#define	MH_GPU_DYLIB	0xe		/* gpu support functions */
-
 
 /* Constants for the flags field of the mach_header */
 #define	MH_NOUNDEFS	0x1		/* the object file has no undefined
@@ -336,7 +322,6 @@ struct load_command {
 #define LC_BUILD_VERSION 0x32 /* build for platform min OS version */
 #define LC_DYLD_EXPORTS_TRIE (0x33 | LC_REQ_DYLD) /* used with linkedit_data_command, payload is trie */
 #define LC_DYLD_CHAINED_FIXUPS (0x34 | LC_REQ_DYLD) /* used with linkedit_data_command */
-#define LC_FILESET_ENTRY (0x35 | LC_REQ_DYLD) /* used with fileset_entry_command */
 
 /*
  * A variable length string in a load command is represented by an lc_str
@@ -373,8 +358,8 @@ struct segment_command { /* for 32-bit architectures */
 	uint32_t	vmsize;		/* memory size of this segment */
 	uint32_t	fileoff;	/* file offset of this segment */
 	uint32_t	filesize;	/* amount to map from the file */
-	int32_t		maxprot;	/* maximum VM protection */
-	int32_t		initprot;	/* initial VM protection */
+	vm_prot_t	maxprot;	/* maximum VM protection */
+	vm_prot_t	initprot;	/* initial VM protection */
 	uint32_t	nsects;		/* number of sections in segment */
 	uint32_t	flags;		/* flags */
 };
@@ -393,8 +378,8 @@ struct segment_command_64 { /* for 64-bit architectures */
 	uint64_t	vmsize;		/* memory size of this segment */
 	uint64_t	fileoff;	/* file offset of this segment */
 	uint64_t	filesize;	/* amount to map from the file */
-	int32_t		maxprot;	/* maximum VM protection */
-	int32_t		initprot;	/* initial VM protection */
+	vm_prot_t	maxprot;	/* maximum VM protection */
+	vm_prot_t	initprot;	/* initial VM protection */
 	uint32_t	nsects;		/* number of sections in segment */
 	uint32_t	flags;		/* flags */
 };
@@ -1274,45 +1259,24 @@ struct build_tool_version {
 };
 
 /* Known values for the platform field above. */
-#define PLATFORM_UNKNOWN 0
-#define PLATFORM_ANY 0xFFFFFFFF
 #define PLATFORM_MACOS 1
 #define PLATFORM_IOS 2
 #define PLATFORM_TVOS 3
 #define PLATFORM_WATCHOS 4
 #define PLATFORM_BRIDGEOS 5
 #define PLATFORM_MACCATALYST 6
+#if (!defined(PLATFORM_MACCATALYST))
+#define PLATFORM_MACCATALYST 6
+#endif
 #define PLATFORM_IOSSIMULATOR 7
 #define PLATFORM_TVOSSIMULATOR 8
 #define PLATFORM_WATCHOSSIMULATOR 9
 #define PLATFORM_DRIVERKIT 10
 
-#ifndef __OPEN_SOURCE__
-
-#endif /* __OPEN_SOURCE__ */
-
-#define PLATFORM_FIRMWARE 13
-#define PLATFORM_SEPOS 14
-
-#ifndef __OPEN_SOURCE__
-
-#endif /* __OPEN_SOURCE__ */
-
 /* Known values for the tool field above. */
 #define TOOL_CLANG 1
 #define TOOL_SWIFT 2
 #define TOOL_LD	3
-#define TOOL_LLD 4
-
-/* values for gpu tools (1024 to 1048) */
-#define TOOL_METAL                 1024
-#define TOOL_AIRLLD                1025
-#define TOOL_AIRNT                 1026
-#define TOOL_AIRNT_PLUGIN          1027
-#define TOOL_AIRPACK               1028
-#define TOOL_GPUARCHIVER           1031
-#define TOOL_METAL_FRAMEWORK       1032
-
 
 /*
  * The dyld_info_command contains the file offsets and sizes of 
@@ -1491,8 +1455,6 @@ struct dyld_info_command {
 #define EXPORT_SYMBOL_FLAGS_WEAK_DEFINITION			0x04
 #define EXPORT_SYMBOL_FLAGS_REEXPORT				0x08
 #define EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER			0x10
-#define EXPORT_SYMBOL_FLAGS_STATIC_RESOLVER			0x20
-
 
 /*
  * The linker_option_command contains linker options embedded in object files.
@@ -1611,28 +1573,5 @@ struct note_command {
     uint64_t	offset;		/* file offset of this data */
     uint64_t	size;		/* length of data region */
 };
-
-/*
- * LC_FILESET_ENTRY commands describe constituent Mach-O files that are part
- * of a fileset. In one implementation, entries are dylibs with individual
- * mach headers and repositionable text and data segments. Each entry is
- * further described by its own mach header.
- */
-struct fileset_entry_command {
-    uint32_t     cmd;        /* LC_FILESET_ENTRY */
-    uint32_t     cmdsize;    /* includes entry_id string */
-    uint64_t     vmaddr;     /* memory address of the entry */
-    uint64_t     fileoff;    /* file offset of the entry */
-    union lc_str entry_id;   /* contained entry id */
-    uint32_t     reserved;   /* reserved */
-};
-
-/*
- * These deprecated values may still be used within Apple but are mechanically
- * removed from public API. The mechanical process may produce unusual results.
- */
-#if (!defined(PLATFORM_MACCATALYST))
-#define PLATFORM_MACCATALYST PLATFORM_MACCATALYST
-#endif
 
 #endif /* _MACHO_LOADER_H_ */

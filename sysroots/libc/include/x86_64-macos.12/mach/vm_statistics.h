@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2020 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -66,12 +66,8 @@
 #ifndef _MACH_VM_STATISTICS_H_
 #define _MACH_VM_STATISTICS_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <mach/machine/vm_types.h>
-#include <mach/machine/kern_return.h>
+
 
 /*
  * vm_statistics
@@ -171,8 +167,6 @@ struct vm_statistics64 {
 typedef struct vm_statistics64  *vm_statistics64_t;
 typedef struct vm_statistics64  vm_statistics64_data_t;
 
-kern_return_t vm_stats(void *info, unsigned int *count);
-
 /*
  * VM_STATISTICS_TRUNCATE_TO_32_BIT
  *
@@ -231,6 +225,7 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 #define VM_PAGE_QUERY_PAGE_CS_NX        0x400
 #define VM_PAGE_QUERY_PAGE_REUSABLE     0x800
 
+
 /*
  * VM allocation flags:
  *
@@ -271,7 +266,6 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 #define VM_FLAGS_NO_CACHE       0x0010
 #define VM_FLAGS_RESILIENT_CODESIGN     0x0020
 #define VM_FLAGS_RESILIENT_MEDIA        0x0040
-#define VM_FLAGS_PERMANENT      0x0080
 #define VM_FLAGS_OVERWRITE      0x4000  /* delete any existing mappings first */
 /*
  * VM_FLAGS_SUPERPAGE_MASK
@@ -295,7 +289,6 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 	                         VM_FLAGS_4GB_CHUNK |           \
 	                         VM_FLAGS_RANDOM_ADDR |         \
 	                         VM_FLAGS_NO_CACHE |            \
-	                         VM_FLAGS_PERMANENT |           \
 	                         VM_FLAGS_OVERWRITE |           \
 	                         VM_FLAGS_SUPERPAGE_MASK |      \
 	                         VM_FLAGS_ALIAS_MASK)
@@ -341,9 +334,8 @@ enum virtual_memory_guard_exception_codes {
 #define VM_LEDGER_TAG_NEURAL    0x00000005
 #define VM_LEDGER_TAG_MAX       0x00000005
 /* individual bits: */
-#define VM_LEDGER_FLAG_NO_FOOTPRINT               (1 << 0)
-#define VM_LEDGER_FLAG_NO_FOOTPRINT_FOR_DEBUG    (1 << 1)
-#define VM_LEDGER_FLAGS (VM_LEDGER_FLAG_NO_FOOTPRINT | VM_LEDGER_FLAG_NO_FOOTPRINT_FOR_DEBUG)
+#define VM_LEDGER_FLAG_NO_FOOTPRINT     0x00000001
+#define VM_LEDGER_FLAGS (VM_LEDGER_FLAG_NO_FOOTPRINT)
 
 
 #define VM_MEMORY_MALLOC 1
@@ -360,8 +352,6 @@ enum virtual_memory_guard_exception_codes {
 
 #define VM_MEMORY_MALLOC_NANO 11
 #define VM_MEMORY_MALLOC_MEDIUM 12
-#define VM_MEMORY_MALLOC_PGUARD 13  // Will be removed
-#define VM_MEMORY_MALLOC_PROB_GUARD 13
 
 #define VM_MEMORY_MACH_MSG 20
 #define VM_MEMORY_IOKIT 21
@@ -522,25 +512,6 @@ enum virtual_memory_guard_exception_codes {
 /* memory allocated by CoreMedia for global image registration of frames */
 #define VM_MEMORY_CM_REGWARP 101
 
-/* memory allocated by EmbeddedAcousticRecognition for speech decoder */
-#define VM_MEMORY_EAR_DECODER 102
-
-/* CoreUI cached image data */
-#define VM_MEMORY_COREUI_CACHED_IMAGE_DATA 103
-
-/* ColorSync is using mmap for read-only copies of ICC profile data */
-#define VM_MEMORY_COLORSYNC 104
-
-/* Reserve 230-239 for Rosetta */
-#define VM_MEMORY_ROSETTA 230
-#define VM_MEMORY_ROSETTA_THREAD_CONTEXT 231
-#define VM_MEMORY_ROSETTA_INDIRECT_BRANCH_MAP 232
-#define VM_MEMORY_ROSETTA_RETURN_STACK 233
-#define VM_MEMORY_ROSETTA_EXECUTABLE_HEAP 234
-#define VM_MEMORY_ROSETTA_USER_LDT 235
-#define VM_MEMORY_ROSETTA_ARENA 236
-#define VM_MEMORY_ROSETTA_10 239
-
 /* Reserve 240-255 for application */
 #define VM_MEMORY_APPLICATION_SPECIFIC_1 240
 #define VM_MEMORY_APPLICATION_SPECIFIC_16 255
@@ -548,9 +519,5 @@ enum virtual_memory_guard_exception_codes {
 #define VM_MAKE_TAG(tag) ((tag) << 24)
 
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  /* _MACH_VM_STATISTICS_H_ */

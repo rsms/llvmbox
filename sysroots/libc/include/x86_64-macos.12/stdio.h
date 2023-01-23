@@ -217,17 +217,24 @@ __END_DECLS
 /* Additional functionality provided by:
  * POSIX.2-1992 C Language Binding Option
  */
+#if TARGET_OS_EMBEDDED
+#define __swift_unavailable_on(osx_msg, ios_msg) __swift_unavailable(ios_msg)
+#else
+#define __swift_unavailable_on(osx_msg, ios_msg) __swift_unavailable(osx_msg)
+#endif
 
 #if __DARWIN_C_LEVEL >= 199209L
 __BEGIN_DECLS
-int	 pclose(FILE *) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+int	 pclose(FILE *) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #if defined(_DARWIN_UNLIMITED_STREAMS) || defined(_DARWIN_C_SOURCE)
-FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_3_2, __DARWIN_EXTSN(popen)) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_3_2, __DARWIN_EXTSN(popen)) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #else /* !_DARWIN_UNLIMITED_STREAMS && !_DARWIN_C_SOURCE */
-FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_2_0, __DARWIN_ALIAS(popen)) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_2_0, __DARWIN_ALIAS(popen)) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #endif /* (DARWIN_UNLIMITED_STREAMS || _DARWIN_C_SOURCE) */
 __END_DECLS
 #endif /* __DARWIN_C_LEVEL >= 199209L */
+
+#undef __swift_unavailable_on
 
 /* Additional functionality provided by:
  * POSIX.1c-1995,
@@ -368,6 +375,7 @@ int	 fpurge(FILE *);
 void	 setbuffer(FILE *, char *, int);
 int	 setlinebuf(FILE *);
 int	 vasprintf(char ** __restrict, const char * __restrict, va_list) __printflike(2, 0);
+FILE	*zopen(const char *, const char *, int);
 
 
 /*

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2021 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -81,9 +81,9 @@
 #include <sys/appleapiopts.h>
 #include <sys/time.h>
 #include <sys/ucred.h>
-
 #include <sys/proc.h>
 #include <sys/vm.h>
+
 
 /*
  * Definitions for sysctl call.  The sysctl call uses a hierarchical name
@@ -135,26 +135,25 @@ struct ctlname {
 	int     ctl_type;       /* type of name */
 };
 
-#define CTLTYPE             0xf             /* Mask for the type */
-#define CTLTYPE_NODE        1               /* name is a node */
-#define CTLTYPE_INT         2               /* name describes an integer */
-#define CTLTYPE_STRING      3               /* name describes a string */
-#define CTLTYPE_QUAD        4               /* name describes a 64-bit number */
-#define CTLTYPE_OPAQUE      5               /* name describes a structure */
-#define CTLTYPE_STRUCT      CTLTYPE_OPAQUE  /* name describes a structure */
+#define CTLTYPE         0xf     /* Mask for the type */
+#define CTLTYPE_NODE    1       /* name is a node */
+#define CTLTYPE_INT     2       /* name describes an integer */
+#define CTLTYPE_STRING  3       /* name describes a string */
+#define CTLTYPE_QUAD    4       /* name describes a 64-bit number */
+#define CTLTYPE_OPAQUE  5       /* name describes a structure */
+#define CTLTYPE_STRUCT  CTLTYPE_OPAQUE  /* name describes a structure */
 
-#define CTLFLAG_RD          0x80000000      /* Allow reads of variable */
-#define CTLFLAG_WR          0x40000000      /* Allow writes to the variable */
-#define CTLFLAG_RW          (CTLFLAG_RD|CTLFLAG_WR)
-#define CTLFLAG_NOLOCK      0x20000000      /* XXX Don't Lock */
-#define CTLFLAG_ANYBODY     0x10000000      /* All users can set this var */
-#define CTLFLAG_SECURE      0x08000000      /* Permit set only if securelevel<=0 */
-#define CTLFLAG_MASKED      0x04000000      /* deprecated variable, do not display */
-#define CTLFLAG_NOAUTO      0x02000000      /* do not auto-register */
-#define CTLFLAG_KERN        0x01000000      /* valid inside the kernel */
-#define CTLFLAG_LOCKED      0x00800000      /* node will handle locking itself */
-#define CTLFLAG_OID2        0x00400000      /* struct sysctl_oid has version info */
-#define CTLFLAG_EXPERIMENT 0x00100000 /* Allows writing w/ the trial experiment entitlement. */
+#define CTLFLAG_RD      0x80000000      /* Allow reads of variable */
+#define CTLFLAG_WR      0x40000000      /* Allow writes to the variable */
+#define CTLFLAG_RW      (CTLFLAG_RD|CTLFLAG_WR)
+#define CTLFLAG_NOLOCK  0x20000000      /* XXX Don't Lock */
+#define CTLFLAG_ANYBODY 0x10000000      /* All users can set this var */
+#define CTLFLAG_SECURE  0x08000000      /* Permit set only if securelevel<=0 */
+#define CTLFLAG_MASKED  0x04000000      /* deprecated variable, do not display */
+#define CTLFLAG_NOAUTO  0x02000000      /* do not auto-register */
+#define CTLFLAG_KERN    0x01000000      /* valid inside the kernel */
+#define CTLFLAG_LOCKED  0x00800000      /* node will handle locking itself */
+#define CTLFLAG_OID2    0x00400000      /* struct sysctl_oid has version info */
 
 /*
  * USE THIS instead of a hardwired number from the categories below
@@ -169,8 +168,8 @@ struct ctlname {
  * in I/O-Kit. In this case, you have to call sysctl_register_oid()
  * manually - just like in a KEXT.
  */
-#define OID_AUTO              (-1)
-#define OID_AUTO_START        100 /* conventional */
+#define OID_AUTO        (-1)
+#define OID_AUTO_START 100 /* conventional */
 
 
 #define SYSCTL_DEF_ENABLED
@@ -338,9 +337,8 @@ struct ctlname {
 #define KERN_KDSET_TYPEFILTER 22
 #define KERN_KDBUFWAIT        23
 #define KERN_KDCPUMAP         24
-#define KERN_KDCPUMAP_EXT     25
-#define KERN_KDSET_EDM        26
-#define KERN_KDGET_EDM        27
+/* 25 - 26 unused */
+#define KERN_KDWRITEMAP_V3    27
 #define KERN_KDWRITETR_V3     28
 
 #define CTL_KERN_NAMES { \
@@ -555,8 +553,8 @@ extern struct loadavg averunnable;
 /*
  * CTL_HW identifiers
  */
-#define HW_MACHINE       1              /* string: machine class (deprecated: use HW_PRODUCT) */
-#define HW_MODEL         2              /* string: specific machine model (deprecated: use HW_TARGET) */
+#define HW_MACHINE       1              /* string: machine class */
+#define HW_MODEL         2              /* string: specific machine model */
 #define HW_NCPU          3              /* int: number of cpus */
 #define HW_BYTEORDER     4              /* int: machine byte order */
 #define HW_PHYSMEM       5              /* int: total memory */
@@ -580,14 +578,12 @@ extern struct loadavg averunnable;
 #define HW_TB_FREQ      23              /* int: Bus Frequency */
 #define HW_MEMSIZE      24              /* uint64_t: physical ram size */
 #define HW_AVAILCPU     25              /* int: number of available CPUs */
-#define HW_TARGET       26              /* string: model identifier */
-#define HW_PRODUCT      27              /* string: product identifier */
-#define HW_MAXID        28              /* number of valid hw ids */
+#define HW_MAXID        26              /* number of valid hw ids */
 
 #define CTL_HW_NAMES { \
 	{ 0, 0 }, \
-	{ "machine", CTLTYPE_STRING },          /* Deprecated: use hw.product */ \
-	{ "model", CTLTYPE_STRING },            /* Deprecated: use hw.target */ \
+	{ "machine", CTLTYPE_STRING }, \
+	{ "model", CTLTYPE_STRING }, \
 	{ "ncpu", CTLTYPE_INT }, \
 	{ "byteorder", CTLTYPE_INT }, \
 	{ "physmem", CTLTYPE_INT }, \
@@ -610,9 +606,7 @@ extern struct loadavg averunnable;
 	{ "l3cachesize", CTLTYPE_INT }, \
 	{ "tbfrequency", CTLTYPE_INT }, \
 	{ "memsize", CTLTYPE_QUAD }, \
-	{ "availcpu", CTLTYPE_INT }, \
-	{ "target", CTLTYPE_STRING }, \
-	{ "product", CTLTYPE_STRING }, \
+	{ "availcpu", CTLTYPE_INT } \
 }
 
 /*
@@ -668,28 +662,6 @@ extern struct loadavg averunnable;
  *   hw.l1icachesize           - then the selector will return and error.
  *   hw.l2cachesize            -
  *   hw.l3cachesize            -
- *
- *   hw.nperflevels            - Number of core types in the system. See the parameters below, which can be used to get
- *                             - information associated with a specific perf level.
- *
- *   The following parameters apply to perflevel N, where N is a number between 0 and the number of core types in the system minus one.
- *   perflevel 0 always refers to the highest performance core type in the system.
- *
- *   hw.perflevelN.physicalcpu      - The number of physical processors available in the current power management mode.
- *   hw.perflevelN.physicalcpumax   - The maximum number of physical processors that could be available this boot.
- *   hw.perflevelN.logicalcpu       - The number of logical processors available in the current power management mode.
- *   hw.perflevelN.logicalcpumax    - The maximum number of logical processors that could be available this boot.
- *
- *   hw.perflevelN.l1dcachesize     - These values provide the size in bytes of the L1, L2 and L3 caches.  If a cache is not present
- *   hw.perflevelN.l1icachesize     - then the selector will return and error.
- *   hw.perflevelN.l2cachesize      -
- *   hw.perflevelN.l3cachesize      -
- *
- *   hw.perflevelN.cpusperl2        - These values provide the number of CPUs of the same type that share L2 and L3 caches.
- *   hw.perflevelN.cpusperl3        - If a cache is not present then the selector will return and error.
- *
- *   hw.perflevelN.l2perflevels     - These values provide a bitmap, where bit  number of CPUs of the same type that share L2 and L3 caches.
- *   hw.perflevelN.l3perflevels     - If a cache is not present then the selector will return and error.
  *
  *   hw.packages               - Gives the number of processor packages.
  *
@@ -783,7 +755,7 @@ extern struct loadavg averunnable;
 #define CTL_DEBUG_MAXID         20
 
 
-#if (CTL_MAXID != 9) || (KERN_MAXID != 72) || (VM_MAXID != 6) || (HW_MAXID != 28) || (USER_MAXID != 21) || (CTL_DEBUG_MAXID != 20)
+#if (CTL_MAXID != 9) || (KERN_MAXID != 72) || (VM_MAXID != 6) || (HW_MAXID != 26) || (USER_MAXID != 21) || (CTL_DEBUG_MAXID != 20)
 #error Use the SYSCTL_*() macros and OID_AUTO instead!
 #endif
 

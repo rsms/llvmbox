@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2021 Apple Inc. All rights reserved.
+ * Copyright (c) 2003-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -58,9 +58,7 @@
 
 #include <machine/types.h>
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 /*
  * Filter types
@@ -244,8 +242,6 @@ struct kevent64_s {
 #define NOTE_REVOKE     0x00000040              /* vnode access was revoked */
 #define NOTE_NONE       0x00000080              /* No specific vnode event: to test for EVFILT_READ activation*/
 #define NOTE_FUNLOCK    0x00000100              /* vnode was unlocked by flock(2) */
-#define NOTE_LEASE_DOWNGRADE 0x00000200         /* lease downgrade requested */
-#define NOTE_LEASE_RELEASE 0x00000400           /* lease release requested */
 
 /*
  * data/hint fflags for EVFILT_PROC, shared with userspace
@@ -266,7 +262,7 @@ enum {
 #define NOTE_EXEC               0x20000000      /* process exec'd */
 #define NOTE_REAP               ((unsigned int)eNoteReapDeprecated /* 0x10000000 */ )   /* process reaped */
 #define NOTE_SIGNAL             0x08000000      /* shared with EVFILT_SIGNAL */
-#define NOTE_EXITSTATUS         0x04000000      /* exit status to be returned, valid for child process or when allowed to signal target pid */
+#define NOTE_EXITSTATUS         0x04000000      /* exit status to be returned, valid for child process only */
 #define NOTE_EXIT_DETAIL        0x02000000      /* provide details on reasons for exit */
 
 #define NOTE_PDATAMASK  0x000fffff              /* mask for signal & exit status */
@@ -370,9 +366,12 @@ enum {
 
 
 /* Temporay solution for BootX to use inode.h till kqueue moves to vfs layer */
+#include <sys/queue.h>
 struct knote;
 SLIST_HEAD(klist, knote);
 
+
+#include <sys/types.h>
 
 struct timespec;
 

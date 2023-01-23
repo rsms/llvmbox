@@ -435,9 +435,9 @@ static SIMD_NOINLINE simd_quatf simd_quaternion(simd_float3 from, simd_float3 to
   //  Because from and to are more than 90 degrees apart, we compute the
   //  rotation in two stages (from -> half), (half -> to) to preserve numerical
   //  accuracy.
-  simd_float3 half = simd_normalize(from) + simd_normalize(to);
+  simd_float3 half = simd_normalize(from + to);
   
-  if (simd_length_squared(half) <= 0x1p-46f) {
+  if (simd_length_squared(half) == 0) {
     //  half is nearly zero, so from and to point in nearly opposite directions
     //  and the rotation is numerically underspecified. Pick an axis orthogonal
     //  to the vectors, and use an angle of pi radians.
@@ -449,9 +449,8 @@ static SIMD_NOINLINE simd_quatf simd_quaternion(simd_float3 from, simd_float3 to
     else
       return _simd_quaternion(simd_normalize(simd_cross(from, (simd_float3){0,0,1})), 0.f);
   }
-
+  
   //  Compute the two-step rotation.                         */
-  half = simd_normalize(half);
   return simd_mul(_simd_quaternion_reduced(from, half),
                   _simd_quaternion_reduced(half, to));
 }
@@ -1021,9 +1020,9 @@ static SIMD_NOINLINE simd_quatd simd_quaternion(simd_double3 from, simd_double3 
   //  Because from and to are more than 90 degrees apart, we compute the
   //  rotation in two stages (from -> half), (half -> to) to preserve numerical
   //  accuracy.
-  simd_double3 half = simd_normalize(from) + simd_normalize(to);
+  simd_double3 half = simd_normalize(from + to);
   
-  if (simd_length_squared(half) <= 0x1p-104) {
+  if (simd_length_squared(half) == 0) {
     //  half is nearly zero, so from and to point in nearly opposite directions
     //  and the rotation is numerically underspecified. Pick an axis orthogonal
     //  to the vectors, and use an angle of pi radians.
@@ -1035,9 +1034,8 @@ static SIMD_NOINLINE simd_quatd simd_quaternion(simd_double3 from, simd_double3 
     else
       return _simd_quaternion(simd_normalize(simd_cross(from, (simd_double3){0,0,1})), 0.f);
   }
-
+  
   //  Compute the two-step rotation.                         */
-  half = simd_normalize(half);
   return simd_mul(_simd_quaternion_reduced(from, half),
                   _simd_quaternion_reduced(half, to));
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2022 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2013 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -107,60 +107,24 @@
  * which was documented to use FREAD/FWRITE, continues to work.
  */
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-#define FREAD           0x00000001
-#define FWRITE          0x00000002
+#define FREAD           0x0001
+#define FWRITE          0x0002
 #endif
-#define O_NONBLOCK      0x00000004      /* no delay */
-#define O_APPEND        0x00000008      /* set append mode */
+#define O_NONBLOCK      0x0004          /* no delay */
+#define O_APPEND        0x0008          /* set append mode */
 
 #include <sys/_types/_o_sync.h>
 
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-#define O_SHLOCK        0x00000010      /* open with shared file lock */
-#define O_EXLOCK        0x00000020      /* open with exclusive file lock */
-#define O_ASYNC         0x00000040      /* signal pgrp when data ready */
+#define O_SHLOCK        0x0010          /* open with shared file lock */
+#define O_EXLOCK        0x0020          /* open with exclusive file lock */
+#define O_ASYNC         0x0040          /* signal pgrp when data ready */
 #define O_FSYNC         O_SYNC          /* source compatibility: do not use */
-#define O_NOFOLLOW      0x00000100      /* don't follow symlinks */
+#define O_NOFOLLOW  0x0100      /* don't follow symlinks */
 #endif /* (_POSIX_C_SOURCE && !_DARWIN_C_SOURCE) */
-#define O_CREAT         0x00000200      /* create if nonexistant */
-#define O_TRUNC         0x00000400      /* truncate to zero length */
-#define O_EXCL          0x00000800      /* error if already exists */
-
-#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-#define O_EVTONLY       0x00008000      /* descriptor requested for event notifications only */
-#endif
-
-
-#define O_NOCTTY        0x00020000      /* don't assign controlling terminal */
-
-
-#if __DARWIN_C_LEVEL >= 200809L
-#define O_DIRECTORY     0x00100000
-#endif
-
-#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-#define O_SYMLINK       0x00200000      /* allow open of a symlink */
-#endif
-
-//      O_DSYNC         0x00400000      /* synch I/O data integrity */
-#include <sys/_types/_o_dsync.h>
-
-
-#if __DARWIN_C_LEVEL >= 200809L
-#define O_CLOEXEC       0x01000000      /* implicitly set FD_CLOEXEC */
-#endif
-
-
-#if __DARWIN_C_LEVEL >= __DARWIN_C_FULL
-#define O_NOFOLLOW_ANY  0x20000000      /* no symlinks allowed in path */
-#endif
-
-#if __DARWIN_C_LEVEL >= 200809L
-#define O_EXEC          0x40000000               /* open file for execute only */
-#define O_SEARCH        (O_EXEC | O_DIRECTORY)   /* open directory for search only */
-#endif
-
-
+#define O_CREAT         0x0200          /* create if nonexistant */
+#define O_TRUNC         0x0400          /* truncate to zero length */
+#define O_EXCL          0x0800          /* error if already exists */
 
 #if __DARWIN_C_LEVEL >= 200809L
 /*
@@ -178,18 +142,37 @@
 #if __DARWIN_C_LEVEL >= __DARWIN_C_FULL
 #define AT_REALDEV              0x0200  /* Return real device inodes resides on for fstatat(2) */
 #define AT_FDONLY               0x0400  /* Use only the fd and Ignore the path for fstatat(2) */
-#define AT_SYMLINK_NOFOLLOW_ANY 0x0800  /* Path should not contain any symlinks */
 #endif
 #endif
 
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
+#define O_EVTONLY       0x8000          /* descriptor requested for event notifications only */
+#endif
+
+
+#define O_NOCTTY        0x20000         /* don't assign controlling terminal */
+
+
+#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
+#define O_DIRECTORY     0x100000
+#define O_SYMLINK       0x200000        /* allow open of a symlink */
+#endif
+
+#include <sys/_types/_o_dsync.h>
+
+
+#if __DARWIN_C_LEVEL >= 200809L
+#define O_CLOEXEC       0x1000000       /* implicitly set FD_CLOEXEC */
+#endif
+
+
+
+
+
 /* Data Protection Flags */
+#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 #define O_DP_GETRAWENCRYPTED    0x0001
 #define O_DP_GETRAWUNENCRYPTED  0x0002
-#define O_DP_AUTHENTICATE       0x0004
-
-/* Descriptor value for openat_authenticated_np() to skip authentication with another fd */
-#define AUTH_OPEN_NOAUTHFD      -1
 #endif
 
 
@@ -241,7 +224,7 @@
 #define F_FLUSH_DATA    40
 #define F_CHKCLEAN      41              /* Used for regression test */
 #define F_PREALLOCATE   42              /* Preallocate storage */
-#define F_SETSIZE       43              /* Truncate a file. Equivalent to calling truncate(2) */
+#define F_SETSIZE       43              /* Truncate a file without zeroing space */
 #define F_RDADVISE      44              /* Issue an advisory read async with no copy to user */
 #define F_RDAHEAD       45              /* turn read ahead off/on for this fd */
 /*
@@ -270,13 +253,7 @@
 
 #define F_LOG2PHYS_EXT  65              /* file offset to device offset, extended */
 
-#define F_GETLKPID              66      /* See man fcntl(2) F_GETLK
-	                                 * Similar to F_GETLK but in addition l_pid is treated as an input parameter
-	                                 * which is used as a matching value when searching locks on the file
-	                                 * so that only locks owned by the process with pid l_pid are returned.
-	                                 * However, any flock(2) type lock will also be found with the returned value
-	                                 * of l_pid set to -1 (as with F_GETLK).
-	                                 */
+#define F_GETLKPID              66              /* get record locking information, per-process */
 
 /* See F_DUPFD_CLOEXEC below for 67 */
 
@@ -316,18 +293,6 @@
 
 #define F_GETPATH_NOFIRMLINK       102              /* return the full path without firmlinks of the fd */
 
-#define F_ADDFILESIGS_INFO      103     /* Add signature from same file, return information */
-#define F_ADDFILESUPPL          104     /* Add supplemental signature from same file with fd reference to original */
-#define F_GETSIGSINFO           105     /* Look up code signature information attached to a file or slice */
-
-#define F_SETLEASE              106      /* Acquire or release lease */
-#define F_GETLEASE              107      /* Retrieve lease information */
-
-#define F_SETLEASE_ARG(t, oc)   ((t) | ((oc) << 2))
-
-
-#define F_TRANSFEREXTENTS       110      /* Transfer allocated extents beyond leof to a different file */
-
 // FS-specific fcntl()'s numbers begin at 0x00010000 and go up
 #define FCNTL_FS_SPECIFIC_BASE  0x00010000
 
@@ -363,7 +328,6 @@
 
 #define F_ALLOCATECONTIG  0x00000002    /* allocate contigious space */
 #define F_ALLOCATEALL     0x00000004    /* allocate all requested space or no space at all */
-#define F_ALLOCATEPERSIST 0x00000008    /* do not free space upon close(2) */
 
 /* Position Modes (fst_posmode) for F_PREALLOCATE */
 
@@ -410,33 +374,29 @@ struct radvisory {
 };
 
 
+/** Information the user passes in to get the codeblobs out of the kernel */
+typedef struct fcodeblobs {
+	void            *f_cd_hash;
+	size_t          f_hash_size;
+	void            *f_cd_buffer;
+	size_t          f_cd_size;
+	unsigned int    *f_out_size;
+	int             f_arch;
+	int             __padding;
+} fcodeblobs_t;
+
+
 /*
  * detached code signatures data type -
  * information passed by user to system used by F_ADDSIGS and F_ADDFILESIGS.
  * F_ADDFILESIGS is a shortcut for files that contain their own signature and
  * doesn't require mapping of the file in order to load the signature.
  */
-#define USER_FSIGNATURES_CDHASH_LEN 20
 typedef struct fsignatures {
 	off_t           fs_file_start;
 	void            *fs_blob_start;
 	size_t          fs_blob_size;
-
-	/* The following fields are only applicable to F_ADDFILESIGS_INFO (64bit only). */
-	/* Prior to F_ADDFILESIGS_INFO, this struct ended after fs_blob_size. */
-	size_t          fs_fsignatures_size;// input: size of this struct (for compatibility)
-	char            fs_cdhash[USER_FSIGNATURES_CDHASH_LEN];     // output: cdhash
-	int             fs_hash_type;// output: hash algorithm type for cdhash
 } fsignatures_t;
-
-typedef struct fsupplement {
-	off_t           fs_file_start;   /* offset of Mach-O image in FAT file  */
-	off_t           fs_blob_start;   /* offset of signature in Mach-O image */
-	size_t          fs_blob_size;    /* signature blob size                 */
-	int             fs_orig_fd;      /* address of original image           */
-} fsupplement_t;
-
-
 
 /*
  * DYLD needs to check if the object is allowed to be combined
@@ -454,19 +414,6 @@ typedef struct fchecklv {
 	void            *lv_error_message;
 } fchecklv_t;
 
-
-/* At this time F_GETSIGSINFO can only indicate platformness.
- *  As additional requestable information is defined, new keys will be added and the
- *  fgetsigsinfo_t structure will be lengthened to add space for the additional information
- */
-#define GETSIGSINFO_PLATFORM_BINARY 1
-
-/* fgetsigsinfo_t used by F_GETSIGSINFO command */
-typedef struct fgetsigsinfo {
-	off_t fg_file_start; /* IN: Offset in the file to look for a signature, -1 for any signature */
-	int   fg_info_request; /* IN: Key indicating the info requested */
-	int   fg_sig_is_platform; /* OUT: 1 if the signature is a plat form binary, 0 if not */
-} fgetsigsinfo_t;
 
 
 /* lock operations for flock(2) */
@@ -506,6 +453,14 @@ typedef struct fspecread {
 	off_t fsr_offset;        /* IN: start of the region */
 	off_t fsr_length;        /* IN: size of the region */
 } fspecread_t;
+
+/* fbootstraptransfer_t used by F_READBOOTSTRAP and F_WRITEBOOTSTRAP commands */
+
+typedef struct fbootstraptransfer {
+	off_t fbt_offset;       /* IN: offset to start read/write */
+	size_t fbt_length;    /* IN: number of bytes to transfer */
+	void *fbt_buffer;       /* IN: buffer to be read/written */
+} fbootstraptransfer_t;
 
 
 /*
@@ -586,8 +541,6 @@ int     openx_np(const char *, int, filesec_t);
  *  int open_dprotected_np(user_addr_t path, int flags, int class, int dpflags, int mode)
  */
 int open_dprotected_np( const char *, int, int, int, ...);
-int openat_dprotected_np( int, const char *, int, int, int, ...);
-int openat_authenticated_np(int, const char *, int, int);
 int     flock(int, int);
 filesec_t filesec_init(void);
 filesec_t filesec_dup(filesec_t);

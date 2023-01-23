@@ -33,6 +33,7 @@
 #include <sys/_types.h>
 
 #include <machine/_mcontext.h>
+#include <sys/_types/_sigaltstack.h>
 #include <sys/_types/_ucontext.h>
 
 #include <sys/_types/_sigset_t.h>

@@ -36,10 +36,9 @@
 #include <mach/machine/vm_types.h>
 
 #include <stdint.h>
-#include <sys/cdefs.h>
 
-typedef vm_offset_t             pointer_t __kernel_ptr_semantics;
-typedef vm_offset_t             vm_address_t __kernel_ptr_semantics;
+typedef vm_offset_t             pointer_t;
+typedef vm_offset_t             vm_address_t;
 
 /*
  * We use addr64_t for 64-bit addresses that are used on both
@@ -71,12 +70,10 @@ typedef uint32_t ppnum_t;               /* Physical page number */
 
 
 
-typedef mach_port_t             vm_map_t, vm_map_read_t, vm_map_inspect_t;
+typedef mach_port_t             vm_map_t;
 
 
 #define VM_MAP_NULL             ((vm_map_t) 0)
-#define VM_MAP_INSPECT_NULL     ((vm_map_inspect_t) 0)
-#define VM_MAP_READ_NULL        ((vm_map_read_t) 0)
 
 /*
  * Evolving definitions, likely to change.

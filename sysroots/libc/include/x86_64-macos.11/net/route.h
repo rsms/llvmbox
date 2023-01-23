@@ -84,7 +84,7 @@ struct rt_metrics {
 	u_int32_t       rmx_rttvar;     /* estimated rtt variance */
 	u_int32_t       rmx_pksent;     /* packets sent using this route */
 	u_int32_t       rmx_state;      /* route state */
-	u_int32_t       rmx_filler[3];  /* will be used for TCP's peer-MSS cache */
+	u_int32_t       rmx_filler[3];  /* will be used for T/TCP later */
 };
 
 /*

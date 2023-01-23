@@ -31,7 +31,6 @@
 
 #include <mach/std_types.h>
 #include <mach/port.h>
-#include <mach/message.h>
 
 /*
  * Mach Voucher - an immutable collection of attribute value handles.
@@ -92,14 +91,12 @@ typedef mach_voucher_attr_key_t *mach_voucher_attr_key_array_t;
 #define MACH_VOUCHER_ATTR_KEY_ATM               ((mach_voucher_attr_key_t)1)
 #define MACH_VOUCHER_ATTR_KEY_IMPORTANCE        ((mach_voucher_attr_key_t)2)
 #define MACH_VOUCHER_ATTR_KEY_BANK              ((mach_voucher_attr_key_t)3)
-
-/* following keys have been removed from embedded platforms */
 #define MACH_VOUCHER_ATTR_KEY_PTHPRIORITY       ((mach_voucher_attr_key_t)4)
+
 #define MACH_VOUCHER_ATTR_KEY_USER_DATA         ((mach_voucher_attr_key_t)7)
-#define MACH_VOUCHER_ATTR_KEY_BITS              MACH_VOUCHER_ATTR_KEY_USER_DATA
+#define MACH_VOUCHER_ATTR_KEY_BITS              MACH_VOUCHER_ATTR_KEY_USER_DATA /* deprecated */
 #define MACH_VOUCHER_ATTR_KEY_TEST              ((mach_voucher_attr_key_t)8)
 
-/* not used, for compatibility only */
 #define MACH_VOUCHER_ATTR_KEY_NUM_WELL_KNOWN    MACH_VOUCHER_ATTR_KEY_TEST
 
 /*
@@ -215,7 +212,7 @@ typedef mach_port_t             ipc_voucher_attr_control_t;
  * The private handle that the voucher attribute manager provides to
  * the mach voucher mechanism to represent a given attr content/value.
  */
-typedef uint64_t mach_voucher_attr_value_handle_t __kernel_ptr_semantics;
+typedef uint64_t mach_voucher_attr_value_handle_t;
 typedef mach_voucher_attr_value_handle_t *mach_voucher_attr_value_handle_array_t;
 
 typedef mach_msg_type_number_t mach_voucher_attr_value_handle_array_size_t;

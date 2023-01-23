@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Apple Computer, Inc. All rights reserved.
+ * Copyright (c) 2005-2017 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -472,17 +472,6 @@ struct kern_ctl_info {
 	char            kcsi_name[MAX_KCTL_NAME];       /* unique nke identifier, provided by DTS */
 };
 
-/*
- * VSock Sockets
- */
-
-struct vsock_sockinfo {
-	uint32_t        local_cid;
-	uint32_t        local_port;
-	uint32_t        remote_cid;
-	uint32_t        remote_port;
-};
-
 /* soi_state */
 
 #define SOI_S_NOFDREF           0x0001  /* no file table ref any more */
@@ -517,8 +506,7 @@ enum {
 	SOCKINFO_UN             = 3,
 	SOCKINFO_NDRV           = 4,
 	SOCKINFO_KERN_EVENT     = 5,
-	SOCKINFO_KERN_CTL       = 6,
-	SOCKINFO_VSOCK          = 7,
+	SOCKINFO_KERN_CTL       = 6
 };
 
 struct socket_info {
@@ -548,7 +536,6 @@ struct socket_info {
 		struct ndrv_info        pri_ndrv;               /* SOCKINFO_NDRV */
 		struct kern_event_info  pri_kern_event;         /* SOCKINFO_KERN_EVENT */
 		struct kern_ctl_info    pri_kern_ctl;           /* SOCKINFO_KERN_CTL */
-		struct vsock_sockinfo   pri_vsock;              /* SOCKINFO_VSOCK */
 	}                                       soi_proto;
 };
 
@@ -790,7 +777,6 @@ struct proc_fileportinfo {
 /* Flavors for proc_udata_info */
 #define PROC_UDATA_INFO_GET             1
 #define PROC_UDATA_INFO_SET             2
-
 
 
 

@@ -323,22 +323,6 @@
 /* The provided buffer is of insufficient size for the requested data.
  */
 
-#define KERN_DENIED                     53
-/* Denied by security policy
- */
-
-#define KERN_MISSING_KC                 54
-/* The KC on which the function is operating is missing
- */
-
-#define KERN_INVALID_KC                 55
-/* The KC on which the function is operating is invalid
- */
-
-#define KERN_NOT_FOUND                  56
-/* A search or query operation did not return a result
- */
-
 #define KERN_RETURN_MAX                 0x100
 /* Maximum return value allowable
  */

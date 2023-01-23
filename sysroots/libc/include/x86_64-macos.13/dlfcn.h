@@ -64,7 +64,7 @@ extern int dladdr(const void *, Dl_info *);
 extern int dlclose(void * __handle) __DYLDDL_DRIVERKIT_UNAVAILABLE;
 extern char * dlerror(void) __DYLDDL_DRIVERKIT_UNAVAILABLE;
 extern void * dlopen(const char * __path, int __mode) __DYLDDL_DRIVERKIT_UNAVAILABLE;
-extern void * dlsym(void * __handle, const char * __symbol);
+extern void * dlsym(void * __handle, const char * __symbol) __DYLDDL_DRIVERKIT_UNAVAILABLE;
 
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 extern bool dlopen_preflight(const char* __path) __OSX_AVAILABLE_STARTING(__MAC_10_5, __IPHONE_2_0) __DYLDDL_DRIVERKIT_UNAVAILABLE;

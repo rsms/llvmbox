@@ -473,9 +473,6 @@ dispatch_async_and_wait_f(dispatch_queue_t queue,
  * @param block
  * The block to be invoked the specified number of iterations.
  * The result of passing NULL in this parameter is undefined.
- * This function performs a Block_copy() and Block_release() of the input block
- * on behalf of the callers. To elide the additional block allocation,
- * dispatch_apply_f may be used instead.
  */
 #ifdef __BLOCKS__
 API_AVAILABLE(macos(10.6), ios(4.0))
@@ -483,7 +480,7 @@ DISPATCH_EXPORT DISPATCH_NONNULL3 DISPATCH_NOTHROW
 void
 dispatch_apply(size_t iterations,
 		dispatch_queue_t DISPATCH_APPLY_QUEUE_ARG_NULLABILITY queue,
-		DISPATCH_NOESCAPE void (^block)(size_t iteration));
+		DISPATCH_NOESCAPE void (^block)(size_t));
 #endif
 
 /*!
@@ -518,7 +515,7 @@ DISPATCH_EXPORT DISPATCH_NONNULL4 DISPATCH_NOTHROW
 void
 dispatch_apply_f(size_t iterations,
 		dispatch_queue_t DISPATCH_APPLY_QUEUE_ARG_NULLABILITY queue,
-		void *_Nullable context, void (*work)(void *_Nullable context, size_t iteration));
+		void *_Nullable context, void (*work)(void *_Nullable, size_t));
 
 /*!
  * @function dispatch_get_current_queue
@@ -664,7 +661,7 @@ typedef long dispatch_queue_priority_t;
 API_AVAILABLE(macos(10.6), ios(4.0))
 DISPATCH_EXPORT DISPATCH_CONST DISPATCH_WARN_RESULT DISPATCH_NOTHROW
 dispatch_queue_global_t
-dispatch_get_global_queue(intptr_t identifier, uintptr_t flags);
+dispatch_get_global_queue(long identifier, unsigned long flags);
 
 /*!
  * @typedef dispatch_queue_attr_t

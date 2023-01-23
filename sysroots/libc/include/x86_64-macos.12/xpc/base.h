@@ -29,8 +29,6 @@ __BEGIN_DECLS
 #include <Availability.h>
 #endif // __has_include(<xpc/availability.h>)
 
-#include <os/availability.h>
-
 #ifndef __XPC_INDIRECT__
 #error "Please #include <xpc/xpc.h> instead of this file directly."
 #endif // __XPC_INDIRECT__ 
@@ -85,10 +83,7 @@ __BEGIN_DECLS
 #define XPC_DEPRECATED(m) __attribute__((deprecated(m)))
 #else // __clang__
 #define XPC_DEPRECATED(m) __attribute__((deprecated))
-#endif // __clang
-#ifndef XPC_TESTEXPORT
-#define XPC_TESTEXPORT XPC_NOEXPORT
-#endif // XPC_TESTEXPORT
+#endif // __clang 
 
 #if defined(__XPC_TEST__) && __XPC_TEST__
 #define XPC_TESTSTATIC

@@ -107,4 +107,4 @@ __END_DECLS
  */
 #if defined(USE_OLD_TTY) || defined(BSD_KERNEL_PRIVATE)
 #include <sys/ioctl_compat.h>
-#endif /* defined(USE_OLD_TTY) || defined(BSD_KERNEL_PRIVATE) */
+#endif /* !_SYS_IOCTL_H_ */

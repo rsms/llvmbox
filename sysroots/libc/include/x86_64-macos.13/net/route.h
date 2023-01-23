@@ -84,13 +84,15 @@ struct rt_metrics {
 	u_int32_t       rmx_rttvar;     /* estimated rtt variance */
 	u_int32_t       rmx_pksent;     /* packets sent using this route */
 	u_int32_t       rmx_state;      /* route state */
-	u_int32_t       rmx_filler[3];  /* will be used for TCP's peer-MSS cache */
+	u_int32_t       rmx_filler[3];  /* will be used for T/TCP later */
 };
 
 /*
  * rmx_rtt and rmx_rttvar are stored as microseconds;
  */
 #define RTM_RTTUNIT     1000000 /* units for rtt, rttvar, as units per sec */
+
+
 
 #define RTF_UP          0x1             /* route usable */
 #define RTF_GATEWAY     0x2             /* destination is a gateway */
@@ -125,8 +127,7 @@ struct rt_metrics {
 #define RTF_PROXY       0x8000000       /* proxying, no interface scope */
 #define RTF_ROUTER      0x10000000      /* host is a router */
 #define RTF_DEAD        0x20000000      /* Route entry is being freed */
-#define RTF_GLOBAL      0x40000000      /* route to destination of the global internet */
-                                        /* 0x80000000 unassigned */
+                                        /* 0x40000000 and up unassigned */
 
 #define RTPRF_OURS      RTF_PROTO3      /* set on routes we manage */
 #define RTF_BITS \
@@ -134,15 +135,10 @@ struct rt_metrics {
 	"\10DELCLONE\11CLONING\12XRESOLVE\13LLINFO\14STATIC\15BLACKHOLE" \
 	"\16NOIFREF\17PROTO2\20PROTO1\21PRCLONING\22WASCLONED\23PROTO3" \
 	"\25PINNED\26LOCAL\27BROADCAST\30MULTICAST\31IFSCOPE\32CONDEMNED" \
-	"\33IFREF\34PROXY\35ROUTER\37GLOBAL"
+	"\33IFREF\34PROXY\35ROUTER"
 
 #define IS_DIRECT_HOSTROUTE(rt) \
 	(((rt)->rt_flags & (RTF_HOST | RTF_GATEWAY)) == RTF_HOST)
-
-#define IS_DYNAMIC_DIRECT_HOSTROUTE(rt) \
-	(((rt)->rt_flags & (RTF_CLONING | RTF_PRCLONING | RTF_HOST | RTF_LLINFO |\
-	    RTF_WASCLONED | RTF_GATEWAY)) ==\
-	 (RTF_HOST | RTF_LLINFO | RTF_WASCLONED))
 /*
  * Routing statistics.
  */
@@ -187,6 +183,7 @@ struct rt_msghdr2 {
 	u_int32_t rtm_inits;    /* which metrics we are initializing */
 	struct rt_metrics rtm_rmx; /* metrics themselves */
 };
+
 
 #define RTM_VERSION     5       /* Up the ante and ignore older versions */
 

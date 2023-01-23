@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2021 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -164,8 +164,8 @@
 
 
 
-#define SIOCGIFMAC      _IOWR('i', 130, struct ifreq)   /* deprecated */
-#define SIOCSIFMAC      _IOW('i', 131, struct ifreq)    /* deprecated */
+#define SIOCGIFMAC      _IOWR('i', 130, struct ifreq)   /* get IF MAC label */
+#define SIOCSIFMAC      _IOW('i', 131, struct ifreq)    /* set IF MAC label */
 #define SIOCSIFKPI      _IOW('i', 134, struct ifreq) /* set interface kext param - root only */
 #define SIOCGIFKPI      _IOWR('i', 135, struct ifreq) /* get interface kext param */
 

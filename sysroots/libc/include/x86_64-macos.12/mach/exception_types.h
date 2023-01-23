@@ -123,11 +123,6 @@
  *	the thread identity and state.
  */
 
-# define EXCEPTION_IDENTITY_PROTECTED       4
-/*	Send a catch_exception_raise message including protected task
- *  and thread identity.
- */
-
 #define MACH_EXCEPTION_ERRORS           0x40000000
 /*	include additional exception specific errors, not used yet.  */
 
@@ -186,7 +181,6 @@
 #include <mach/port.h>
 #include <mach/thread_status.h>
 #include <mach/machine/vm_types.h>
-#include <mach_debug/ipc_info.h>
 /*
  * Exported types
  */
@@ -202,7 +196,6 @@ typedef exception_mask_t                *exception_mask_array_t;
 typedef exception_behavior_t            *exception_behavior_array_t;
 typedef thread_state_flavor_t           *exception_flavor_array_t;
 typedef mach_port_t                     *exception_port_array_t;
-typedef ipc_info_port_t                 *exception_port_info_array_t;
 typedef mach_exception_data_type_t      mach_exception_code_t;
 typedef mach_exception_data_type_t      mach_exception_subcode_t;
 

@@ -127,33 +127,6 @@
 #define DISPATCH_UNAVAILABLE_MSG(msg)
 #endif
 
-#if defined(__cplusplus)
-# if __cplusplus >= 201703L
-#  define DISPATCH_FALLTHROUGH [[fallthrough]]
-# elif __cplusplus >= 201103L
-#  if defined(__clang__)
-#   define DISPATCH_FALLTHROUGH [[clang::fallthrough]]
-#  elif defined(__GNUC__) && __GNUC__ >= 7
-#   define DISPATCH_FALLTHROUGH [[gnu::fallthrough]]
-#  else
-#   define DISPATCH_FALLTHROUGH
-#  endif
-# else
-#  define DISPATCH_FALLTHROUGH
-# endif
-#elif defined(__GNUC__) && __GNUC__ >= 7
-# define DISPATCH_FALLTHROUGH __attribute__((__fallthrough__))
-#elif defined(__clang__)
-# if __has_attribute(fallthrough) && __clang_major__ >= 5
-#  define DISPATCH_FALLTHROUGH __attribute__((__fallthrough__))
-# else
-#  define DISPATCH_FALLTHROUGH
-# endif
-#else
-# define DISPATCH_FALLTHROUGH
-#endif
-
-
 #define DISPATCH_LINUX_UNAVAILABLE()
 
 #ifdef __FreeBSD__
@@ -228,20 +201,6 @@
 #else
 #define DISPATCH_ASSUME_NONNULL_BEGIN
 #define DISPATCH_ASSUME_NONNULL_END
-#endif
-
-#if __has_feature(bounds_attributes)
-#define DISPATCH_ASSUME_ABI_SINGLE_BEGIN	_Pragma("clang abi_ptr_attr set(single)")
-#define DISPATCH_ASSUME_ABI_SINGLE_END		_Pragma("clang abi_ptr_attr set(unsafe_indexable)")
-#define DISPATCH_UNSAFE_INDEXABLE __attribute__((__unsafe_indexable__))
-#define DISPATCH_COUNTED_BY(X) __attribute__((__counted_by__(X)))
-#define DISPATCH_SIZED_BY(X) __attribute__((__sized_by__(X)))
-#else
-#define DISPATCH_ASSUME_ABI_SINGLE_BEGIN
-#define DISPATCH_ASSUME_ABI_SINGLE_END
-#define DISPATCH_UNSAFE_INDEXABLE
-#define DISPATCH_COUNTED_BY(X)
-#define DISPATCH_SIZED_BY(X)
 #endif
 
 #if !__has_feature(nullability)
@@ -342,10 +301,6 @@
 #define DISPATCH_TRANSPARENT_UNION
 #endif
 
-DISPATCH_ASSUME_ABI_SINGLE_BEGIN
-
 typedef void (*dispatch_function_t)(void *_Nullable);
-
-DISPATCH_ASSUME_ABI_SINGLE_END
 
 #endif

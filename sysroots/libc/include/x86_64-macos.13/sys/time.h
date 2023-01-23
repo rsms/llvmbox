@@ -68,7 +68,6 @@
 #include <sys/_types.h>
 #include <Availability.h>
 
-
 /*
  * [XSI] The fd_set type shall be defined as described in <sys/select.h>.
  * The timespec structure shall be defined as described in <time.h>
@@ -204,7 +203,6 @@ int     setitimer(int, const struct itimerval * __restrict,
 int     utimes(const char *, const struct timeval *);
 
 __END_DECLS
-
 
 
 #endif /* !_SYS_TIME_H_ */

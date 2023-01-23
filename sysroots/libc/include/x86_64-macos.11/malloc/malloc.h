@@ -216,7 +216,7 @@ typedef void vm_range_recorder_t(task_t, void *, unsigned type, vm_range_t *, un
     /* given a task and context, "records" the specified addresses */
 
 /* Print function for the print_task() operation. */
-typedef void print_task_printer_t(const char *fmt, ...) __printflike(1,2);
+typedef void print_task_printer_t(const char *fmt, ...);
 
 typedef struct malloc_introspection_t {
 	kern_return_t (* MALLOC_INTROSPECT_FN_PTR(enumerator))(task_t task, void *, unsigned type_mask, vm_address_t zone_address, memory_reader_t reader, vm_range_recorder_t recorder); /* enumerates all the malloc pointers in use */

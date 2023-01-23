@@ -96,12 +96,6 @@
 #   define NS_ENFORCE_NSOBJECT_DESIGNATED_INITIALIZER 1
 #endif
 
-/* The arm64 ABI requires proper casting to ensure arguments are passed
- *  * correctly.  */
-#if defined(__arm64__) && !__swift__
-#   undef OBJC_OLD_DISPATCH_PROTOTYPES
-#   define OBJC_OLD_DISPATCH_PROTOTYPES 0
-#endif
 
 /* OBJC_OLD_DISPATCH_PROTOTYPES == 0 enforces the rule that the dispatch 
  * functions must be cast to an appropriate function pointer type. */
@@ -157,6 +151,20 @@
 #       define OBJC_ISA_AVAILABILITY  __attribute__((deprecated))
 #   else
 #       define OBJC_ISA_AVAILABILITY  /* still available */
+#   endif
+#endif
+
+
+/* OBJC2_UNAVAILABLE: unavailable in objc 2.0, deprecated in Leopard */
+#if !defined(OBJC2_UNAVAILABLE)
+#   if __OBJC2__
+#       define OBJC2_UNAVAILABLE UNAVAILABLE_ATTRIBUTE
+#   else
+        /* plain C code also falls here, but this is close enough */
+#       define OBJC2_UNAVAILABLE                                       \
+            __OSX_DEPRECATED(10.5, 10.5, "not available in __OBJC2__") \
+            __IOS_DEPRECATED(2.0, 2.0, "not available in __OBJC2__")   \
+            __TVOS_UNAVAILABLE __WATCHOS_UNAVAILABLE 
 #   endif
 #endif
 
@@ -219,15 +227,9 @@
 #endif
 
 #if !defined(OBJC_VISIBLE)
-#   if TARGET_OS_WIN32
-#       if defined(BUILDING_OBJC)
-#           define OBJC_VISIBLE __declspec(dllexport)
-#       else
-#           define OBJC_VISIBLE __declspec(dllimport)
-#       endif
-#   else
+
 #       define OBJC_VISIBLE  __attribute__((visibility("default")))
-#   endif
+
 #endif
 
 #if !defined(OBJC_EXPORT)
@@ -272,24 +274,6 @@
 #       define OBJC_RETURNS_RETAINED __attribute__((ns_returns_retained))
 #   else
 #       define OBJC_RETURNS_RETAINED
-#   endif
-#endif
-
-/* OBJC_COLD: very rarely called, e.g. on error path */
-#if !defined(OBJC_COLD)
-#   if __OBJC__ && __has_attribute(cold)
-#       define OBJC_COLD __attribute__((cold))
-#   else
-#       define OBJC_COLD
-#   endif
-#endif
-
-/* OBJC_NORETURN: does not return normally, but may throw */
-#if !defined(OBJC_NORETURN)
-#   if __OBJC__ && __has_attribute(noreturn)
-#       define OBJC_NORETURN __attribute__((noreturn))
-#   else
-#       define OBJC_NORETURN
 #   endif
 #endif
 

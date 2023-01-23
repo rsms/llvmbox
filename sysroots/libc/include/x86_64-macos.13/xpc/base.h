@@ -29,8 +29,6 @@ __BEGIN_DECLS
 #include <Availability.h>
 #endif // __has_include(<xpc/availability.h>)
 
-#include <os/availability.h>
-
 #ifndef __XPC_INDIRECT__
 #error "Please #include <xpc/xpc.h> instead of this file directly."
 #endif // __XPC_INDIRECT__ 
@@ -85,10 +83,7 @@ __BEGIN_DECLS
 #define XPC_DEPRECATED(m) __attribute__((deprecated(m)))
 #else // __clang__
 #define XPC_DEPRECATED(m) __attribute__((deprecated))
-#endif // __clang
-#ifndef XPC_TESTEXPORT
-#define XPC_TESTEXPORT XPC_NOEXPORT
-#endif // XPC_TESTEXPORT
+#endif // __clang 
 
 #if defined(__XPC_TEST__) && __XPC_TEST__
 #define XPC_TESTSTATIC
@@ -195,28 +190,6 @@ __BEGIN_DECLS
 #define XPC_NONNULL_ARRAY
 #endif
 
-#if defined(__has_ptrcheck) && __has_ptrcheck
-#define XPC_PTR_ASSUMES_SINGLE __ptrcheck_abi_assume_single()
-#define XPC_SINGLE __single
-#define XPC_UNSAFE_INDEXABLE __unsafe_indexable
-#define XPC_CSTRING XPC_UNSAFE_INDEXABLE
-#define XPC_SIZEDBY(N) __sized_by(N)
-#define XPC_COUNTEDBY(N) __counted_by(N)
-#define XPC_UNSAFE_FORGE_SIZED_BY(_type, _ptr, _size) \
-		__unsafe_forge_bidi_indexable(_type, _ptr, _size)
-#define XPC_UNSAFE_FORGE_SINGLE(_type, _ptr) \
-		__unsafe_forge_single(_type, _ptr)
-#else // defined(__has_ptrcheck) ** __has_ptrcheck
-#define XPC_PTR_ASSUMES_SINGLE
-#define XPC_SINGLE
-#define XPC_UNSAFE_INDEXABLE
-#define XPC_CSTRING
-#define XPC_SIZEDBY(N)
-#define XPC_COUNTEDBY(N)
-#define XPC_UNSAFE_FORGE_SIZED_BY(_type, _ptr, _size) ((_type)(_ptr))
-#define XPC_UNSAFE_FORGE_SINGLE(_type, _ptr) ((_type)(_ptr))
-#endif // defined(__has_ptrcheck) ** __has_ptrcheck
-
 #ifdef OS_CLOSED_OPTIONS
 #define XPC_FLAGS_ENUM(_name, _type, ...) \
 		OS_CLOSED_OPTIONS(_name, _type, __VA_ARGS__)
@@ -232,12 +205,6 @@ __BEGIN_DECLS
 #define XPC_ENUM(_name, _type, ...) \
 		OS_ENUM(_name, _type, __VA_ARGS__)
 #endif // OS_CLOSED_ENUM
-
-#if __has_attribute(swift_name)
-# define XPC_SWIFT_NAME(_name) __attribute__((swift_name(_name)))
-#else
-# define XPC_SWIFT_NAME(_name) // __has_attribute(swift_name)
-#endif
 
 __END_DECLS
 

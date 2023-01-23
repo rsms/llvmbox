@@ -47,13 +47,8 @@ __BEGIN_DECLS
  * @abstract
  * Low-level lock that allows waiters to block efficiently on contention.
  *
- * os_unfair_lock is an appropriate lock for cases where simple and lightweight
- * mutual exclusion is needed.
- * It can be intrusively stored inline in a datastructure without needing a
- * separate allocation, reducing memory consumption and cost of indirection.
- * For situations where something more sophisticated like condition waits or
- * FIFO ordering is needed, use appropriate higher level APIs such as those from
- * the pthread or dispatch subsystems.
+ * In general, higher level synchronization primitives such as those provided by
+ * the pthread or dispatch subsystems should be preferred.
  *
  * The values stored in the lock should be considered opaque and implementation
  * defined, they contain thread ownership information that the system may use
@@ -63,25 +58,20 @@ __BEGIN_DECLS
  * unlock from a different thread will cause an assertion aborting the process.
  *
  * This lock must not be accessed from multiple processes or threads via shared
- * or multiply-mapped memory, because the lock implementation relies on the
- * address of the lock value and identity of the owning process.
+ * or multiply-mapped memory, the lock implementation relies on the address of
+ * the lock value and owning process.
  *
- * Must be initialized with OS_UNFAIR_LOCK_INIT.
+ * Must be initialized with OS_UNFAIR_LOCK_INIT
  *
  * @discussion
- * The name 'unfair' indicates that there is no attempt at enforcing acquisition
- * fairness, e.g. an unlocker can potentially immediately reacquire the lock
- * before a woken up waiter gets an opportunity to attempt to acquire the lock.
- * This is often advantageous for performance reasons, but also makes starvation
- * of waiters a possibility.
+ * Replacement for the deprecated OSSpinLock. Does not spin on contention but
+ * waits in the kernel to be woken up by an unlock.
  *
- * This lock is suitable as a drop-in replacement for the deprecated OSSpinLock,
- * providing much better behavior under contention.
- *
- * In Swift, note that use of the `&` operator on an unfair lock can copy or move
- * the lock memory, leading to misbehavior. Use an OSAllocatedUnfairLock to safely wrap
- * access to the lock memory instead. If you use os_unfair_lock APIs directly,
- * always make sure to store and use the lock in memory with a stable address.
+ * As with OSSpinLock there is no attempt at fairness or lock ordering, e.g. an
+ * unlocker can potentially immediately reacquire the lock before a woken up
+ * waiter gets an opportunity to attempt to acquire the lock. This may be
+ * advantageous for performance reasons, but also makes starvation of waiters a
+ * possibility.
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 typedef struct os_unfair_lock_s {
@@ -111,7 +101,6 @@ typedef struct os_unfair_lock_s {
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
-OS_SWIFT_UNAVAILABLE_FROM_ASYNC("Use OSAllocatedUnfairLock.performWhileLocked() for async-safe scoped locking")
 void os_unfair_lock_lock(os_unfair_lock_t lock);
 
 /*!
@@ -137,7 +126,6 @@ void os_unfair_lock_lock(os_unfair_lock_t lock);
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 OS_EXPORT OS_NOTHROW OS_WARN_RESULT OS_NONNULL_ALL
-OS_SWIFT_UNAVAILABLE_FROM_ASYNC("Use OSAllocatedUnfairLock.tryPerformWhileLocked() for async-safe scoped locking")
 bool os_unfair_lock_trylock(os_unfair_lock_t lock);
 
 /*!
@@ -151,7 +139,6 @@ bool os_unfair_lock_trylock(os_unfair_lock_t lock);
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
-OS_SWIFT_UNAVAILABLE_FROM_ASYNC("Use OSAllocatedUnfairLock.performWhileLocked() for async-safe scoped locking")
 void os_unfair_lock_unlock(os_unfair_lock_t lock);
 
 /*!
@@ -172,7 +159,7 @@ void os_unfair_lock_unlock(os_unfair_lock_t lock);
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
-void os_unfair_lock_assert_owner(const os_unfair_lock *lock);
+void os_unfair_lock_assert_owner(os_unfair_lock_t lock);
 
 /*!
  * @function os_unfair_lock_assert_not_owner
@@ -193,7 +180,7 @@ void os_unfair_lock_assert_owner(const os_unfair_lock *lock);
  */
 OS_UNFAIR_LOCK_AVAILABILITY
 OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
-void os_unfair_lock_assert_not_owner(const os_unfair_lock *lock);
+void os_unfair_lock_assert_not_owner(os_unfair_lock_t lock);
 
 __END_DECLS
 

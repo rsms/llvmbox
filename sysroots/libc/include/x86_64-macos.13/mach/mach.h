@@ -85,6 +85,10 @@ __BEGIN_DECLS
 extern void                     panic_init(mach_port_t);
 extern void                     panic(const char *, ...);
 
+extern void                     safe_gets(char *,
+    char *,
+    int);
+
 extern void                     slot_name(cpu_type_t,
     cpu_subtype_t,
     char **,
@@ -233,8 +237,8 @@ extern voucher_mach_msg_state_t voucher_mach_msg_adopt(mach_msg_header_t *msg);
  * @param state
  * The thread voucher state to restore.
  */
-extern void voucher_mach_msg_revert(voucher_mach_msg_state_t state);
 
+extern void voucher_mach_msg_revert(voucher_mach_msg_state_t state);
 
 __END_DECLS
 

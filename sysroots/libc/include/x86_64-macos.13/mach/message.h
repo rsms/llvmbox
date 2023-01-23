@@ -228,7 +228,6 @@ typedef unsigned int mach_msg_priority_t;
 
 #define MACH_MSG_PRIORITY_UNSPECIFIED (mach_msg_priority_t) 0
 
-
 typedef unsigned int mach_msg_type_name_t;
 
 #define MACH_MSG_TYPE_MOVE_RECEIVE      16      /* Must hold receive right */
@@ -278,18 +277,16 @@ typedef unsigned int mach_msg_descriptor_type_t;
 #define MACH_MSG_OOL_VOLATILE_DESCRIPTOR        3
 #define MACH_MSG_GUARDED_PORT_DESCRIPTOR        4
 
-#define MACH_MSG_DESCRIPTOR_MAX MACH_MSG_GUARDED_PORT_DESCRIPTOR
-
 #pragma pack(push, 4)
 
-typedef struct {
+typedef struct{
 	natural_t                     pad1;
 	mach_msg_size_t               pad2;
 	unsigned int                  pad3 : 24;
 	mach_msg_descriptor_type_t    type : 8;
 } mach_msg_type_descriptor_t;
 
-typedef struct {
+typedef struct{
 	mach_port_t                   name;
 // Pad to 8 bytes everywhere except the K64 kernel where mach_port_t is 8 bytes
 	mach_msg_size_t               pad1;
@@ -298,8 +295,7 @@ typedef struct {
 	mach_msg_descriptor_type_t    type : 8;
 } mach_msg_port_descriptor_t;
 
-
-typedef struct {
+typedef struct{
 	uint32_t                      address;
 	mach_msg_size_t               size;
 	boolean_t                     deallocate: 8;
@@ -308,7 +304,7 @@ typedef struct {
 	mach_msg_descriptor_type_t    type: 8;
 } mach_msg_ool_descriptor32_t;
 
-typedef struct {
+typedef struct{
 	uint64_t                      address;
 	boolean_t                     deallocate: 8;
 	mach_msg_copy_options_t       copy: 8;
@@ -317,7 +313,7 @@ typedef struct {
 	mach_msg_size_t               size;
 } mach_msg_ool_descriptor64_t;
 
-typedef struct {
+typedef struct{
 	void*                         address;
 #if !defined(__LP64__)
 	mach_msg_size_t               size;
@@ -331,7 +327,7 @@ typedef struct {
 #endif
 } mach_msg_ool_descriptor_t;
 
-typedef struct {
+typedef struct{
 	uint32_t                      address;
 	mach_msg_size_t               count;
 	boolean_t                     deallocate: 8;
@@ -340,7 +336,7 @@ typedef struct {
 	mach_msg_descriptor_type_t    type : 8;
 } mach_msg_ool_ports_descriptor32_t;
 
-typedef struct {
+typedef struct{
 	uint64_t                      address;
 	boolean_t                     deallocate: 8;
 	mach_msg_copy_options_t       copy: 8;
@@ -349,7 +345,7 @@ typedef struct {
 	mach_msg_size_t               count;
 } mach_msg_ool_ports_descriptor64_t;
 
-typedef struct {
+typedef struct{
 	void*                         address;
 #if !defined(__LP64__)
 	mach_msg_size_t               count;
@@ -363,7 +359,7 @@ typedef struct {
 #endif
 } mach_msg_ool_ports_descriptor_t;
 
-typedef struct {
+typedef struct{
 	uint32_t                      context;
 	mach_port_name_t              name;
 	mach_msg_guard_flags_t        flags : 16;
@@ -371,7 +367,7 @@ typedef struct {
 	mach_msg_descriptor_type_t    type : 8;
 } mach_msg_guarded_port_descriptor32_t;
 
-typedef struct {
+typedef struct{
 	uint64_t                      context;
 	mach_msg_guard_flags_t        flags : 16;
 	mach_msg_type_name_t          disposition : 8;
@@ -379,7 +375,7 @@ typedef struct {
 	mach_port_name_t              name;
 } mach_msg_guarded_port_descriptor64_t;
 
-typedef struct {
+typedef struct{
 	mach_port_context_t           context;
 #if !defined(__LP64__)
 	mach_port_name_t              name;
@@ -405,31 +401,29 @@ typedef union{
 	mach_msg_guarded_port_descriptor_t    guarded_port;
 } mach_msg_descriptor_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_size_t msgh_descriptor_count;
 } mach_msg_body_t;
 
-#define MACH_MSG_BODY_NULL            ((mach_msg_body_t *) 0)
-#define MACH_MSG_DESCRIPTOR_NULL      ((mach_msg_descriptor_t *) 0)
+#define MACH_MSG_BODY_NULL (mach_msg_body_t *) 0
+#define MACH_MSG_DESCRIPTOR_NULL (mach_msg_descriptor_t *) 0
 
-typedef struct {
-	mach_msg_bits_t               msgh_bits;
-	mach_msg_size_t               msgh_size;
-	mach_port_t                   msgh_remote_port;
-	mach_port_t                   msgh_local_port;
-	mach_port_name_t              msgh_voucher_port;
-	mach_msg_id_t                 msgh_id;
+typedef struct{
+	mach_msg_bits_t       msgh_bits;
+	mach_msg_size_t       msgh_size;
+	mach_port_t           msgh_remote_port;
+	mach_port_t           msgh_local_port;
+	mach_port_name_t      msgh_voucher_port;
+	mach_msg_id_t         msgh_id;
 } mach_msg_header_t;
 
+#define msgh_reserved           msgh_voucher_port
+#define MACH_MSG_NULL   (mach_msg_header_t *) 0
 
-#define msgh_reserved                 msgh_voucher_port
-#define MACH_MSG_NULL                 ((mach_msg_header_t *) 0)
-
-typedef struct {
-	mach_msg_header_t             header;
-	mach_msg_body_t               body;
+typedef struct{
+	mach_msg_header_t       header;
+	mach_msg_body_t         body;
 } mach_msg_base_t;
-
 
 typedef unsigned int mach_msg_trailer_type_t;
 
@@ -438,7 +432,7 @@ typedef unsigned int mach_msg_trailer_type_t;
 typedef unsigned int mach_msg_trailer_size_t;
 typedef char *mach_msg_trailer_info_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 } mach_msg_trailer_t;
@@ -452,17 +446,17 @@ typedef struct {
  *  multiple threads receive and/or process received
  *  messages.
  */
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 	mach_port_seqno_t             msgh_seqno;
 } mach_msg_seqno_trailer_t;
 
-typedef struct {
+typedef struct{
 	unsigned int                  val[2];
 } security_token_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 	mach_port_seqno_t             msgh_seqno;
@@ -478,11 +472,11 @@ typedef struct {
  * of the subject identity within the token may change
  * over time.
  */
-typedef struct {
+typedef struct{
 	unsigned int                  val[8];
 } audit_token_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 	mach_port_seqno_t             msgh_seqno;
@@ -490,7 +484,7 @@ typedef struct {
 	audit_token_t                 msgh_audit;
 } mach_msg_audit_trailer_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 	mach_port_seqno_t             msgh_seqno;
@@ -501,26 +495,23 @@ typedef struct {
 
 
 
-typedef struct {
+typedef struct{
 	mach_port_name_t sender;
 } msg_labels_t;
-
-typedef int mach_msg_filter_id;
-#define MACH_MSG_FILTER_POLICY_ALLOW (mach_msg_filter_id)0
 
 /*
  *  Trailer type to pass MAC policy label info as a mach message trailer.
  *
  */
 
-typedef struct {
+typedef struct{
 	mach_msg_trailer_type_t       msgh_trailer_type;
 	mach_msg_trailer_size_t       msgh_trailer_size;
 	mach_port_seqno_t             msgh_seqno;
 	security_token_t              msgh_sender;
 	audit_token_t                 msgh_audit;
 	mach_port_context_t           msgh_context;
-	mach_msg_filter_id            msgh_ad;
+	int                           msgh_ad;
 	msg_labels_t                  msgh_labels;
 } mach_msg_mac_trailer_t;
 
@@ -562,13 +553,11 @@ extern const audit_token_t KERNEL_AUDIT_TOKEN;
 
 typedef integer_t mach_msg_options_t;
 
-#define MACH_MSG_HEADER_EMPTY (mach_msg_header_t){ }
-
-typedef struct {
+typedef struct{
 	mach_msg_header_t     header;
 } mach_msg_empty_send_t;
 
-typedef struct {
+typedef struct{
 	mach_msg_header_t     header;
 	mach_msg_trailer_t    trailer;
 } mach_msg_empty_rcv_t;
@@ -669,12 +658,11 @@ typedef integer_t mach_msg_option_t;
 #define MACH_SEND_INTERRUPT     0x00000040      /* don't restart interrupted sends */
 #define MACH_SEND_NOTIFY        0x00000080      /* arm send-possible notify */
 #define MACH_SEND_ALWAYS        0x00010000      /* ignore qlimits - kernel only */
-#define MACH_SEND_FILTER_NONFATAL        0x00010000      /* rejection by message filter should return failure - user only */
 #define MACH_SEND_TRAILER       0x00020000      /* sender-provided trailer */
 #define MACH_SEND_NOIMPORTANCE  0x00040000      /* msg won't carry importance */
 #define MACH_SEND_NODENAP       MACH_SEND_NOIMPORTANCE
 #define MACH_SEND_IMPORTANCE    0x00080000      /* msg carries importance - kernel only */
-#define MACH_SEND_SYNC_OVERRIDE 0x00100000      /* msg should do sync IPC override (on legacy kernels) */
+#define MACH_SEND_SYNC_OVERRIDE 0x00100000      /* msg should do sync ipc override */
 #define MACH_SEND_PROPAGATE_QOS 0x00200000      /* IPC should propagate the caller's QoS */
 #define MACH_SEND_SYNC_USE_THRPRI       MACH_SEND_PROPAGATE_QOS /* obsolete name */
 #define MACH_SEND_KERNEL        0x00400000      /* full send from kernel space - kernel only */
@@ -807,18 +795,10 @@ typedef kern_return_t mach_msg_return_t;
 /* The trailer to be sent does not match kernel format. */
 #define MACH_SEND_INVALID_CONTEXT       0x10000012
 /* The sending thread context did not match the context on the dest port */
-#define MACH_SEND_INVALID_OPTIONS       0x10000013
-/* Send options are invalid. */
 #define MACH_SEND_INVALID_RT_OOL_SIZE   0x10000015
 /* compatibility: no longer a returned error */
 #define MACH_SEND_NO_GRANT_DEST         0x10000016
 /* The destination port doesn't accept ports in body */
-#define MACH_SEND_MSG_FILTERED          0x10000017
-/* Message send was rejected by message filter */
-#define MACH_SEND_AUX_TOO_SMALL         0x10000018
-/* Message auxiliary data is too small */
-#define MACH_SEND_AUX_TOO_LARGE         0x10000019
-/* Message auxiliary data is too large */
 
 #define MACH_RCV_IN_PROGRESS            0x10004001
 /* Thread is waiting for receive.  (Internal use only.) */
@@ -854,8 +834,6 @@ typedef kern_return_t mach_msg_return_t;
 /* Waiting for receive with timeout. (Internal use only.) */
 #define MACH_RCV_INVALID_REPLY          0x10004012
 /* invalid reply port used in a STRICT_REPLY message */
-#define MACH_RCV_INVALID_ARGUMENTS      0x10004013
-/* invalid receive arguments, receive has not started */
 
 
 
@@ -908,12 +886,11 @@ extern mach_msg_return_t        mach_msg(
 	mach_msg_timeout_t timeout,
 	mach_port_name_t notify);
 
-
 /*
- *  Routine:    mach_voucher_deallocate
- *  Purpose:
- *      Deallocate a mach voucher created or received in a message.  Drops
- *      one (send right) reference to the voucher.
+ *	Routine:	mach_voucher_deallocate
+ *	Purpose:
+ *		Deallocate a mach voucher created or received in a message.  Drops
+ *		one (send right) reference to the voucher.
  */
 __WATCHOS_PROHIBITED __TVOS_PROHIBITED
 extern kern_return_t            mach_voucher_deallocate(

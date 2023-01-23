@@ -94,8 +94,6 @@ __BEGIN_DECLS
 #define LAUNCH_JOBKEY_ENABLETRANSACTIONS "EnableTransactions"
 #define LAUNCH_JOBKEY_DRAINMESSAGESONFAILEDINIT "DrainMessagesOnFailedInit"
 #define LAUNCH_JOBKEY_POLICIES "Policies"
-#define LAUNCH_JOBKEY_BUNDLEPROGRAM "BundleProgram"
-#define LAUNCH_JOBKEY_ASSOCIATEDBUNDLEIDENTIFIERS "AssociatedBundleIdentifiers"
 
 #define LAUNCH_JOBKEY_PUBLISHESEVENTS "PublishesEvents"
 #define LAUNCH_KEY_PUBLISHESEVENTS_DOMAININTERNAL "DomainInternal"
@@ -380,7 +378,7 @@ launch_data_get_string(const launch_data_t ld);
 
 __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_4, __MAC_10_10, __IPHONE_2_0, __IPHONE_8_0)
 OS_EXPORT OS_WARN_RESULT OS_NONNULL1
-void * _Nullable
+void *
 launch_data_get_opaque(const launch_data_t ld);
 
 __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_4, __MAC_10_10, __IPHONE_2_0, __IPHONE_8_0)

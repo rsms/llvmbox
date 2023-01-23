@@ -228,7 +228,6 @@ typedef unsigned int mach_msg_priority_t;
 
 #define MACH_MSG_PRIORITY_UNSPECIFIED (mach_msg_priority_t) 0
 
-
 typedef unsigned int mach_msg_type_name_t;
 
 #define MACH_MSG_TYPE_MOVE_RECEIVE      16      /* Must hold receive right */
@@ -295,7 +294,6 @@ typedef struct{
 	mach_msg_type_name_t          disposition : 8;
 	mach_msg_descriptor_type_t    type : 8;
 } mach_msg_port_descriptor_t;
-
 
 typedef struct{
 	uint32_t                      address;
@@ -407,26 +405,25 @@ typedef struct{
 	mach_msg_size_t msgh_descriptor_count;
 } mach_msg_body_t;
 
-#define MACH_MSG_BODY_NULL            ((mach_msg_body_t *) 0)
-#define MACH_MSG_DESCRIPTOR_NULL      ((mach_msg_descriptor_t *) 0)
+#define MACH_MSG_BODY_NULL (mach_msg_body_t *) 0
+#define MACH_MSG_DESCRIPTOR_NULL (mach_msg_descriptor_t *) 0
 
 typedef struct{
-	mach_msg_bits_t               msgh_bits;
-	mach_msg_size_t               msgh_size;
-	mach_port_t                   msgh_remote_port;
-	mach_port_t                   msgh_local_port;
-	mach_port_name_t              msgh_voucher_port;
-	mach_msg_id_t                 msgh_id;
+	mach_msg_bits_t       msgh_bits;
+	mach_msg_size_t       msgh_size;
+	mach_port_t           msgh_remote_port;
+	mach_port_t           msgh_local_port;
+	mach_port_name_t      msgh_voucher_port;
+	mach_msg_id_t         msgh_id;
 } mach_msg_header_t;
 
-#define msgh_reserved                 msgh_voucher_port
-#define MACH_MSG_NULL                 ((mach_msg_header_t *) 0)
+#define msgh_reserved           msgh_voucher_port
+#define MACH_MSG_NULL   (mach_msg_header_t *) 0
 
 typedef struct{
-	mach_msg_header_t             header;
-	mach_msg_body_t               body;
+	mach_msg_header_t       header;
+	mach_msg_body_t         body;
 } mach_msg_base_t;
-
 
 typedef unsigned int mach_msg_trailer_type_t;
 
@@ -502,9 +499,6 @@ typedef struct{
 	mach_port_name_t sender;
 } msg_labels_t;
 
-typedef int mach_msg_filter_id;
-#define MACH_MSG_FILTER_POLICY_ALLOW (mach_msg_filter_id)0
-
 /*
  *  Trailer type to pass MAC policy label info as a mach message trailer.
  *
@@ -517,7 +511,7 @@ typedef struct{
 	security_token_t              msgh_sender;
 	audit_token_t                 msgh_audit;
 	mach_port_context_t           msgh_context;
-	mach_msg_filter_id            msgh_ad;
+	int                           msgh_ad;
 	msg_labels_t                  msgh_labels;
 } mach_msg_mac_trailer_t;
 
@@ -664,12 +658,11 @@ typedef integer_t mach_msg_option_t;
 #define MACH_SEND_INTERRUPT     0x00000040      /* don't restart interrupted sends */
 #define MACH_SEND_NOTIFY        0x00000080      /* arm send-possible notify */
 #define MACH_SEND_ALWAYS        0x00010000      /* ignore qlimits - kernel only */
-#define MACH_SEND_FILTER_NONFATAL        0x00010000      /* rejection by message filter should return failure - user only */
 #define MACH_SEND_TRAILER       0x00020000      /* sender-provided trailer */
 #define MACH_SEND_NOIMPORTANCE  0x00040000      /* msg won't carry importance */
 #define MACH_SEND_NODENAP       MACH_SEND_NOIMPORTANCE
 #define MACH_SEND_IMPORTANCE    0x00080000      /* msg carries importance - kernel only */
-#define MACH_SEND_SYNC_OVERRIDE 0x00100000      /* msg should do sync IPC override (on legacy kernels) */
+#define MACH_SEND_SYNC_OVERRIDE 0x00100000      /* msg should do sync ipc override */
 #define MACH_SEND_PROPAGATE_QOS 0x00200000      /* IPC should propagate the caller's QoS */
 #define MACH_SEND_SYNC_USE_THRPRI       MACH_SEND_PROPAGATE_QOS /* obsolete name */
 #define MACH_SEND_KERNEL        0x00400000      /* full send from kernel space - kernel only */
@@ -806,8 +799,6 @@ typedef kern_return_t mach_msg_return_t;
 /* compatibility: no longer a returned error */
 #define MACH_SEND_NO_GRANT_DEST         0x10000016
 /* The destination port doesn't accept ports in body */
-#define MACH_SEND_MSG_FILTERED          0x10000017
-/* Message send was rejected by message filter */
 
 #define MACH_RCV_IN_PROGRESS            0x10004001
 /* Thread is waiting for receive.  (Internal use only.) */

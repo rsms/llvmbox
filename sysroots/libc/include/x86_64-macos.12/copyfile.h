@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2021 Apple, Inc. All rights reserved.
+ * Copyright (c) 2004-2019 Apple, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
  * 
@@ -74,9 +74,6 @@ typedef int (*copyfile_callback_t)(int, int, copyfile_state_t, const char *, con
 #define	COPYFILE_STATE_COPIED		8
 #define	COPYFILE_STATE_XATTRNAME	9
 #define	COPYFILE_STATE_WAS_CLONED	10
-#define	COPYFILE_STATE_SRC_BSIZE	11
-#define	COPYFILE_STATE_DST_BSIZE	12
-#define	COPYFILE_STATE_BSIZE		13
 
 
 #define	COPYFILE_DISABLE_VAR	"COPYFILE_DISABLE"

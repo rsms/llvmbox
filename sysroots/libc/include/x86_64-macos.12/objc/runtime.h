@@ -52,6 +52,24 @@ typedef struct objc_category *Category;
 /// An opaque type that represents an Objective-C declared property.
 typedef struct objc_property *objc_property_t;
 
+struct objc_class {
+    Class _Nonnull isa  OBJC_ISA_AVAILABILITY;
+
+#if !__OBJC2__
+    Class _Nullable super_class                              OBJC2_UNAVAILABLE;
+    const char * _Nonnull name                               OBJC2_UNAVAILABLE;
+    long version                                             OBJC2_UNAVAILABLE;
+    long info                                                OBJC2_UNAVAILABLE;
+    long instance_size                                       OBJC2_UNAVAILABLE;
+    struct objc_ivar_list * _Nullable ivars                  OBJC2_UNAVAILABLE;
+    struct objc_method_list * _Nullable * _Nullable methodLists                    OBJC2_UNAVAILABLE;
+    struct objc_cache * _Nonnull cache                       OBJC2_UNAVAILABLE;
+    struct objc_protocol_list * _Nullable protocols          OBJC2_UNAVAILABLE;
+#endif
+
+} OBJC2_UNAVAILABLE;
+/* Use `Class` instead of `struct objc_class *` */
+
 #endif
 
 #ifdef __OBJC__
@@ -1748,6 +1766,43 @@ OBJC_EXPORT void objc_setHook_getClass(objc_hook_getClass _Nonnull newValue,
 #endif
 
 /**
+ * Function type for a hook that assists objc_setAssociatedObject().
+ *
+ * @param object The source object for the association.
+ * @param key The key for the association.
+ * @param value The value to associate with the key key for object. Pass nil to clear an existing association.
+ * @param policy The policy for the association. For possible values, see “Associative Object Behaviors.”
+ *
+ * @see objc_setAssociatedObject
+ * @see objc_setHook_setAssociatedObject
+ */
+typedef void (*objc_hook_setAssociatedObject)(id _Nonnull object, const void * _Nonnull key,
+                                              id _Nullable value, objc_AssociationPolicy policy);
+
+/**
+ * Install a hook for objc_setAssociatedObject().
+ *
+ * @param newValue The hook function to install.
+ * @param outOldValue The address of a function pointer variable. On return,
+ *  the old hook function is stored in the variable.
+ *
+ * @note The store to *outOldValue is thread-safe: the variable will be
+ *  updated before objc_setAssociatedObject() calls your new hook to read it,
+ *  even if your new hook is called from another thread before this
+ *  setter completes.
+ * @note Your hook should always call the previous hook.
+ *
+ * @see objc_setAssociatedObject
+ * @see objc_hook_setAssociatedObject
+ */
+#if !(TARGET_OS_OSX && __i386__)
+#define OBJC_SETASSOCIATEDOBJECTHOOK_DEFINED 1
+OBJC_EXPORT void objc_setHook_setAssociatedObject(objc_hook_setAssociatedObject _Nonnull newValue,
+                                       objc_hook_setAssociatedObject _Nullable * _Nonnull outOldValue)
+    OBJC_AVAILABLE(10.15, 13.0, 13.0, 6.0, 4.0);
+#endif
+
+/**
  * Function type for a function that is called when an image is loaded.
  *
  * @param header The newly loaded header.
@@ -1774,39 +1829,7 @@ typedef void (*objc_func_loadImage)(const struct mach_header * _Nonnull header);
 OBJC_EXPORT void objc_addLoadImageFunc(objc_func_loadImage _Nonnull func)
     OBJC_AVAILABLE(10.15, 13.0, 13.0, 6.0, 4.0);
 
-/**
- * Function type for a hook that provides a name for lazily named classes.
- *
- * @param cls The class to generate a name for.
- * @return The name of the class, or NULL if the name isn't known or can't me generated.
- *
- * @see objc_setHook_lazyClassNamer
- */
-typedef const char * _Nullable (*objc_hook_lazyClassNamer)(_Nonnull Class cls);
-
-/**
- * Install a hook to provide a name for lazily-named classes.
- *
- * @param newValue The hook function to install.
- * @param outOldValue The address of a function pointer variable. On return,
- *  the old hook function is stored in the variable.
- *
- * @note The store to *outOldValue is thread-safe: the variable will be
- *  updated before objc_getClass() calls your new hook to read it,
- *  even if your new hook is called from another thread before this
- *  setter completes.
- * @note Your hook must call the previous hook for class names
- *  that you do not recognize.
- */
-#if !(TARGET_OS_OSX && __i386__)
-#define OBJC_SETHOOK_LAZYCLASSNAMER_DEFINED 1
-OBJC_EXPORT
-void objc_setHook_lazyClassNamer(_Nonnull objc_hook_lazyClassNamer newValue,
-                                  _Nonnull objc_hook_lazyClassNamer * _Nonnull oldOutValue)
-    OBJC_AVAILABLE(11.0, 14.0, 14.0, 7.0, 5.0);
-#endif
-
-/**
+/** 
  * Callback from Objective-C to Swift to perform Swift class initialization.
  */
 #if !(TARGET_OS_OSX && __i386__)
@@ -1827,53 +1850,185 @@ _objc_realizeClassFromSwift(Class _Nullable cls, void * _Nullable previously)
     OBJC_AVAILABLE(10.14.4, 12.2, 12.2, 5.2, 3.2);
 #endif
 
-// Type encoding characters
-#define _C_ID          '@'
-#define _C_CLASS       '#'
-#define _C_SEL         ':'
-#define _C_CHR         'c'
-#define _C_UCHR        'C'
-#define _C_SHT         's'
-#define _C_USHT        'S'
-#define _C_INT         'i'
-#define _C_UINT        'I'
-#define _C_LNG         'l'
-#define _C_ULNG        'L'
-#define _C_LNG_LNG     'q'
-#define _C_ULNG_LNG    'Q'
-#define _C_INT128      't'
-#define _C_UINT128     'T'
-#define _C_FLT         'f'
-#define _C_DBL         'd'
-#define _C_LNG_DBL     'D'
-#define _C_BFLD        'b'
-#define _C_BOOL        'B'
-#define _C_VOID        'v'
-#define _C_UNDEF       '?'
-#define _C_PTR         '^'
-#define _C_CHARPTR     '*'
-#define _C_ATOM        '%'
-#define _C_ARY_B       '['
-#define _C_ARY_E       ']'
-#define _C_UNION_B     '('
-#define _C_UNION_E     ')'
-#define _C_STRUCT_B    '{'
-#define _C_STRUCT_E    '}'
-#define _C_VECTOR      '!'
 
-// Modifiers
-#define _C_COMPLEX     'j'
-#define _C_ATOMIC      'A'
-#define _C_CONST       'r'
-#define _C_IN          'n'
-#define _C_INOUT       'N'
-#define _C_OUT         'o'
-#define _C_BYCOPY      'O'
-#define _C_BYREF       'R'
-#define _C_ONEWAY      'V'
-#define _C_GNUREGISTER '+'
+#define _C_ID       '@'
+#define _C_CLASS    '#'
+#define _C_SEL      ':'
+#define _C_CHR      'c'
+#define _C_UCHR     'C'
+#define _C_SHT      's'
+#define _C_USHT     'S'
+#define _C_INT      'i'
+#define _C_UINT     'I'
+#define _C_LNG      'l'
+#define _C_ULNG     'L'
+#define _C_LNG_LNG  'q'
+#define _C_ULNG_LNG 'Q'
+#define _C_FLT      'f'
+#define _C_DBL      'd'
+#define _C_BFLD     'b'
+#define _C_BOOL     'B'
+#define _C_VOID     'v'
+#define _C_UNDEF    '?'
+#define _C_PTR      '^'
+#define _C_CHARPTR  '*'
+#define _C_ATOM     '%'
+#define _C_ARY_B    '['
+#define _C_ARY_E    ']'
+#define _C_UNION_B  '('
+#define _C_UNION_E  ')'
+#define _C_STRUCT_B '{'
+#define _C_STRUCT_E '}'
+#define _C_VECTOR   '!'
+#define _C_CONST    'r'
+
+
+/* Obsolete types */
+
+#if !__OBJC2__
+
+#define CLS_GETINFO(cls,infomask)        ((cls)->info & (infomask))
+#define CLS_SETINFO(cls,infomask)        ((cls)->info |= (infomask))
+
+// class is not a metaclass
+#define CLS_CLASS               0x1
+// class is a metaclass
+#define CLS_META                0x2
+// class's +initialize method has completed
+#define CLS_INITIALIZED         0x4
+// class is posing
+#define CLS_POSING              0x8
+// unused
+#define CLS_MAPPED              0x10
+// class and subclasses need cache flush during image loading
+#define CLS_FLUSH_CACHE         0x20
+// method cache should grow when full
+#define CLS_GROW_CACHE          0x40
+// unused
+#define CLS_NEED_BIND           0x80
+// methodLists is array of method lists
+#define CLS_METHOD_ARRAY        0x100
+// the JavaBridge constructs classes with these markers
+#define CLS_JAVA_HYBRID         0x200
+#define CLS_JAVA_CLASS          0x400
+// thread-safe +initialize
+#define CLS_INITIALIZING        0x800
+// bundle unloading
+#define CLS_FROM_BUNDLE         0x1000
+// C++ ivar support
+#define CLS_HAS_CXX_STRUCTORS   0x2000
+// Lazy method list arrays
+#define CLS_NO_METHOD_ARRAY     0x4000
+// +load implementation
+#define CLS_HAS_LOAD_METHOD     0x8000
+// objc_allocateClassPair API
+#define CLS_CONSTRUCTING        0x10000
+// class compiled with bigger class structure
+#define CLS_EXT                 0x20000
+
+
+struct objc_method_description_list {
+    int count;
+    struct objc_method_description list[1];
+};
+
+
+struct objc_protocol_list {
+    struct objc_protocol_list * _Nullable next;
+    long count;
+    __unsafe_unretained Protocol * _Nullable list[1];
+};
+
+
+struct objc_category {
+    char * _Nonnull category_name                            OBJC2_UNAVAILABLE;
+    char * _Nonnull class_name                               OBJC2_UNAVAILABLE;
+    struct objc_method_list * _Nullable instance_methods     OBJC2_UNAVAILABLE;
+    struct objc_method_list * _Nullable class_methods        OBJC2_UNAVAILABLE;
+    struct objc_protocol_list * _Nullable protocols          OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+
+struct objc_ivar {
+    char * _Nullable ivar_name                               OBJC2_UNAVAILABLE;
+    char * _Nullable ivar_type                               OBJC2_UNAVAILABLE;
+    int ivar_offset                                          OBJC2_UNAVAILABLE;
+#ifdef __LP64__
+    int space                                                OBJC2_UNAVAILABLE;
+#endif
+}                                                            OBJC2_UNAVAILABLE;
+
+struct objc_ivar_list {
+    int ivar_count                                           OBJC2_UNAVAILABLE;
+#ifdef __LP64__
+    int space                                                OBJC2_UNAVAILABLE;
+#endif
+    /* variable length structure */
+    struct objc_ivar ivar_list[1]                            OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+
+struct objc_method {
+    SEL _Nonnull method_name                                 OBJC2_UNAVAILABLE;
+    char * _Nullable method_types                            OBJC2_UNAVAILABLE;
+    IMP _Nonnull method_imp                                  OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+struct objc_method_list {
+    struct objc_method_list * _Nullable obsolete             OBJC2_UNAVAILABLE;
+
+    int method_count                                         OBJC2_UNAVAILABLE;
+#ifdef __LP64__
+    int space                                                OBJC2_UNAVAILABLE;
+#endif
+    /* variable length structure */
+    struct objc_method method_list[1]                        OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+
+typedef struct objc_symtab *Symtab                           OBJC2_UNAVAILABLE;
+
+struct objc_symtab {
+    unsigned long sel_ref_cnt                                OBJC2_UNAVAILABLE;
+    SEL _Nonnull * _Nullable refs                            OBJC2_UNAVAILABLE;
+    unsigned short cls_def_cnt                               OBJC2_UNAVAILABLE;
+    unsigned short cat_def_cnt                               OBJC2_UNAVAILABLE;
+    void * _Nullable defs[1] /* variable size */             OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+
+typedef struct objc_cache *Cache                             OBJC2_UNAVAILABLE;
+
+#define CACHE_BUCKET_NAME(B)  ((B)->method_name)
+#define CACHE_BUCKET_IMP(B)   ((B)->method_imp)
+#define CACHE_BUCKET_VALID(B) (B)
+#ifndef __LP64__
+#define CACHE_HASH(sel, mask) (((uintptr_t)(sel)>>2) & (mask))
+#else
+#define CACHE_HASH(sel, mask) (((unsigned int)((uintptr_t)(sel)>>3)) & (mask))
+#endif
+struct objc_cache {
+    unsigned int mask /* total = mask + 1 */                 OBJC2_UNAVAILABLE;
+    unsigned int occupied                                    OBJC2_UNAVAILABLE;
+    Method _Nullable buckets[1]                              OBJC2_UNAVAILABLE;
+};
+
+
+typedef struct objc_module *Module                           OBJC2_UNAVAILABLE;
+
+struct objc_module {
+    unsigned long version                                    OBJC2_UNAVAILABLE;
+    unsigned long size                                       OBJC2_UNAVAILABLE;
+    const char * _Nullable name                              OBJC2_UNAVAILABLE;
+    Symtab _Nullable symtab                                  OBJC2_UNAVAILABLE;
+}                                                            OBJC2_UNAVAILABLE;
+
+#else
 
 struct objc_method_list;
+
+#endif
+
 
 /* Obsolete functions */
 
@@ -1908,8 +2063,107 @@ object_copyFromZone(id _Nullable anObject, size_t nBytes, void * _Nullable z)
     OBJC_OSX_DEPRECATED_OTHERS_UNAVAILABLE(10.0, 10.5, "use object_copy instead");
 
 OBJC_EXPORT id _Nullable
+object_realloc(id _Nullable anObject, size_t nBytes)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT id _Nullable
+object_reallocFromZone(id _Nullable anObject, size_t nBytes, void * _Nullable z)
+    OBJC2_UNAVAILABLE;
+
+#define OBSOLETE_OBJC_GETCLASSES 1
+OBJC_EXPORT void * _Nonnull
+objc_getClasses(void)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT void
+objc_addClass(Class _Nonnull myClass)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT void
+objc_setClassHandler(int (* _Nullable )(const char * _Nonnull))
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT void
+objc_setMultithreaded(BOOL flag)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT id _Nullable
 class_createInstanceFromZone(Class _Nullable, size_t idxIvars,
                              void * _Nullable z)
     OBJC_OSX_DEPRECATED_OTHERS_UNAVAILABLE(10.0, 10.5, "use class_createInstance instead");
+
+OBJC_EXPORT void
+class_addMethods(Class _Nullable, struct objc_method_list * _Nonnull)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT void
+class_removeMethods(Class _Nullable, struct objc_method_list * _Nonnull)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT void
+_objc_resolve_categories_for_class(Class _Nonnull cls)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT Class _Nonnull
+class_poseAs(Class _Nonnull imposter, Class _Nonnull original)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT unsigned int
+method_getSizeOfArguments(Method _Nonnull m)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT unsigned
+method_getArgumentInfo(struct objc_method * _Nonnull m, int arg,
+                       const char * _Nullable * _Nonnull type,
+                       int * _Nonnull offset)
+    UNAVAILABLE_ATTRIBUTE  // This function was accidentally deleted in 10.9.
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT Class _Nullable
+objc_getOrigClass(const char * _Nonnull name)
+    OBJC2_UNAVAILABLE;
+
+#define OBJC_NEXT_METHOD_LIST 1
+OBJC_EXPORT struct objc_method_list * _Nullable
+class_nextMethodList(Class _Nullable, void * _Nullable * _Nullable)
+    OBJC2_UNAVAILABLE;
+// usage for nextMethodList
+//
+// void *iterator = 0;
+// struct objc_method_list *mlist;
+// while ( mlist = class_nextMethodList( cls, &iterator ) )
+//    ;
+ 
+OBJC_EXPORT id _Nullable
+(* _Nonnull _alloc)(Class _Nullable, size_t)
+    OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT id _Nullable
+(* _Nonnull _copy)(id _Nullable, size_t)
+     OBJC2_UNAVAILABLE;
+     
+OBJC_EXPORT id _Nullable
+(* _Nonnull _realloc)(id _Nullable, size_t)
+     OBJC2_UNAVAILABLE;
+
+OBJC_EXPORT id _Nullable
+(* _Nonnull _dealloc)(id _Nullable)
+     OBJC2_UNAVAILABLE;
+     
+OBJC_EXPORT id _Nullable
+(* _Nonnull _zoneAlloc)(Class _Nullable, size_t, void * _Nullable)
+     OBJC2_UNAVAILABLE;
+     
+OBJC_EXPORT id _Nullable
+(* _Nonnull _zoneRealloc)(id _Nullable, size_t, void * _Nullable)
+     OBJC2_UNAVAILABLE;
+     
+OBJC_EXPORT id _Nullable
+(* _Nonnull _zoneCopy)(id _Nullable, size_t, void * _Nullable)
+     OBJC2_UNAVAILABLE;
+     
+OBJC_EXPORT void
+(* _Nonnull _error)(id _Nullable, const char * _Nonnull, va_list)
+     OBJC2_UNAVAILABLE;
 
 #endif

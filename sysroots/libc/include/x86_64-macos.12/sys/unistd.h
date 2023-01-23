@@ -178,7 +178,6 @@ struct accessx_descriptor {
 
 #include <machine/_types.h>
 #include <sys/_types/_size_t.h>
-#include <sys/_types/_ssize_t.h>
 #include <_types/_uint64_t.h>
 #include <_types/_uint32_t.h>
 #include <Availability.h>

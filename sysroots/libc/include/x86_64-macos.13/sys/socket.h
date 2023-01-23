@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2022 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -74,10 +74,8 @@
 
 #include <sys/types.h>
 #include <sys/cdefs.h>
-#include <sys/constrained_ctypes.h>
 #include <machine/_param.h>
 #include <net/net_kev.h>
-
 
 
 #include <Availability.h>
@@ -130,7 +128,6 @@
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 #define SO_USELOOPBACK  0x0040          /* bypass hardware when possible */
 #define SO_LINGER       0x0080          /* linger on close if data present (in ticks) */
-#define SO_LINGER_SEC   0x1080          /* linger on close if data present (in seconds) */
 #else
 #define SO_LINGER       0x1080          /* linger on close if data present (in seconds) */
 #endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
@@ -163,8 +160,8 @@
 #define SO_ERROR        0x1007          /* get error status and clear */
 #define SO_TYPE         0x1008          /* get socket type */
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
-#define SO_LABEL        0x1010          /* deprecated */
-#define SO_PEERLABEL    0x1011          /* deprecated */
+#define SO_LABEL        0x1010          /* socket's MAC label */
+#define SO_PEERLABEL    0x1011          /* socket's peer MAC label */
 #ifdef __APPLE__
 #define SO_NREAD        0x1020          /* APPLE: get 1st-packet byte count */
 #define SO_NKE          0x1021          /* APPLE: Install socket-level NKE */
@@ -176,6 +173,7 @@
 #define SO_NOTIFYCONFLICT       0x1026  /* APPLE: send notification if there is a bind on a port which is already in use */
 #define SO_UPCALLCLOSEWAIT      0x1027  /* APPLE: block on close until an upcall returns */
 #endif
+#define SO_LINGER_SEC   0x1080          /* linger on close if data present (in seconds) */
 #define SO_RANDOMPORT   0x1082  /* APPLE: request local port randomization */
 #define SO_NP_EXTENSIONS        0x1083  /* To turn off some POSIX behavior */
 #endif
@@ -184,13 +182,7 @@
 #define SO_NET_SERVICE_TYPE     0x1116  /* Network service type */
 
 
-#define SO_NETSVC_MARKING_LEVEL    0x1119  /* Get QoS marking in effect for socket */
-
-
-#define SO_RESOLVER_SIGNATURE      0x1131  /* A signed data blob from the system resolver */
-
-
-/* When adding new socket-options, you need to make sure MPTCP supports these as well! */
+#define SO_NETSVC_MARKING_LEVEL 0x1119  /* Get QoS marking in effect for socket */
 
 /*
  * Network Service Type for option SO_NET_SERVICE_TYPE
@@ -406,8 +398,7 @@ struct so_np_extensions {
 #define AF_RESERVED_36  36              /* Reserved for internal usage */
 #define AF_IEEE80211    37              /* IEEE 802.11 protocol */
 #define AF_UTUN         38
-#define AF_VSOCK        40              /* VM Sockets */
-#define AF_MAX          41
+#define AF_MAX          40
 #endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
 
 /*
@@ -416,22 +407,7 @@ struct so_np_extensions {
 struct sockaddr {
 	__uint8_t       sa_len;         /* total length */
 	sa_family_t     sa_family;      /* [XSI] address family */
-#if __has_ptrcheck
-	char            sa_data[__counted_by(sa_len - 2)];
-#else
-	char            sa_data[14];    /* [XSI] addr value (actually smaller or larger) */
-#endif
-};
-__CCT_DECLARE_CONSTRAINED_PTR_TYPES(struct sockaddr, sockaddr);
-
-/*
- * Least amount of information that a sockaddr requires.
- * Sockaddr_header is a compatible prefix structure of
- * all sockaddr objects.
- */
-struct __sockaddr_header {
-	__uint8_t           sa_len;
-	sa_family_t         sa_family;
+	char            sa_data[14];    /* [XSI] addr value (actually larger) */
 };
 
 #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
@@ -468,7 +444,6 @@ struct sockaddr_storage {
 	__int64_t       __ss_align;     /* force structure storage alignment */
 	char                    __ss_pad2[_SS_PAD2SIZE];
 };
-__CCT_DECLARE_CONSTRAINED_PTR_TYPES(struct sockaddr_storage, sockaddr_storage);
 
 /*
  * Protocol families, same as address families for now.
@@ -511,7 +486,6 @@ __CCT_DECLARE_CONSTRAINED_PTR_TYPES(struct sockaddr_storage, sockaddr_storage);
 #define PF_PPP          AF_PPP
 #define PF_RESERVED_36  AF_RESERVED_36
 #define PF_UTUN         AF_UTUN
-#define PF_VSOCK        AF_VSOCK
 #define PF_MAX          AF_MAX
 
 /*
@@ -602,13 +576,6 @@ struct msghdr {
 #define MSG_RCVMORE     0x4000          /* Data remains in current pkt */
 #endif
 #define MSG_NEEDSA      0x10000         /* Fail receive if socket address cannot be allocated */
-#endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
-
-#if __DARWIN_C_LEVEL >= 200809L
-#define MSG_NOSIGNAL    0x80000         /* do not generate SIGPIPE on EOF */
-#endif /* __DARWIN_C_LEVEL */
-
-#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
 #endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
 
 /*
@@ -704,7 +671,7 @@ struct cmsgcred {
 #define SHUT_WR         1               /* shut down the writing side */
 #define SHUT_RDWR       2               /* shut down both sides */
 
-#if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
+#if !defined(_POSIX_C_SOURCE)
 /*
  * sendfile(2) header/trailer struct
  */
@@ -716,7 +683,7 @@ struct sf_hdtr {
 };
 
 
-#endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
+#endif  /* !_POSIX_C_SOURCE */
 
 
 __BEGIN_DECLS

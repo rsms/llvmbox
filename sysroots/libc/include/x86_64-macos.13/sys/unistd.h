@@ -178,7 +178,6 @@ struct accessx_descriptor {
 
 #include <machine/_types.h>
 #include <sys/_types/_size_t.h>
-#include <sys/_types/_ssize_t.h>
 #include <_types/_uint64_t.h>
 #include <_types/_uint32_t.h>
 #include <Availability.h>
@@ -188,7 +187,6 @@ __BEGIN_DECLS
 int     getattrlistbulk(int, void *, void *, size_t, uint64_t) __OSX_AVAILABLE_STARTING(__MAC_10_10, __IPHONE_8_0);
 int     getattrlistat(int, const char *, void *, void *, size_t, unsigned long) __OSX_AVAILABLE_STARTING(__MAC_10_10, __IPHONE_8_0);
 int     setattrlistat(int, const char *, void *, void *, size_t, uint32_t) __OSX_AVAILABLE(10.13) __IOS_AVAILABLE(11.0) __TVOS_AVAILABLE(11.0) __WATCHOS_AVAILABLE(4.0);
-ssize_t freadlink(int, char * __restrict, size_t) __API_AVAILABLE(macos(13.0), ios(16.0), tvos(16.0), watchos(9.0));
 
 __END_DECLS
 

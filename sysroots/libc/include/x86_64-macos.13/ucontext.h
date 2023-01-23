@@ -2,14 +2,14 @@
  * Copyright (c) 2002, 2008, 2009 Apple Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- *
+ * 
  * This file contains Original Code and/or Modifications of Original Code
  * as defined in and that are subject to the Apple Public Source License
  * Version 2.0 (the 'License'). You may not use this file except in
  * compliance with the License. Please obtain a copy of the License at
  * http://www.opensource.apple.com/apsl/ and read it before using this
  * file.
- *
+ * 
  * The Original Code and all software distributed under the License are
  * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -17,7 +17,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
  * Please see the License for the specific language governing rights and
  * limitations under the License.
- *
+ * 
  * @APPLE_LICENSE_HEADER_END@
  */
 
@@ -34,18 +34,10 @@
 #include <Availability.h>
 
 __BEGIN_DECLS
-__API_DEPRECATED("No longer supported", macos(10.5, 10.6))
-int  getcontext(ucontext_t *);
-
-__API_DEPRECATED("No longer supported", macos(10.5, 10.6))
-void makecontext(ucontext_t *, void (*)(), int, ...);
-
-__API_DEPRECATED("No longer supported", macos(10.5, 10.6))
-int  setcontext(const ucontext_t *);
-
-__API_DEPRECATED("No longer supported", macos(10.5, 10.6))
-int  swapcontext(ucontext_t * __restrict, const ucontext_t * __restrict);
-
+int  getcontext(ucontext_t *) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_5, __MAC_10_6, __IPHONE_2_0, __IPHONE_2_0) __WATCHOS_PROHIBITED __TVOS_PROHIBITED;
+void makecontext(ucontext_t *, void (*)(), int, ...) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_5, __MAC_10_6, __IPHONE_2_0, __IPHONE_2_0) __WATCHOS_PROHIBITED __TVOS_PROHIBITED;
+int  setcontext(const ucontext_t *) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_5, __MAC_10_6, __IPHONE_2_0, __IPHONE_2_0) __WATCHOS_PROHIBITED __TVOS_PROHIBITED;
+int  swapcontext(ucontext_t * __restrict, const ucontext_t * __restrict) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_5, __MAC_10_6, __IPHONE_2_0, __IPHONE_2_0) __WATCHOS_PROHIBITED __TVOS_PROHIBITED;
 __END_DECLS
 #else /* !_XOPEN_SOURCE */
 #error The deprecated ucontext routines require _XOPEN_SOURCE to be defined

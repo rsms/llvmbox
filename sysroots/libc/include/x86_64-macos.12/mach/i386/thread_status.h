@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2020 Apple Computer, Inc. All rights reserved.
+ * Copyright (c) 2000-2006 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -67,12 +67,10 @@
 #ifndef _MACH_I386_THREAD_STATUS_H_
 #define _MACH_I386_THREAD_STATUS_H_
 
-#if defined (__i386__) || defined (__x86_64__)
-
 #include <mach/machine/_structs.h>
-#include <mach/machine/thread_state.h>
 #include <mach/message.h>
 #include <mach/i386/fp_reg.h>
+#include <mach/i386/thread_state.h>
 #include <i386/eflags.h>
 
 
@@ -123,8 +121,6 @@
 #define x86_AVX512_STATE                (x86_AVX512_STATE32 + 2)
 #define x86_PAGEIN_STATE                22
 #define x86_THREAD_FULL_STATE64         23
-#define x86_INSTRUCTION_STATE           24
-#define x86_LAST_BRANCH_STATE           25
 
 /*
  * Largest state on this machine:
@@ -159,8 +155,6 @@
 	  (x == x86_AVX512_STATE64)		|| \
 	  (x == x86_AVX512_STATE)		|| \
 	  (x == x86_PAGEIN_STATE)		|| \
-	  (x == x86_INSTRUCTION_STATE)		|| \
-	  (x == x86_LAST_BRANCH_STATE)		|| \
 	  (x == THREAD_STATE_NONE))
 
 struct x86_state_hdr {
@@ -265,19 +259,6 @@ typedef _STRUCT_X86_PAGEIN_STATE x86_pagein_state_t;
 
 #define X86_PAGEIN_STATE_COUNT x86_PAGEIN_STATE_COUNT
 
-typedef _STRUCT_X86_INSTRUCTION_STATE x86_instruction_state_t;
-#define x86_INSTRUCTION_STATE_COUNT \
-    ((mach_msg_type_number_t)(sizeof(x86_instruction_state_t) / sizeof(int)))
-
-#define X86_INSTRUCTION_STATE_COUNT x86_INSTRUCTION_STATE_COUNT
-
-typedef _STRUCT_LAST_BRANCH_STATE last_branch_state_t;
-#define x86_LAST_BRANCH_STATE_COUNT \
-    ((mach_msg_type_number_t)(sizeof(last_branch_state_t) / sizeof(int)))
-
-#define X86_LAST_BRANCH_STATE_COUNT x86_LAST_BRANCH_STATE_COUNT
-
-
 /*
  * Combined thread, float and exception states
  */
@@ -360,7 +341,5 @@ typedef struct x86_avx512_state x86_avx512_state_t;
 #define MACHINE_THREAD_STATE            x86_THREAD_STATE
 #define MACHINE_THREAD_STATE_COUNT      x86_THREAD_STATE_COUNT
 
-
-#endif /* defined (__i386__) || defined (__x86_64__) */
 
 #endif  /* _MACH_I386_THREAD_STATUS_H_ */

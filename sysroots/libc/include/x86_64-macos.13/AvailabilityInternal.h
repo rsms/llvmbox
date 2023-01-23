@@ -45,9 +45,6 @@
     #ifdef __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__
         /* compiler sets __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ when -miphoneos-version-min is used */
         #define __IPHONE_OS_VERSION_MIN_REQUIRED __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__
-    /* set to 1 when RC_FALLBACK_PLATFORM=iphoneos */
-    #elif 0
-        #define __IPHONE_OS_VERSION_MIN_REQUIRED 0
     #endif
 #endif /* __IPHONE_OS_VERSION_MIN_REQUIRED */
 
@@ -55,7 +52,7 @@
     #ifdef __ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__
         /* compiler sets __ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__ when -mtvos-version-min is used */
         #define __TV_OS_VERSION_MIN_REQUIRED __ENVIRONMENT_TV_OS_VERSION_MIN_REQUIRED__
-        #define __TV_OS_VERSION_MAX_ALLOWED __TVOS_16_2
+        #define __TV_OS_VERSION_MAX_ALLOWED __TVOS_13_0 
         /* for compatibility with existing code.  New code should use platform specific checks */
         #define __IPHONE_OS_VERSION_MIN_REQUIRED 90000
     #endif
@@ -65,7 +62,7 @@
     #ifdef __ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__
         /* compiler sets __ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__ when -mwatchos-version-min is used */
         #define __WATCH_OS_VERSION_MIN_REQUIRED __ENVIRONMENT_WATCH_OS_VERSION_MIN_REQUIRED__
-        #define __WATCH_OS_VERSION_MAX_ALLOWED __WATCHOS_9_2
+        #define __WATCH_OS_VERSION_MAX_ALLOWED 60000
         /* for compatibility with existing code.  New code should use platform specific checks */
         #define __IPHONE_OS_VERSION_MIN_REQUIRED 90000
     #endif
@@ -75,7 +72,7 @@
     #ifdef __ENVIRONMENT_BRIDGE_OS_VERSION_MIN_REQUIRED__
         
         #define __BRIDGE_OS_VERSION_MIN_REQUIRED __ENVIRONMENT_BRIDGE_OS_VERSION_MIN_REQUIRED__
-        #define __BRIDGE_OS_VERSION_MAX_ALLOWED 70100
+        #define __BRIDGE_OS_VERSION_MAX_ALLOWED 20000
         /* for compatibility with existing code.  New code should use platform specific checks */
         #define __IPHONE_OS_VERSION_MIN_REQUIRED 110000
     #endif
@@ -90,14 +87,14 @@
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
     /* make sure a default max version is set */
     #ifndef __MAC_OS_X_VERSION_MAX_ALLOWED
-        #define __MAC_OS_X_VERSION_MAX_ALLOWED __MAC_13_1
+        #define __MAC_OS_X_VERSION_MAX_ALLOWED __MAC_10_15
     #endif
 #endif /* __MAC_OS_X_VERSION_MIN_REQUIRED */
 
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
     /* make sure a default max version is set */
     #ifndef __IPHONE_OS_VERSION_MAX_ALLOWED
-        #define __IPHONE_OS_VERSION_MAX_ALLOWED     __IPHONE_16_2
+        #define __IPHONE_OS_VERSION_MAX_ALLOWED     __IPHONE_13_0
     #endif
     /* make sure a valid min is set */
     #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_2_0
@@ -2890,7 +2887,7 @@
                #if __has_builtin(__is_target_environment)
                 #if __has_builtin(__is_target_variant_os)
                  #if __has_builtin(__is_target_variant_environment)
-                  #if ((__is_target_arch(x86_64) || __is_target_arch(arm64) || __is_target_arch(arm64e)) && __is_target_vendor(apple) && __is_target_os(ios) && __is_target_environment(macabi))
+                  #if (__is_target_arch(x86_64) && __is_target_vendor(apple) && __is_target_os(ios) && __is_target_environment(macabi))
                     #define __AVAILABILITY_INTERNAL__IPHONE_COMPAT_VERSION __attribute__((availability(ios,introduced=4.0)))
                     #define __AVAILABILITY_INTERNAL__IPHONE_COMPAT_VERSION_DEP__IPHONE_COMPAT_VERSION               __attribute__((availability(ios,unavailable)))
                     #define __AVAILABILITY_INTERNAL__IPHONE_COMPAT_VERSION_DEP__IPHONE_COMPAT_VERSION_MSG(_msg)     __attribute__((availability(ios,unavailable)))
@@ -4455,7 +4452,6 @@
     #endif
     #define __API_AVAILABLE_PLATFORM_driverkit(x) driverkit,introduced=x
 
-
     #if defined(__has_attribute)
       #if __has_attribute(availability)
         #define __API_A(x) __attribute__((availability(__API_AVAILABLE_PLATFORM_##x)))
@@ -4473,8 +4469,7 @@
     #define __API_AVAILABLE5(x,y,z,t,b) __API_A(x) __API_A(y) __API_A(z) __API_A(t) __API_A(b)
     #define __API_AVAILABLE6(x,y,z,t,b,m) __API_A(x) __API_A(y) __API_A(z) __API_A(t) __API_A(b) __API_A(m)
     #define __API_AVAILABLE7(x,y,z,t,b,m,d) __API_A(x) __API_A(y) __API_A(z) __API_A(t) __API_A(b) __API_A(m) __API_A(d)
-    #define __API_AVAILABLE8(x,y,z,t,b,m,d,l) __API_A(x) __API_A(y) __API_A(z) __API_A(t) __API_A(b) __API_A(m) __API_A(d) __API_A(l)
-    #define __API_AVAILABLE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
+    #define __API_AVAILABLE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,NAME,...) NAME
 
     #define __API_APPLY_TO any(record, enum, enum_constant, function, objc_method, objc_category, objc_protocol, objc_interface, objc_property, type_alias, variable, field)
     #define __API_RANGE_STRINGIFY(x) __API_RANGE_STRINGIFY2(x)
@@ -4489,8 +4484,7 @@
     #define __API_AVAILABLE_BEGIN5(a,b,c,d,e) __API_A_BEGIN(a) __API_A_BEGIN(b) __API_A_BEGIN(c) __API_A_BEGIN(d) __API_A_BEGIN(e)
     #define __API_AVAILABLE_BEGIN6(a,b,c,d,e,f) __API_A_BEGIN(a) __API_A_BEGIN(b) __API_A_BEGIN(c) __API_A_BEGIN(d) __API_A_BEGIN(e) __API_A_BEGIN(f)
     #define __API_AVAILABLE_BEGIN7(a,b,c,d,e,f,g) __API_A_BEGIN(a) __API_A_BEGIN(b) __API_A_BEGIN(c) __API_A_BEGIN(d) __API_A_BEGIN(e) __API_A_BEGIN(f) __API_A_BEGIN(g)
-    #define __API_AVAILABLE_BEGIN8(a,b,c,d,e,f,g,h) __API_A_BEGIN(a) __API_A_BEGIN(b) __API_A_BEGIN(c) __API_A_BEGIN(d) __API_A_BEGIN(e) __API_A_BEGIN(f) __API_A_BEGIN(g) __API_A_BEGIN(h)
-    #define __API_AVAILABLE_BEGIN_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
+    #define __API_AVAILABLE_BEGIN_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,NAME,...) NAME
 
     
     #define __API_DEPRECATED_PLATFORM_macos(x,y) macos,introduced=x,deprecated=y
@@ -4505,7 +4499,6 @@
      #define __API_DEPRECATED_PLATFORM_uikitformac(x) uikitformac,introduced=x,deprecated=y
     #endif
     #define __API_DEPRECATED_PLATFORM_driverkit(x,y) driverkit,introduced=x,deprecated=y
-
 
     #if defined(__has_attribute)
       #if __has_attribute(availability)
@@ -4524,8 +4517,7 @@
     #define __API_DEPRECATED_MSG6(msg,x,y,z,t,b) __API_DEPRECATED_MSG5(msg,x,y,z,t) __API_D(msg,b)
     #define __API_DEPRECATED_MSG7(msg,x,y,z,t,b,m) __API_DEPRECATED_MSG6(msg,x,y,z,t,b) __API_D(msg,m)
     #define __API_DEPRECATED_MSG8(msg,x,y,z,t,b,m,d) __API_DEPRECATED_MSG7(msg,x,y,z,t,b,m) __API_D(msg,d)
-    #define __API_DEPRECATED_MSG9(msg,x,y,z,t,b,m,d,l) __API_DEPRECATED_MSG8(msg,x,y,z,t,b,m,d) __API_D(msg,l)
-    #define __API_DEPRECATED_MSG_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
+    #define __API_DEPRECATED_MSG_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
 
     #define __API_D_BEGIN(msg, x) _Pragma(__API_RANGE_STRINGIFY (clang attribute (__attribute__((availability(__API_DEPRECATED_PLATFORM_##x,message=msg))), apply_to = __API_APPLY_TO)))
 
@@ -4536,8 +4528,7 @@
     #define __API_DEPRECATED_BEGIN_MSG6(msg,a,b,c,d,e) __API_D_BEGIN(msg,a) __API_D_BEGIN(msg,b) __API_D_BEGIN(msg,c) __API_D_BEGIN(msg,d) __API_D_BEGIN(msg,e)
     #define __API_DEPRECATED_BEGIN_MSG7(msg,a,b,c,d,e,f) __API_D_BEGIN(msg,a) __API_D_BEGIN(msg,b) __API_D_BEGIN(msg,c) __API_D_BEGIN(msg,d) __API_D_BEGIN(msg,e) __API_D_BEGIN(msg,f)
     #define __API_DEPRECATED_BEGIN_MSG8(msg,a,b,c,d,e,f,g) __API_D_BEGIN(msg,a) __API_D_BEGIN(msg,b) __API_D_BEGIN(msg,c) __API_D_BEGIN(msg,d) __API_D_BEGIN(msg,e) __API_D_BEGIN(msg,f) __API_D_BEGIN(msg,g)
-    #define __API_DEPRECATED_BEGIN_MSG9(msg,a,b,c,d,e,f,g,h) __API_D_BEGIN(msg,a) __API_D_BEGIN(msg,b) __API_D_BEGIN(msg,c) __API_D_BEGIN(msg,d) __API_D_BEGIN(msg,e) __API_D_BEGIN(msg,f) __API_D_BEGIN(msg,g) __API_D_BEGIN(msg,h)
-    #define __API_DEPRECATED_BEGIN_MSG_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
+    #define __API_DEPRECATED_BEGIN_MSG_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
 
     #if __has_feature(attribute_availability_with_replacement)
         #define __API_R(rep,x) __attribute__((availability(__API_DEPRECATED_PLATFORM_##x,replacement=rep)))
@@ -4552,8 +4543,7 @@
     #define __API_DEPRECATED_REP6(rep,x,y,z,t,b) __API_DEPRECATED_REP5(rep,x,y,z,t) __API_R(rep,b)
     #define __API_DEPRECATED_REP7(rep,x,y,z,t,b,m) __API_DEPRECATED_REP6(rep,x,y,z,t,b) __API_R(rep,m)
     #define __API_DEPRECATED_REP8(rep,x,y,z,t,b,m,d) __API_DEPRECATED_REP7(rep,x,y,z,t,b,m) __API_R(rep,d)
-    #define __API_DEPRECATED_REP9(rep,x,y,z,t,b,m,d,l) __API_DEPRECATED_REP8(rep,x,y,z,t,b,m,d) __API_R(rep,l)
-    #define __API_DEPRECATED_REP_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
+    #define __API_DEPRECATED_REP_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
 
     #if __has_feature(attribute_availability_with_replacement)
         #define __API_R_BEGIN(rep,x) _Pragma(__API_RANGE_STRINGIFY (clang attribute (__attribute__((availability(__API_DEPRECATED_PLATFORM_##x,replacement=rep))), apply_to = __API_APPLY_TO)))    
@@ -4568,9 +4558,7 @@
     #define __API_DEPRECATED_BEGIN_REP6(rep,a,b,c,d,e) __API_R_BEGIN(rep,a) __API_R_BEGIN(rep,b) __API_R_BEGIN(rep,c) __API_R_BEGIN(rep,d) __API_R_BEGIN(rep,e)
     #define __API_DEPRECATED_BEGIN_REP7(rep,a,b,c,d,e,f) __API_R_BEGIN(rep,a) __API_R_BEGIN(rep,b) __API_R_BEGIN(rep,c) __API_R_BEGIN(rep,d) __API_R_BEGIN(rep,e) __API_R_BEGIN(rep,f)
     #define __API_DEPRECATED_BEGIN_REP8(rep,a,b,c,d,e,f,g) __API_R_BEGIN(rep,a) __API_R_BEGIN(rep,b) __API_R_BEGIN(rep,c) __API_R_BEGIN(rep,d) __API_R_BEGIN(rep,e) __API_R_BEGIN(rep,f) __API_R_BEGIN(rep,g)
-    #define __API_DEPRECATED_BEGIN_REP9(rep,a,b,c,d,e,f,g,h) __API_R_BEGIN(rep,a) __API_R_BEGIN(rep,b) __API_R_BEGIN(rep,c) __API_R_BEGIN(rep,d) __API_R_BEGIN(rep,e) __API_R_BEGIN(rep,f) __API_R_BEGIN(rep,g) __API_R_BEGIN(rep,h)
-
-    #define __API_DEPRECATED_BEGIN_REP_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,NAME,...) NAME
+    #define __API_DEPRECATED_BEGIN_REP_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
 
     /*
      * API Unavailability
@@ -4593,7 +4581,6 @@
     #endif
     #define __API_UNAVAILABLE_PLATFORM_driverkit driverkit,unavailable
 
-
     #if defined(__has_attribute)
       #if __has_attribute(availability)
         #define __API_U(x) __attribute__((availability(__API_UNAVAILABLE_PLATFORM_##x)))
@@ -4611,8 +4598,7 @@
     #define __API_UNAVAILABLE5(x,y,z,t,b) __API_UNAVAILABLE4(x,y,z,t) __API_U(b)
     #define __API_UNAVAILABLE6(x,y,z,t,b,m) __API_UNAVAILABLE5(x,y,z,t,b) __API_U(m)
     #define __API_UNAVAILABLE7(x,y,z,t,b,m,d) __API_UNAVAILABLE6(x,y,z,t,b,m) __API_U(d)
-    #define __API_UNAVAILABLE8(x,y,z,t,b,m,d,l) __API_UNAVAILABLE7(x,y,z,t,b,m,d) __API_U(l)
-    #define __API_UNAVAILABLE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
+    #define __API_UNAVAILABLE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,NAME,...) NAME
 
     #define __API_U_BEGIN(x) _Pragma(__API_RANGE_STRINGIFY (clang attribute (__attribute__((availability(__API_UNAVAILABLE_PLATFORM_##x))), apply_to = __API_APPLY_TO)))
 
@@ -4622,9 +4608,8 @@
     #define __API_UNAVAILABLE_BEGIN4(a,b,c,d) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d)
     #define __API_UNAVAILABLE_BEGIN5(a,b,c,d,e) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d) __API_U_BEGIN(e)
     #define __API_UNAVAILABLE_BEGIN6(a,b,c,d,e,f) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d) __API_U_BEGIN(e) __API_U_BEGIN(f)
-    #define __API_UNAVAILABLE_BEGIN7(a,b,c,d,e,f,g) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d) __API_U_BEGIN(e) __API_U_BEGIN(f) __API_U_BEGIN(g)
-    #define __API_UNAVAILABLE_BEGIN8(a,b,c,d,e,f,g,h) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d) __API_U_BEGIN(e) __API_U_BEGIN(f) __API_U_BEGIN(g) __API_U_BEGIN(h)
-    #define __API_UNAVAILABLE_BEGIN_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,NAME,...) NAME
+    #define __API_UNAVAILABLE_BEGIN7(a,b,c,d,e,f) __API_U_BEGIN(a) __API_U_BEGIN(b) __API_U_BEGIN(c) __API_U_BEGIN(d) __API_U_BEGIN(e) __API_U_BEGIN(f) __API_U_BEGIN(g)
+    #define __API_UNAVAILABLE_BEGIN_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,NAME,...) NAME
  #else 
 
  /* 
@@ -4658,7 +4643,7 @@
 
 /*
  * Swift compiler version
- * Allows for project-agnostic "epochs" for frameworks imported into Swift via the Clang importer, like #if _compiler_version for Swift
+ * Allows for project-agnostic “epochs” for frameworks imported into Swift via the Clang importer, like #if _compiler_version for Swift
  * Example:
  *
  *  #if __swift_compiler_version_at_least(800, 2, 20)

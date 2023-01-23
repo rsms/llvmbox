@@ -97,10 +97,6 @@ typedef struct _malloc_zone_t {
 	 * not yet been allocated. False negatives are not allowed.
 	 */
     boolean_t (* MALLOC_ZONE_FN_PTR(claimed_address))(struct _malloc_zone_t *zone, void *ptr);
-
-    /* For zone 0 implementations: try to free ptr, promising to call find_zone_and_free
-     * if it turns out not to belong to us */
-    void 	(* MALLOC_ZONE_FN_PTR(try_free_default))(struct _malloc_zone_t *zone, void *ptr);
 } malloc_zone_t;
 
 /*********	Creation and destruction	************/
@@ -220,7 +216,7 @@ typedef void vm_range_recorder_t(task_t, void *, unsigned type, vm_range_t *, un
     /* given a task and context, "records" the specified addresses */
 
 /* Print function for the print_task() operation. */
-typedef void print_task_printer_t(const char *fmt, ...) __printflike(1,2);
+typedef void print_task_printer_t(const char *fmt, ...);
 
 typedef struct malloc_introspection_t {
 	kern_return_t (* MALLOC_INTROSPECT_FN_PTR(enumerator))(task_t task, void *, unsigned type_mask, vm_address_t zone_address, memory_reader_t reader, vm_range_recorder_t recorder); /* enumerates all the malloc pointers in use */
@@ -312,37 +308,6 @@ extern void malloc_zone_enumerate_discharged_pointers(malloc_zone_t *zone, void 
 #else
 extern void malloc_zone_enumerate_discharged_pointers(malloc_zone_t *zone, void *) __OSX_AVAILABLE_STARTING(__MAC_10_7, __IPHONE_4_3);
 #endif /* __BLOCKS__ */
-
-/*********  Zone version summary ************/
-// Version 0, but optional:
-//   malloc_zone_t::batch_malloc
-//   malloc_zone_t::batch_free
-// Version 5:
-//   malloc_zone_t::memalign
-// Version 6:
-//   malloc_zone_t::free_definite_size
-// Version 7:
-//   malloc_introspection_t::enable_discharge_checking
-//   malloc_introspection_t::disable_discharge_checking
-//   malloc_introspection_t::discharge
-// Version 8:
-//   malloc_zone_t::pressure_relief
-// Version 9:
-//   malloc_introspection_t::reinit_lock
-// Version 10:
-//   malloc_zone_t::claimed_address
-// Version 11:
-//   malloc_introspection_t::print_task
-// Version 12:
-//   malloc_introspection_t::task_statistics
-// Version 13:
-//   - malloc_zone_t::malloc and malloc_zone_t::calloc assume responsibility for
-//     setting errno to ENOMEM on failure
-//   - malloc_zone_t::try_free_default
-
-// These functions are optional and calling them requires two checks:
-//  * Check zone version to ensure zone struct is large enough to include the member.
-//  * Check that the function pointer is not null.
 
 __END_DECLS
 

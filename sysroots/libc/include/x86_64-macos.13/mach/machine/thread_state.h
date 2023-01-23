@@ -31,14 +31,8 @@
 
 #if defined (__i386__) || defined(__x86_64__)
 #include "mach/i386/thread_state.h"
-#elif defined (__arm__) || defined (__arm64__)
-#include "mach/arm/thread_state.h"
 #else
 #error architecture not supported
 #endif
-
-/* Size of maximum exported thread state in 32-bit words */
-#define THREAD_STATE_MAX    1296
-
 
 #endif /* _MACH_MACHINE_THREAD_STATE_H_ */

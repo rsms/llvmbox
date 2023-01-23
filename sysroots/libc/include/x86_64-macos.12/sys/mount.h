@@ -228,7 +228,6 @@ struct vfsstatfs {
 #define MNT_NOUSERXATTR 0x01000000      /* Don't allow user extended attributes */
 #define MNT_DEFWRITE    0x02000000      /* filesystem should defer writes */
 #define MNT_MULTILABEL  0x04000000      /* MAC support for individual labels */
-#define MNT_NOFOLLOW    0x08000000      /* don't follow symlink when resolving mount point */
 #define MNT_NOATIME             0x10000000      /* disable update of file access time */
 #define MNT_SNAPSHOT    0x40000000 /* The mount is a snapshot */
 #define MNT_STRICTATIME 0x80000000      /* enable strict update of file access time */
@@ -248,8 +247,7 @@ struct vfsstatfs {
 	                MNT_ROOTFS	| MNT_DOVOLFS	| MNT_DONTBROWSE | \
 	                MNT_IGNORE_OWNERSHIP | MNT_AUTOMOUNTED | MNT_JOURNALED | \
 	                MNT_NOUSERXATTR | MNT_DEFWRITE	| MNT_MULTILABEL | \
-	                MNT_NOFOLLOW | MNT_NOATIME | MNT_STRICTATIME | \
-	                MNT_SNAPSHOT | MNT_CPROTECT)
+	                MNT_NOATIME | MNT_STRICTATIME | MNT_SNAPSHOT | MNT_CPROTECT)
 /*
  * External filesystem command modifier flags.
  * Unmount can use the MNT_FORCE flag.
@@ -326,7 +324,7 @@ struct vfsidctl {
  * New style VFS sysctls, do not reuse/conflict with the namespace for
  * private sysctls.
  */
-#define VFS_CTL_OSTATFS 0x00010001      /* old legacy statfs */
+#define VFS_CTL_STATFS  0x00010001      /* statfs */
 #define VFS_CTL_UMOUNT  0x00010002      /* unmount */
 #define VFS_CTL_QUERY   0x00010003      /* anything wrong? (vfsquery) */
 #define VFS_CTL_NEWADDR 0x00010004      /* reconnect to new address */
@@ -336,17 +334,6 @@ struct vfsidctl {
 #define VFS_CTL_DISC    0x00010008      /* server disconnected */
 #define VFS_CTL_SERVERINFO  0x00010009  /* information about fs server */
 #define VFS_CTL_NSTATUS 0x0001000A      /* netfs mount status */
-#define VFS_CTL_STATFS64 0x0001000B     /* statfs64 */
-
-/*
- * Automatically select the correct VFS_CTL_*STATFS* flavor based
- * on what "struct statfs" layout the client will use.
- */
-#if __DARWIN_64_BIT_INO_T
-#define VFS_CTL_STATFS  VFS_CTL_STATFS64
-#else
-#define VFS_CTL_STATFS  VFS_CTL_OSTATFS
-#endif
 
 struct vfsquery {
 	u_int32_t       vq_flags;
@@ -390,6 +377,7 @@ struct netfs_status {
 
 
 
+
 /*
  * Generic file handle
  */
@@ -402,7 +390,6 @@ struct fhandle {
 	unsigned char   fh_data[NFS_MAX_FH_SIZE];       /* file handle value */
 };
 typedef struct fhandle  fhandle_t;
-
 
 
 __BEGIN_DECLS

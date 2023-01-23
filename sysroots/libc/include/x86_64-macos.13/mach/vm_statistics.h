@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000-2020 Apple Inc. All rights reserved.
+ * Copyright (c) 2000-2019 Apple Inc. All rights reserved.
  *
  * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
  *
@@ -66,12 +66,8 @@
 #ifndef _MACH_VM_STATISTICS_H_
 #define _MACH_VM_STATISTICS_H_
 
-#include <sys/cdefs.h>
-
-__BEGIN_DECLS
-
 #include <mach/machine/vm_types.h>
-#include <mach/machine/kern_return.h>
+
 
 /*
  * vm_statistics
@@ -171,8 +167,6 @@ struct vm_statistics64 {
 typedef struct vm_statistics64  *vm_statistics64_t;
 typedef struct vm_statistics64  vm_statistics64_data_t;
 
-kern_return_t vm_stats(void *info, unsigned int *count);
-
 /*
  * VM_STATISTICS_TRUNCATE_TO_32_BIT
  *
@@ -231,6 +225,7 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 #define VM_PAGE_QUERY_PAGE_CS_NX        0x400
 #define VM_PAGE_QUERY_PAGE_REUSABLE     0x800
 
+
 /*
  * VM allocation flags:
  *
@@ -263,26 +258,24 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
  *	cached so that they will be stolen first if memory runs low.
  */
 
-#define VM_FLAGS_FIXED                  0x00000000
-#define VM_FLAGS_ANYWHERE               0x00000001
-#define VM_FLAGS_PURGABLE               0x00000002
-#define VM_FLAGS_4GB_CHUNK              0x00000004
-#define VM_FLAGS_RANDOM_ADDR            0x00000008
-#define VM_FLAGS_NO_CACHE               0x00000010
-#define VM_FLAGS_RESILIENT_CODESIGN     0x00000020
-#define VM_FLAGS_RESILIENT_MEDIA        0x00000040
-#define VM_FLAGS_PERMANENT              0x00000080
-#define VM_FLAGS_TPRO                   0x00001000
-#define VM_FLAGS_OVERWRITE              0x00004000  /* delete any existing mappings first */
+#define VM_FLAGS_FIXED          0x0000
+#define VM_FLAGS_ANYWHERE       0x0001
+#define VM_FLAGS_PURGABLE       0x0002
+#define VM_FLAGS_4GB_CHUNK      0x0004
+#define VM_FLAGS_RANDOM_ADDR    0x0008
+#define VM_FLAGS_NO_CACHE       0x0010
+#define VM_FLAGS_RESILIENT_CODESIGN     0x0020
+#define VM_FLAGS_RESILIENT_MEDIA        0x0040
+#define VM_FLAGS_OVERWRITE      0x4000  /* delete any existing mappings first */
 /*
  * VM_FLAGS_SUPERPAGE_MASK
  *	3 bits that specify whether large pages should be used instead of
  *	base pages (!=0), as well as the requested page size.
  */
-#define VM_FLAGS_SUPERPAGE_MASK         0x00070000 /* bits 0x10000, 0x20000, 0x40000 */
-#define VM_FLAGS_RETURN_DATA_ADDR       0x00100000 /* Return address of target data, rather than base of page */
-#define VM_FLAGS_RETURN_4K_DATA_ADDR    0x00800000 /* Return 4K aligned address of target data */
-#define VM_FLAGS_ALIAS_MASK             0xFF000000
+#define VM_FLAGS_SUPERPAGE_MASK 0x70000 /* bits 0x10000, 0x20000, 0x40000 */
+#define VM_FLAGS_RETURN_DATA_ADDR       0x100000 /* Return address of target data, rather than base of page */
+#define VM_FLAGS_RETURN_4K_DATA_ADDR    0x800000 /* Return 4K aligned address of target data */
+#define VM_FLAGS_ALIAS_MASK     0xFF000000
 #define VM_GET_FLAGS_ALIAS(flags, alias)                        \
 	        (alias) = ((flags) & VM_FLAGS_ALIAS_MASK) >> 24
 #define VM_SET_FLAGS_ALIAS(flags, alias)                        \
@@ -296,10 +289,8 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 	                         VM_FLAGS_4GB_CHUNK |           \
 	                         VM_FLAGS_RANDOM_ADDR |         \
 	                         VM_FLAGS_NO_CACHE |            \
-	                         VM_FLAGS_PERMANENT |           \
 	                         VM_FLAGS_OVERWRITE |           \
 	                         VM_FLAGS_SUPERPAGE_MASK |      \
-	                         VM_FLAGS_TPRO |                \
 	                         VM_FLAGS_ALIAS_MASK)
 #define VM_FLAGS_USER_MAP       (VM_FLAGS_USER_ALLOCATE |       \
 	                         VM_FLAGS_RETURN_4K_DATA_ADDR | \
@@ -327,10 +318,7 @@ typedef struct vm_purgeable_info        *vm_purgeable_info_t;
 
 /* Reasons for exception for virtual memory */
 enum virtual_memory_guard_exception_codes {
-	kGUARD_EXC_DEALLOC_GAP  = 1u << 0,
-	kGUARD_EXC_RECLAIM_COPYIO_FAILURE = 1u << 1,
-	kGUARD_EXC_RECLAIM_INDEX_FAILURE = 1u << 2,
-	kGUARD_EXC_RECLAIM_DEALLOCATE_FAILURE = 1u << 3,
+	kGUARD_EXC_DEALLOC_GAP  = 1u << 0
 };
 
 
@@ -345,12 +333,9 @@ enum virtual_memory_guard_exception_codes {
 #define VM_LEDGER_TAG_GRAPHICS  0x00000004
 #define VM_LEDGER_TAG_NEURAL    0x00000005
 #define VM_LEDGER_TAG_MAX       0x00000005
-#define VM_LEDGER_TAG_UNCHANGED ((int)-1)
-
 /* individual bits: */
-#define VM_LEDGER_FLAG_NO_FOOTPRINT               (1 << 0)
-#define VM_LEDGER_FLAG_NO_FOOTPRINT_FOR_DEBUG    (1 << 1)
-#define VM_LEDGER_FLAGS (VM_LEDGER_FLAG_NO_FOOTPRINT | VM_LEDGER_FLAG_NO_FOOTPRINT_FOR_DEBUG)
+#define VM_LEDGER_FLAG_NO_FOOTPRINT     0x00000001
+#define VM_LEDGER_FLAGS (VM_LEDGER_FLAG_NO_FOOTPRINT)
 
 
 #define VM_MEMORY_MALLOC 1
@@ -367,8 +352,6 @@ enum virtual_memory_guard_exception_codes {
 
 #define VM_MEMORY_MALLOC_NANO 11
 #define VM_MEMORY_MALLOC_MEDIUM 12
-#define VM_MEMORY_MALLOC_PGUARD 13  // Will be removed
-#define VM_MEMORY_MALLOC_PROB_GUARD 13
 
 #define VM_MEMORY_MACH_MSG 20
 #define VM_MEMORY_IOKIT 21
@@ -529,38 +512,12 @@ enum virtual_memory_guard_exception_codes {
 /* memory allocated by CoreMedia for global image registration of frames */
 #define VM_MEMORY_CM_REGWARP 101
 
-/* memory allocated by EmbeddedAcousticRecognition for speech decoder */
-#define VM_MEMORY_EAR_DECODER 102
-
-/* CoreUI cached image data */
-#define VM_MEMORY_COREUI_CACHED_IMAGE_DATA 103
-
-/* ColorSync is using mmap for read-only copies of ICC profile data */
-#define VM_MEMORY_COLORSYNC 104
-
-/* backtrace info for simulated crashes */
-#define VM_MEMORY_BTINFO 105
-
-/* Reserve 230-239 for Rosetta */
-#define VM_MEMORY_ROSETTA 230
-#define VM_MEMORY_ROSETTA_THREAD_CONTEXT 231
-#define VM_MEMORY_ROSETTA_INDIRECT_BRANCH_MAP 232
-#define VM_MEMORY_ROSETTA_RETURN_STACK 233
-#define VM_MEMORY_ROSETTA_EXECUTABLE_HEAP 234
-#define VM_MEMORY_ROSETTA_USER_LDT 235
-#define VM_MEMORY_ROSETTA_ARENA 236
-#define VM_MEMORY_ROSETTA_10 239
-
 /* Reserve 240-255 for application */
 #define VM_MEMORY_APPLICATION_SPECIFIC_1 240
 #define VM_MEMORY_APPLICATION_SPECIFIC_16 255
 
-#define VM_MEMORY_COUNT 256
-
 #define VM_MAKE_TAG(tag) ((tag) << 24)
 
 
-
-__END_DECLS
 
 #endif  /* _MACH_VM_STATISTICS_H_ */

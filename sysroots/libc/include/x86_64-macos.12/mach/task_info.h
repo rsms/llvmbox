@@ -112,13 +112,8 @@ typedef struct task_basic_info_32       *task_basic_info_32_t;
 /* Don't use this, use MACH_TASK_BASIC_INFO instead */
 struct task_basic_info_64 {
 	integer_t       suspend_count;  /* suspend count for task */
-#if defined(__arm__) || defined(__arm64__)
 	mach_vm_size_t  virtual_size;   /* virtual memory size (bytes) */
 	mach_vm_size_t  resident_size;  /* resident memory size (bytes) */
-#else /* defined(__arm__) || defined(__arm64__) */
-	mach_vm_size_t  virtual_size;   /* virtual memory size (bytes) */
-	mach_vm_size_t  resident_size;  /* resident memory size (bytes) */
-#endif /* defined(__arm__) || defined(__arm64__) */
 	time_value_t    user_time;      /* total user run time for
 	                                 *  terminated threads */
 	time_value_t    system_time;    /* total system run time for
@@ -128,26 +123,9 @@ struct task_basic_info_64 {
 typedef struct task_basic_info_64       task_basic_info_64_data_t;
 typedef struct task_basic_info_64       *task_basic_info_64_t;
 
-#if defined(__arm__) || defined(__arm64__)
-	#if   defined(__arm__) && defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && (__IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_5_0)
-/*
- * Note: arm64 can't use the old flavor.  If you somehow manage to,
- * you can cope with the nonsense data yourself.
- */
-	#define TASK_BASIC_INFO_64      5
-	#define TASK_BASIC_INFO_64_COUNT   \
-	        (sizeof(task_basic_info_64_data_t) / sizeof(natural_t))
-
-	#else
-
-	#define TASK_BASIC_INFO_64              TASK_BASIC_INFO_64_2
-	#define TASK_BASIC_INFO_64_COUNT        TASK_BASIC_INFO_64_2_COUNT
-	#endif
-#else /* defined(__arm__) || defined(__arm64__) */
 #define TASK_BASIC_INFO_64      5       /* 64-bit capable basic info */
 #define TASK_BASIC_INFO_64_COUNT   \
 	        (sizeof(task_basic_info_64_data_t) / sizeof(natural_t))
-#endif
 
 
 /* localized structure - cannot be safely passed between tasks of differing sizes */
@@ -271,27 +249,6 @@ typedef struct task_dyld_info   *task_dyld_info_t;
 #define TASK_DYLD_ALL_IMAGE_INFO_32     0       /* format value */
 #define TASK_DYLD_ALL_IMAGE_INFO_64     1       /* format value */
 
-#if defined(__arm__) || defined(__arm64__)
-
-/* Don't use this, use MACH_TASK_BASIC_INFO instead */
-/* Compatibility for old 32-bit mach_vm_*_t */
-#define TASK_BASIC_INFO_64_2     18       /* 64-bit capable basic info */
-
-struct task_basic_info_64_2 {
-	integer_t       suspend_count;  /* suspend count for task */
-	mach_vm_size_t  virtual_size;   /* virtual memory size (bytes) */
-	mach_vm_size_t  resident_size;  /* resident memory size (bytes) */
-	time_value_t    user_time;      /* total user run time for
-	                                 *  terminated threads */
-	time_value_t    system_time;    /* total system run time for
-	                                 *  terminated threads */
-	policy_t        policy;         /* default policy for new threads */
-};
-typedef struct task_basic_info_64_2       task_basic_info_64_2_data_t;
-typedef struct task_basic_info_64_2       *task_basic_info_64_2_t;
-#define TASK_BASIC_INFO_64_2_COUNT   \
-	        (sizeof(task_basic_info_64_2_data_t) / sizeof(natural_t))
-#endif
 
 #define TASK_EXTMOD_INFO                        19
 
@@ -400,17 +357,12 @@ struct task_vm_info {
 
 	/* added for rev5 */
 	integer_t decompressions;
-
-	/* added for rev6 */
-	int64_t ledger_swapins;
 };
 typedef struct task_vm_info     task_vm_info_data_t;
 typedef struct task_vm_info     *task_vm_info_t;
 #define TASK_VM_INFO_COUNT      ((mach_msg_type_number_t) \
 	        (sizeof (task_vm_info_data_t) / sizeof (natural_t)))
-#define TASK_VM_INFO_REV6_COUNT TASK_VM_INFO_COUNT
-#define TASK_VM_INFO_REV5_COUNT /* doesn't include ledger swapins */ \
-	((mach_msg_type_number_t) (TASK_VM_INFO_REV6_COUNT - 2))
+#define TASK_VM_INFO_REV5_COUNT TASK_VM_INFO_COUNT
 #define TASK_VM_INFO_REV4_COUNT /* doesn't include decompressions */ \
 	((mach_msg_type_number_t) (TASK_VM_INFO_REV5_COUNT - 1))
 #define TASK_VM_INFO_REV3_COUNT /* doesn't include limit bytes */ \
@@ -425,7 +377,7 @@ typedef struct task_vm_info     *task_vm_info_t;
 typedef struct vm_purgeable_info        task_purgable_info_t;
 
 
-#define TASK_TRACE_MEMORY_INFO  24  /* no longer supported */
+#define TASK_TRACE_MEMORY_INFO  24
 struct task_trace_memory_info {
 	uint64_t  user_memory_address;  /* address of start of trace memory buffer */
 	uint64_t  buffer_size;                  /* size of buffer in bytes */
@@ -460,9 +412,6 @@ typedef gpu_energy_data *gpu_energy_data_t;
 struct task_power_info_v2 {
 	task_power_info_data_t  cpu_energy;
 	gpu_energy_data gpu_energy;
-#if defined(__arm__) || defined(__arm64__)
-	uint64_t                task_energy;
-#endif /* defined(__arm__) || defined(__arm64__) */
 	uint64_t                task_ptime;
 	uint64_t                task_pset_switches;
 };
@@ -499,7 +448,6 @@ typedef struct task_flags_info * task_flags_info_t;
 typedef uint32_t task_exc_guard_behavior_t;
 
 /* EXC_GUARD optional delivery settings on a per-task basis */
-#define TASK_EXC_GUARD_NONE                  0x00
 #define TASK_EXC_GUARD_VM_DELIVER            0x01 /* Deliver virtual memory EXC_GUARD exceptions */
 #define TASK_EXC_GUARD_VM_ONCE               0x02 /* Deliver them only once */
 #define TASK_EXC_GUARD_VM_CORPSE             0x04 /* Deliver them via a forked corpse */
@@ -513,15 +461,6 @@ typedef uint32_t task_exc_guard_behavior_t;
 #define TASK_EXC_GUARD_MP_ALL                0xf0
 
 #define TASK_EXC_GUARD_ALL                   0xff /* All optional deliver settings */
-
-
-/*
- * Type to control corpse forking options for a task
- * via task_get/set_corpse_forking_behavior interface(s).
- */
-typedef uint32_t task_corpse_forking_behavior_t;
-
-#define TASK_CORPSE_FORKING_DISABLED_MEM_DIAG  0x01 /* Disable corpse forking because the task is running under a diagnostic tool */
 
 
 /*

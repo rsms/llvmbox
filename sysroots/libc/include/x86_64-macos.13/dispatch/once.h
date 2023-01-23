@@ -27,7 +27,6 @@
 #endif
 
 DISPATCH_ASSUME_NONNULL_BEGIN
-DISPATCH_ASSUME_ABI_SINGLE_BEGIN
 
 __BEGIN_DECLS
 
@@ -121,7 +120,6 @@ _dispatch_once_f(dispatch_once_t *predicate, void *_Nullable context,
 
 __END_DECLS
 
-DISPATCH_ASSUME_ABI_SINGLE_END
 DISPATCH_ASSUME_NONNULL_END
 
 #endif

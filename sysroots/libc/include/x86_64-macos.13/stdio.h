@@ -165,12 +165,7 @@ long	 ftell(FILE *);
 size_t	 fwrite(const void * __restrict __ptr, size_t __size, size_t __nitems, FILE * __restrict __stream) __DARWIN_ALIAS(fwrite);
 int	 getc(FILE *);
 int	 getchar(void);
-
-#if !defined(_POSIX_C_SOURCE)
-__deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of gets(3), it is highly recommended that you use fgets(3) instead.")
-#endif
 char	*gets(char *);
-
 void	 perror(const char *) __cold;
 int	 printf(const char * __restrict, ...) __printflike(1, 2);
 int	 putc(int, FILE *);
@@ -182,13 +177,7 @@ void	 rewind(FILE *);
 int	 scanf(const char * __restrict, ...) __scanflike(1, 2);
 void	 setbuf(FILE * __restrict, char * __restrict);
 int	 setvbuf(FILE * __restrict, char * __restrict, int, size_t);
-
-__swift_unavailable("Use snprintf instead.")
-#if !defined(_POSIX_C_SOURCE)
-__deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead.")
-#endif
-int	 sprintf(char * __restrict, const char * __restrict, ...) __printflike(2, 3);
-
+int	 sprintf(char * __restrict, const char * __restrict, ...) __printflike(2, 3) __swift_unavailable("Use snprintf instead.");
 int	 sscanf(const char * __restrict, const char * __restrict, ...) __scanflike(2, 3);
 FILE	*tmpfile(void);
 
@@ -197,16 +186,10 @@ __swift_unavailable("Use mkstemp(3) instead.")
 __deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of tmpnam(3), it is highly recommended that you use mkstemp(3) instead.")
 #endif
 char	*tmpnam(char *);
-
 int	 ungetc(int, FILE *);
 int	 vfprintf(FILE * __restrict, const char * __restrict, va_list) __printflike(2, 0);
 int	 vprintf(const char * __restrict, va_list) __printflike(1, 0);
-
-__swift_unavailable("Use vsnprintf instead.")
-#if !defined(_POSIX_C_SOURCE)
-__deprecated_msg("This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use vsnprintf(3) instead.")
-#endif
-int	 vsprintf(char * __restrict, const char * __restrict, va_list) __printflike(2, 0);
+int	 vsprintf(char * __restrict, const char * __restrict, va_list) __printflike(2, 0) __swift_unavailable("Use vsnprintf instead.");
 __END_DECLS
 
 
@@ -234,17 +217,24 @@ __END_DECLS
 /* Additional functionality provided by:
  * POSIX.2-1992 C Language Binding Option
  */
+#if TARGET_OS_EMBEDDED
+#define __swift_unavailable_on(osx_msg, ios_msg) __swift_unavailable(ios_msg)
+#else
+#define __swift_unavailable_on(osx_msg, ios_msg) __swift_unavailable(osx_msg)
+#endif
 
 #if __DARWIN_C_LEVEL >= 199209L
 __BEGIN_DECLS
-int	 pclose(FILE *) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+int	 pclose(FILE *) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #if defined(_DARWIN_UNLIMITED_STREAMS) || defined(_DARWIN_C_SOURCE)
-FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_3_2, __DARWIN_EXTSN(popen)) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_3_2, __DARWIN_EXTSN(popen)) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #else /* !_DARWIN_UNLIMITED_STREAMS && !_DARWIN_C_SOURCE */
-FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_2_0, __DARWIN_ALIAS(popen)) __swift_unavailable("Use posix_spawn APIs or NSTask instead. (On iOS, process spawning is unavailable.)");
+FILE	*popen(const char *, const char *) __DARWIN_ALIAS_STARTING(__MAC_10_6, __IPHONE_2_0, __DARWIN_ALIAS(popen)) __swift_unavailable_on("Use posix_spawn APIs or NSTask instead.", "Process spawning is unavailable.");
 #endif /* (DARWIN_UNLIMITED_STREAMS || _DARWIN_C_SOURCE) */
 __END_DECLS
 #endif /* __DARWIN_C_LEVEL >= 199209L */
+
+#undef __swift_unavailable_on
 
 /* Additional functionality provided by:
  * POSIX.1c-1995,
@@ -380,11 +370,12 @@ extern __const char *__const sys_errlist[];
 int	 asprintf(char ** __restrict, const char * __restrict, ...) __printflike(2, 3);
 char	*ctermid_r(char *);
 char	*fgetln(FILE *, size_t *);
-__const char *fmtcheck(const char *, const char *) __attribute__((format_arg(2)));
+__const char *fmtcheck(const char *, const char *);
 int	 fpurge(FILE *);
 void	 setbuffer(FILE *, char *, int);
 int	 setlinebuf(FILE *);
 int	 vasprintf(char ** __restrict, const char * __restrict, va_list) __printflike(2, 0);
+FILE	*zopen(const char *, const char *, int);
 
 
 /*

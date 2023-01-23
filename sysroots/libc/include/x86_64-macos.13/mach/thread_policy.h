@@ -131,11 +131,7 @@ typedef struct thread_extended_policy   *thread_extended_policy_t;
  *
  * computation: This is the nominal amount of computation
  * time needed during a separate processing arrival, specified
- * in absolute time units.  The thread may be preempted after
- * the computation time has elapsed.
- * If (computation < constraint/2) it will be forced to
- * constraint/2 to avoid unintended preemption and associated
- * timer interrupts.
+ * in absolute time units.
  *
  * constraint: This is the maximum amount of real time that
  * may elapse from the start of a separate processing arrival
@@ -143,11 +139,11 @@ typedef struct thread_extended_policy   *thread_extended_policy_t;
  * specified in absolute time units.  Must be (>= computation).
  * Note that latency = (constraint - computation).
  *
- * preemptible: IGNORED (This indicates that the computation may be
- * interrupted, subject to the constraint specified above.)
+ * preemptible: This indicates that the computation may be
+ * interrupted, subject to the constraint specified above.
  */
 
-#define THREAD_TIME_CONSTRAINT_POLICY           2
+#define THREAD_TIME_CONSTRAINT_POLICY   2
 
 struct thread_time_constraint_policy {
 	uint32_t                period;
@@ -263,6 +259,8 @@ typedef struct thread_throughput_qos_policy     *thread_throughput_qos_policy_t;
 
 #define THREAD_THROUGHPUT_QOS_POLICY_COUNT      ((mach_msg_type_number_t) \
 	    (sizeof (thread_throughput_qos_policy_data_t) / sizeof (integer_t)))
+
+
 
 
 #endif  /* _MACH_THREAD_POLICY_H_ */

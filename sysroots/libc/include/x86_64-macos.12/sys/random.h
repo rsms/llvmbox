@@ -29,13 +29,12 @@
 #ifndef __SYS_RANDOM_H__
 #define __SYS_RANDOM_H__
 
-#include <Availability.h>
-#include <stddef.h>
 #include <sys/appleapiopts.h>
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-int getentropy(void* buffer, size_t size) __OSX_AVAILABLE(10.12) __IOS_AVAILABLE(10.0) __TVOS_AVAILABLE(10.0) __WATCHOS_AVAILABLE(3.0);
+    __OSX_AVAILABLE(10.12) __IOS_AVAILABLE(10.0) __TVOS_AVAILABLE(10.0) __WATCHOS_AVAILABLE(3.0)
+int getentropy(void* buffer, size_t size);
 __END_DECLS
 
 #endif /* __SYS_RANDOM_H__ */

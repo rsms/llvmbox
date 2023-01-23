@@ -117,14 +117,9 @@
 #define MAC_OS_X_VERSION_10_14_1    101401
 #define MAC_OS_X_VERSION_10_14_4    101404
 #define MAC_OS_X_VERSION_10_15      101500
-#define MAC_OS_VERSION_11_0         110000
-#define MAC_OS_VERSION_11_1         110100
-#define MAC_OS_VERSION_11_3         110300
-#define MAC_OS_VERSION_12_0         120000
-#define MAC_OS_VERSION_13_0         130000
-#define MAC_OS_VERSION_13_1         130100
+#define MAC_OS_X_VERSION_10_15_1    101501
 
-/* 
+/*
  * If min OS not specified, assume 10.4 for intel
  * Note: compiler driver may set _ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED_ based on MACOSX_DEPLOYMENT_TARGET environment variable
  */
@@ -149,10 +144,10 @@
  * if max OS not specified, assume larger of (10.15, min)
  */
 #ifndef MAC_OS_X_VERSION_MAX_ALLOWED
-    #if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_VERSION_13_1
+    #if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_15
         #define MAC_OS_X_VERSION_MAX_ALLOWED MAC_OS_X_VERSION_MIN_REQUIRED
     #else
-        #define MAC_OS_X_VERSION_MAX_ALLOWED MAC_OS_VERSION_13_1
+        #define MAC_OS_X_VERSION_MAX_ALLOWED MAC_OS_X_VERSION_10_15
     #endif
 #endif
 

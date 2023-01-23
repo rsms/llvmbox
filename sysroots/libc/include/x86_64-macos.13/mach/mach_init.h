@@ -64,8 +64,6 @@
 
 #include <sys/cdefs.h>
 
-#include <Availability.h>
-
 /*
  *	Kernel-related ports; how a task/thread controls itself
  */
@@ -73,8 +71,6 @@
 __BEGIN_DECLS
 extern mach_port_t mach_host_self(void);
 extern mach_port_t mach_thread_self(void);
-__API_AVAILABLE(macos(11.3), ios(14.5), tvos(14.5), watchos(7.3))
-extern boolean_t mach_task_is_self(task_name_t task);
 extern kern_return_t host_page_size(host_t, vm_size_t *);
 
 extern mach_port_t      mach_task_self_;
@@ -107,7 +103,7 @@ extern  mach_port_t     bootstrap_port;
  *	error messages, this can be overridden by a user
  *	application to point to a user-specified output function
  */
-extern int (*vprintf_stderr_func)(const char *format, va_list ap) __printflike(1, 0);
+extern int (*vprintf_stderr_func)(const char *format, va_list ap);
 
 __END_DECLS
 

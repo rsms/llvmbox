@@ -80,20 +80,6 @@ XPC_EXPORT
 const struct _xpc_dictionary_s _xpc_error_termination_imminent;
 
 /*!
- * @constant XPC_ERROR_PEER_CODE_SIGNING_REQUIREMENT
- * On macOS, this error will be delivered to a peer connection's event handler
- * when the XPC runtime has detected that a peer connection does not
- * satisfy the code signing requirement specified for the connection.
- *
- * See {@link xpc_connection_set_peer_code_signing_requirement}
- */
-#define XPC_ERROR_PEER_CODE_SIGNING_REQUIREMENT \
-	XPC_GLOBAL_OBJECT(_xpc_error_peer_code_signing_requirement)
-__API_AVAILABLE(macos(12.0))
-XPC_EXPORT
-const struct _xpc_dictionary_s _xpc_error_peer_code_signing_requirement;
-
-/*!
  * @constant XPC_CONNECTION_MACH_SERVICE_LISTENER
  * Passed to xpc_connection_create_mach_service(). This flag indicates that the
  * caller is the listener for the named service. This flag may only be passed
@@ -257,7 +243,7 @@ xpc_connection_create_from_endpoint(xpc_endpoint_t endpoint);
  *
  * Despite this seeming inconsistency, the XPC runtime guarantees that, when the
  * target queue is a serial queue, the event handler block will execute
- * synchronously with respect to other blocks submitted to that same queue. When
+ * synchonously with respect to other blocks submitted to that same queue. When
  * the target queue is a concurrent queue, the event handler block may run
  * concurrently with other blocks submitted to that queue, but it will never run
  * concurrently with other invocations of itself for the same connection, as
@@ -521,7 +507,7 @@ xpc_connection_send_barrier(xpc_connection_t connection,
  * @discussion
  * If the given GCD queue is a concurrent queue, XPC cannot guarantee that there
  * will not be multiple reply handlers being invoked concurrently. XPC does not
- * guarantee any ordering for the invocation of reply handlers. So if multiple
+ * guarantee any ordering for the invocation of reply handers. So if multiple
  * messages are waiting for replies and the connection goes invalid, there is no
  * guarantee that the reply handlers will be invoked in FIFO order. Similarly,
  * XPC does not guarantee that reply handlers will not run concurrently with
@@ -556,11 +542,10 @@ xpc_connection_send_message_with_reply(xpc_connection_t connection,
  * You are responsible for releasing the returned object.
  *
  * @discussion
- * This API supports priority inversion avoidance, and should be used instead of
- * combining xpc_connection_send_message_with_reply() with a semaphore.
- *
- * Invoking this API from a queue that is a part of the target queue hierarchy
- * results in deadlocks under certain conditions.
+ * This API is primarily for transitional purposes. Its implementation is
+ * conceptually equivalent to calling xpc_connection_send_message_with_reply()
+ * and then immediately blocking the calling thread on a semaphore and
+ * signaling the semaphore from the reply block.
  *
  * Be judicious about your use of this API. It can block indefinitely, so if you
  * are using it to implement an API that can be called from the main thread, you
@@ -755,40 +740,6 @@ XPC_EXPORT XPC_NONNULL1
 void
 xpc_connection_set_finalizer_f(xpc_connection_t connection,
 	xpc_finalizer_t _Nullable finalizer);
-
-/*!
- * @function xpc_connection_set_peer_code_signing_requirement
- * Requires that the connection peer satisfies a code signing requirement.
- *
- * @param connection
- * The connection object which is to be modified.
- *
- * @param requirement
- * The code signing requirement to be satisfied by the peer
- * It is safe to deallocate the requirement string after calling `xpc_connection_set_peer_code_signing_requirement`
- *
- * @result
- * 0 on success, non-zero on error
- *
- * @discussion
- * This function will return an error promptly if the code signing requirement string is invalid.
- *
- * It is a programming error to call `xpc_connection_set_peer_code_signing_requirement` more than once per connection.
- *
- * All messages received on this connection will be checked to ensure they come from a peer who satisfies
- * the code signing requirement. For a listener connection, requests that do not satisfy the requirement
- * are dropped. When a reply is expected on the connection and the peer does not satisfy the requirement
- * XPC_ERROR_PEER_CODE_SIGNING_REQUIREMENT will be delivered instead of the reply.
- *
- * This API is not supported on embedded platforms and will return ENOTSUP. 
- *
- * @see https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/RequirementLang/RequirementLang.html
- */
-__API_AVAILABLE(macos(12.0))
-XPC_EXPORT XPC_NONNULL_ALL XPC_WARN_RESULT
-int
-xpc_connection_set_peer_code_signing_requirement(xpc_connection_t connection, const char *requirement);
-
 
 __END_DECLS
 XPC_ASSUME_NONNULL_END

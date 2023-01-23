@@ -25,10 +25,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef __MIG_STRNCPY_ZEROFILL_FORWARD_TYPE_DECLS_CSTRING_ATTR
-#define __MIG_STRNCPY_ZEROFILL_FORWARD_TYPE_DECLS_CSTRING_COUNTEDBY_ATTR(C) __unsafe_indexable
-#endif
-	extern int mig_strncpy_zerofill(char * dest, const char * src, int len) __attribute__((weak_import));
+	extern int mig_strncpy_zerofill(char *dest, const char *src, int len) __attribute__((weak_import));
 #ifdef __cplusplus
 }
 #endif
@@ -44,7 +41,7 @@ extern "C" {
 #define FUNCTION_PTR_T
 typedef void (*function_ptr_t)(mach_port_t, char *, mach_msg_type_number_t);
 typedef struct {
-        char            * name;
+        char            *name;
         function_ptr_t  function;
 } function_table_entry;
 typedef function_table_entry   *function_table_t;
@@ -55,7 +52,6 @@ typedef function_table_entry   *function_table_t;
 #define	clock_MSG_COUNT	3
 #endif	/* clock_MSG_COUNT */
 
-#include <Availability.h>
 #include <mach/std_types.h>
 #include <mach/mig.h>
 #include <mach/mig.h>

@@ -34,7 +34,6 @@
 #endif
 
 DISPATCH_ASSUME_NONNULL_BEGIN
-DISPATCH_ASSUME_ABI_SINGLE_BEGIN
 
 #ifdef NSEC_PER_SEC
 #undef NSEC_PER_SEC
@@ -132,7 +131,6 @@ dispatch_walltime(const struct timespec *_Nullable when, int64_t delta);
 
 __END_DECLS
 
-DISPATCH_ASSUME_ABI_SINGLE_END
 DISPATCH_ASSUME_NONNULL_END
 
 #endif

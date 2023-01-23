@@ -25,10 +25,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef __MIG_STRNCPY_ZEROFILL_FORWARD_TYPE_DECLS_CSTRING_ATTR
-#define __MIG_STRNCPY_ZEROFILL_FORWARD_TYPE_DECLS_CSTRING_COUNTEDBY_ATTR(C) __unsafe_indexable
-#endif
-	extern int mig_strncpy_zerofill(char * dest, const char * src, int len) __attribute__((weak_import));
+	extern int mig_strncpy_zerofill(char *dest, const char *src, int len) __attribute__((weak_import));
 #ifdef __cplusplus
 }
 #endif
@@ -44,7 +41,7 @@ extern "C" {
 #define FUNCTION_PTR_T
 typedef void (*function_ptr_t)(mach_port_t, char *, mach_msg_type_number_t);
 typedef struct {
-        char            * name;
+        char            *name;
         function_ptr_t  function;
 } function_table_entry;
 typedef function_table_entry   *function_table_t;
@@ -52,10 +49,9 @@ typedef function_table_entry   *function_table_t;
 #endif /* AUTOTEST */
 
 #ifndef	processor_set_MSG_COUNT
-#define	processor_set_MSG_COUNT	11
+#define	processor_set_MSG_COUNT	10
 #endif	/* processor_set_MSG_COUNT */
 
-#include <Availability.h>
 #include <mach/std_types.h>
 #include <mach/mig.h>
 #include <mach/mig.h>
@@ -204,20 +200,6 @@ kern_return_t processor_set_info
 	mach_msg_type_number_t *info_outCnt
 );
 
-/* Routine processor_set_tasks_with_flavor */
-#ifdef	mig_external
-mig_external
-#else
-extern
-#endif	/* mig_external */
-kern_return_t processor_set_tasks_with_flavor
-(
-	processor_set_t processor_set,
-	mach_task_flavor_t flavor,
-	task_array_t *task_list,
-	mach_msg_type_number_t *task_listCnt
-);
-
 __END_DECLS
 
 /********************** Caution **************************/
@@ -354,18 +336,6 @@ __END_DECLS
 #ifdef  __MigPackStructs
 #pragma pack(pop)
 #endif
-
-#ifdef  __MigPackStructs
-#pragma pack(push, 4)
-#endif
-	typedef struct {
-		mach_msg_header_t Head;
-		NDR_record_t NDR;
-		mach_task_flavor_t flavor;
-	} __Request__processor_set_tasks_with_flavor_t __attribute__((unused));
-#ifdef  __MigPackStructs
-#pragma pack(pop)
-#endif
 #endif /* !__Request__processor_set_subsystem__defined */
 
 /* union of all requests */
@@ -383,7 +353,6 @@ union __RequestUnion__processor_set_subsystem {
 	__Request__processor_set_policy_control_t Request_processor_set_policy_control;
 	__Request__processor_set_stack_usage_t Request_processor_set_stack_usage;
 	__Request__processor_set_info_t Request_processor_set_info;
-	__Request__processor_set_tasks_with_flavor_t Request_processor_set_tasks_with_flavor;
 };
 #endif /* !__RequestUnion__processor_set_subsystem__defined */
 /* typedefs for all replies */
@@ -530,22 +499,6 @@ union __RequestUnion__processor_set_subsystem {
 #ifdef  __MigPackStructs
 #pragma pack(pop)
 #endif
-
-#ifdef  __MigPackStructs
-#pragma pack(push, 4)
-#endif
-	typedef struct {
-		mach_msg_header_t Head;
-		/* start of the kernel processed data */
-		mach_msg_body_t msgh_body;
-		mach_msg_ool_ports_descriptor_t task_list;
-		/* end of the kernel processed data */
-		NDR_record_t NDR;
-		mach_msg_type_number_t task_listCnt;
-	} __Reply__processor_set_tasks_with_flavor_t __attribute__((unused));
-#ifdef  __MigPackStructs
-#pragma pack(pop)
-#endif
 #endif /* !__Reply__processor_set_subsystem__defined */
 
 /* union of all replies */
@@ -563,7 +516,6 @@ union __ReplyUnion__processor_set_subsystem {
 	__Reply__processor_set_policy_control_t Reply_processor_set_policy_control;
 	__Reply__processor_set_stack_usage_t Reply_processor_set_stack_usage;
 	__Reply__processor_set_info_t Reply_processor_set_info;
-	__Reply__processor_set_tasks_with_flavor_t Reply_processor_set_tasks_with_flavor;
 };
 #endif /* !__RequestUnion__processor_set_subsystem__defined */
 
@@ -578,8 +530,7 @@ union __ReplyUnion__processor_set_subsystem {
     { "processor_set_threads", 4006 },\
     { "processor_set_policy_control", 4007 },\
     { "processor_set_stack_usage", 4008 },\
-    { "processor_set_info", 4009 },\
-    { "processor_set_tasks_with_flavor", 4010 }
+    { "processor_set_info", 4009 }
 #endif
 
 #ifdef __AfterMigUserHeader
