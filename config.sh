@@ -225,21 +225,21 @@ STAGE2_CFLAGS=(
 )
 STAGE2_LDFLAGS=(
   --target=$TARGET_TRIPLE \
+  --sysroot="$LLVMBOX_SYSROOT" \
   --rtlib=compiler-rt \
+  -L"$LLVMBOX_SYSROOT/lib" \
 )
 case "$TARGET_SYS" in
   macos)
     STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
     STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
-    STAGE2_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" )
+    # STAGE2_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" )
     # STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION \
     #   -isystem "$HOST_MACOS_SDK/usr/include" )
     # STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION )
     # STAGE2_CFLAGS+=( -I"$LLVMBOX_SYSROOT/include" )
     # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )
     ;;
-  *)
-    STAGE2_LDFLAGS+=( --sysroot="$LLVMBOX_SYSROOT" )
 esac
 
 # ————————————————————————————————————————————————————————————————————————————————————
