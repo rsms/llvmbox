@@ -184,7 +184,9 @@ SOFTWARE.
 #include <os/lock.h>
 #include <simd/simd.h>
 #include <xpc/xpc.h>
-#include <CommonCrypto/CommonDigest.h>
+#include <CommonCrypto/CommonCrypto.h>
+#include <CommonCrypto/CommonCryptoError.h> // openssl
+#include <CommonCrypto/CommonDigest.h> // openssl
 
 #include <objc/message.h>
 #include <objc/NSObject.h>
