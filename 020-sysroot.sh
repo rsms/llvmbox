@@ -7,7 +7,7 @@ source "$(dirname "$0")/config.sh"
 #
 
 echo "mkdir $(_relpath "$LLVMBOX_SYSROOT")/{lib,include}"
-[ "$1" = "-incr" ] || rm -rf "$LLVMBOX_SYSROOT"
+[ "${1:-}" = "-incr" ] || rm -rf "$LLVMBOX_SYSROOT"
 mkdir -p "$LLVMBOX_SYSROOT"/{lib,include}
 
 _pushd "$SYSROOTS_DIR"
