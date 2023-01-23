@@ -87,12 +87,11 @@ case "$TARGET_SYS" in
   *) _err "unsupported TARGET system '$TARGET_SYS' in '$TARGET'"
 esac
 # set TARGET_SYS_MINVERSION (oldest OS ABI we support)
-# for macos, we mirror what Go does. I.e.
+# for macos, we mirror what Go does for x86_64. I.e.
 #   llvm-objdump -p go1.19.5-amd64 | grep -A3 LC_VERSION_MIN_MACOSX  # 10.13
-#   llvm-objdump -p go1.19.5-arm64 | grep -A5 LC_BUILD_VERSION       # 12.0
 case "$TARGET_ARCH-$TARGET_SYS" in
   x86_64-macos)  TARGET_SYS_MINVERSION=10.13 ;;
-  aarch64-macos) TARGET_SYS_MINVERSION=12.0 ;;
+  aarch64-macos) TARGET_SYS_MINVERSION=11.0 ;;
   *)             TARGET_SYS_MINVERSION=1.0 ;;
 esac
 # check so that TARGET_SYS_VERSION >= TARGET_SYS_MINVERSION
