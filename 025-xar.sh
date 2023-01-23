@@ -52,11 +52,11 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   --with-xml2-config=$LLVMBOX_SYSROOT/bin/xml2-config \
   --without-bzip2
 
-make -j$(nproc)
+make -j$NCPU
 
 rm -rf "$LLVMBOX_SYSROOT"
 mkdir -p "$LLVMBOX_SYSROOT"
-make DESTDIR="$LLVMBOX_SYSROOT" install
+make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
 # rm -rf "$LLVMBOX_SYSROOT/bin" "$LLVMBOX_SYSROOT/share"
 
 _popd

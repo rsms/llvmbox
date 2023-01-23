@@ -14,11 +14,11 @@ CFLAGS="${STAGE2_CFLAGS[@]} -Wno-deprecated-non-prototype" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   ./configure --static --prefix=
 
-make -j$(nproc)
+make -j$NCPU
 echo "——————————————————— check ———————————————————"
-make -j$(nproc) check
+make -j$NCPU check
 echo "——————————————————— install ———————————————————"
-make DESTDIR="$LLVMBOX_SYSROOT" -j$(nproc) install
+make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
 
 _popd
 rm -rf "$ZLIB_SRC"

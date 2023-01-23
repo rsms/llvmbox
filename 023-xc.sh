@@ -11,6 +11,8 @@ _pushd "$XC_SRC"
 CC=$STAGE2_CC \
 LD=$STAGE2_LD \
 AR=$STAGE2_AR \
+CFLAGS="${STAGE2_CFLAGS[@]}" \
+LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./configure \
   --prefix= \
   --enable-static \
@@ -28,9 +30,9 @@ AR=$STAGE2_AR \
   --disable-scripts \
   --disable-doc
 
-make -j$(nproc)
-LD_LIBRARY_PATH="$PWD/src/liblzma/.libs" make -j$(nproc) check
-make DESTDIR="$LLVMBOX_SYSROOT" -j$(nproc) install
+make -j$NCPU
+LD_LIBRARY_PATH="$PWD/src/liblzma/.libs" make -j$NCPU check
+make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
 
 _popd
 rm -rf "$XC_SRC"

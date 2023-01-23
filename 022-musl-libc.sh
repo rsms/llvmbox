@@ -28,7 +28,7 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 LIBCC=-lclang_rt.builtins \
 ./configure --target=$TARGET_TRIPLE --disable-shared --prefix=
 
-make -j$(nproc)
+make -j$NCPU
 
 mkdir -p "$LLVMBOX_SYSROOT"
 DESTDIR=$LLVMBOX_SYSROOT make install
