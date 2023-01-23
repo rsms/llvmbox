@@ -14,9 +14,9 @@ rm -f test/icu_parse_test.xml  # we don't build libxml2 with icu
 
 # note: need to use --prefix instead of DESTDIR during install
 # for xml2-config to function properly
-CC=$HOST_STAGE2_CC \
-LD=$HOST_STAGE2_LD \
-AR=$HOST_STAGE2_AR \
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
 ./configure \
   --prefix= \
   --enable-static \

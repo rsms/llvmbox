@@ -8,9 +8,9 @@ _fetch_source_tar https://tukaani.org/xz/xz-$XC_VERSION.tar.xz "$XC_SHA256" "$XC
 
 _pushd "$XC_SRC"
 
-CC=$HOST_STAGE2_CC \
-LD=$HOST_STAGE2_LD \
-AR=$HOST_STAGE2_AR \
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
 ./configure \
   --prefix= \
   --enable-static \
