@@ -49,6 +49,7 @@ TARGET=${LLVMBOX_TARGET:-}  # e.g. aarch64-linux, x86_64-macos, x86_64-macos.11.
 TARGET_ARCH=                # e.g. x86_64, aarch64
 TARGET_SYS=                 # e.g. linux, macos, macos.11.7
 TARGET_SYS_VERSION=         # e.g. 11.7 (from macos.11.7) -- OS ABI (M.m[.p])
+TARGET_SYS_VERSION_MAJOR=   # e.g. 11
 TARGET_SYS_MINVERSION=      # compatibility version of OS ABI
 TARGET_SYS=                 # e.g. macos (from macos.11.7)
 TARGET_TRIPLE=              # e.g. x86_64-linux-musl (for clang/llvm)
