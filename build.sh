@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e ; source "$(dirname "$0")/config.sh"
+set -eo pipefail
+source "$(dirname "$0")/config.sh"
 
 DRYRUN=false
 VERBOSE=false
@@ -47,42 +48,40 @@ done
 if $DRYRUN; then
   echo "# --dryrun is set; just printing what to do, not running any scripts"
 else
-  if $VERBOSE; then
-    echo "stdout saved to $(_relpath "$LLVMBOX_BUILD_DIR")/log/SCRIPTNAME.out.log"
-    echo "stderr saved to $(_relpath "$LLVMBOX_BUILD_DIR")/log/SCRIPTNAME.err.log"
-  else
-    echo "stdout redirected to $(_relpath "$LLVMBOX_BUILD_DIR")/log/SCRIPTNAME.out.log"
-    echo "stderr redirected to $(_relpath "$LLVMBOX_BUILD_DIR")/log/SCRIPTNAME.err.log"
-  fi
   mkdir -p "$LLVMBOX_BUILD_DIR/log"
 fi
 
+INTERRUPTED=
+trap "INTERRUPTED=1" SIGINT
+
 # run each prefix in order, all scripts per prefix concurrently
 for prefix in "${prefixes[@]}"; do
-  $DRYRUN || $VERBOSE || printf "bash "
   for script in $(echo $prefix*.sh | sort); do
     outlog=$LLVMBOX_BUILD_DIR/log/$(basename $script .sh).out.log
     errlog=$LLVMBOX_BUILD_DIR/log/$(basename $script .sh).err.log
     if $DRYRUN; then
-      x=( $(echo $prefix*.sh | sort) )
-      if [ ${#x[@]} -eq 1 ]; then
-        echo "run '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")'"
-      else
-        echo "run '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")' &"
-      fi
-    elif $VERBOSE; then
-      echo "run $script"
-      (bash "$script" | tee "$outlog") 3>&1 1>&2 2>&3 | tee "$errlog"
+      echo "bash '$script' > '$(_relpath "$outlog")' 2> '$(_relpath "$errlog")'"
     else
-      printf "$script "
-      bash "$script" > "$outlog" 2> "$errlog" &
+      printf "bash %-25s > %s\n" \
+        "$script" \
+        "$(_relpath "$LLVMBOX_BUILD_DIR/log/$(basename "$script" .sh)").{out,err}.log"
+      err=
+      if $VERBOSE; then
+        (bash "$script" | tee "$outlog") 3>&1 1>&2 2>&3 | tee "$errlog" || err=1
+      else
+        bash "$script" > "$outlog" 2> "$errlog" || err=1
+      fi
+      if [ -n "$err" -a -z "$INTERRUPTED" ]; then
+        echo "$script failed:" >&2
+        echo "—————————————————————— first 10 lines of stderr ——————————————————————" >&2
+        head -n10 "$errlog" >&2
+        echo "——————————————————————————————————————————————————————————————————————" >&2
+        echo "Full output in log files:" >&2
+        echo "  $outlog" >&2
+        echo "  $errlog" >&2
+      fi
+      [ -z "$err" ] || exit 1
     fi
   done
-  if $DRYRUN; then
-    [ ${#x[@]} -eq 1 ] || echo wait
-  elif ! $VERBOSE; then
-    echo "..."
-    wait
-  fi
 done
 
