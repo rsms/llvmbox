@@ -297,6 +297,7 @@ _sha_verify() { # <file> [<sha256> | <sha512>]
 _download_nocache() { # <url> <outfile> [<sha256> | <sha512>]
   local url=$1 ; local outfile=$2 ; local checksum=${3:-}
   rm -f "$outfile"
+  mkdir -p "$(dirname "$outfile")"
   echo "${outfile##$PWD0/}: fetch $url"
   command -v wget >/dev/null &&
     wget -q --show-progress -O "$outfile" "$url" ||
