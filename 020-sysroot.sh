@@ -22,8 +22,8 @@ for key in \
   $TARGET_ARCH-$TARGET_SYS.$TARGET_SYS_VERSION_MAJOR \
   $TARGET_ARCH-$TARGET_SYS.$TARGET_SYS_VERSION \
 ;do
-  include_dir=libc/include/$key
-  lib_dir=libc/lib/$key
+  include_dir=include/$key
+  lib_dir=lib/$key
   if [ -d "$include_dir" ]; then
     echo "rsync $include_dir/ -> $(_relpath "$LLVMBOX_SYSROOT")/include/"
     rsync -a "$include_dir/" "$LLVMBOX_SYSROOT/include/"

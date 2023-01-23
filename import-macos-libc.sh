@@ -20,6 +20,8 @@ SDKS=()
 SDK_VERSIONS=()
 IFS=. read -r MIN_VER_MAJ MIN_VER_MIN <<< "$TARGET_SYS_MINVERSION"
 
+[ "$HOST_SYS" = Darwin ] || _err "must run this script on macOS"
+
 _pbzx() {
   if [ ! -x "$PBZX" ]; then
     echo clang -llzma -lxar -I /usr/local/include pbzx.c -o "$PBZX"
@@ -97,7 +99,7 @@ _import_headers() { # <sdk-dir> <sysversion>
   local sdkdir=$1
   local sysver=$2
   local sysroot_name="$HOST_ARCH-macos.$sysver"
-  local dst_incdir="$SYSROOTS_DIR/libc/include/$sysroot_name"
+  local dst_incdir="$SYSROOTS_DIR/include/$sysroot_name"
   rm -rf "$dst_incdir"
   mkdir -p "$dst_incdir"
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
@@ -128,7 +130,7 @@ _import_libs() { # <sdk-dir> <sysversion>
 
   # import libs for any arch
   sysroot_name="any-macos.$sysver"
-  dst_libdir="$SYSROOTS_DIR/libc/lib/$sysroot_name"
+  dst_libdir="$SYSROOTS_DIR/lib/$sysroot_name"
   rm -rf "$dst_libdir"
   for name in "${libs_anyarch[@]}"; do
     srcdir="$sdkdir/usr/lib"
