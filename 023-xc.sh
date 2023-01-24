@@ -15,6 +15,7 @@ CFLAGS="${STAGE2_CFLAGS[@]}" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./configure \
   --prefix= \
+  --with-sysroot="$LLVMBOX_SYSROOT" \
   --enable-static \
   --disable-shared \
   --disable-rpath \
@@ -32,7 +33,14 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 
 make -j$NCPU
 LD_LIBRARY_PATH="$PWD/src/liblzma/.libs" make -j$NCPU check
-make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
+
+# make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
+rm -rf "$XC_STAGE2"
+mkdir -p "$XC_STAGE2"/{lib,include}
+make DESTDIR="$XC_STAGE2" -j$NCPU install
+
+# remove libtool file which is just going to confuse libxml2
+rm -fv "$XC_STAGE2"/lib/*.la
 
 _popd
 rm -rf "$XC_SRC"

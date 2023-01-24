@@ -26,33 +26,40 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   --disable-dependency-tracking \
   --without-catalog \
   --without-debug \
-  --without-docbook \
   --without-ftp \
   --without-http \
   --without-html \
-  --without-html-dir \
-  --without-html-subdir \
   --without-iconv \
   --without-history \
   --without-legacy \
   --without-python \
   --without-readline \
   --without-modules \
-  --with-lzma="$LLVMBOX_SYSROOT" \
-  --with-zlib="$LLVMBOX_SYSROOT"
+  --with-lzma="$XC_STAGE2" \
+  --with-zlib="$ZLIB_STAGE2"
 
 make -j$NCPU
-make DESTDIR="$LLVMBOX_SYSROOT" install # don't use -j here
+
+# install
+rm -rf "$LIBXML2_STAGE2"
+mkdir -p "$LIBXML2_STAGE2"
+make DESTDIR="$LIBXML2_STAGE2" install # don't use -j here
 
 # rewrite bin/xml2-config to be relative to its install location
-cp "$LLVMBOX_SYSROOT/bin/xml2-config" xml2-config
+cp "$LIBXML2_STAGE2/bin/xml2-config" xml2-config
 sed -E -e \
   's/^prefix=.*/prefix="`cd "$(dirname "$0")\/.."; pwd`"/' \
-  xml2-config > "$LLVMBOX_SYSROOT/bin/xml2-config"
+  xml2-config > "$LIBXML2_STAGE2/bin/xml2-config"
 
 # remove unwanted programs
 # (can't figure out how to disable building and/or installing these)
-rm -f "$LLVMBOX_SYSROOT/bin/xmlcatalog" "$LLVMBOX_SYSROOT/bin/xmllint"
+rm -f "$LIBXML2_STAGE2/bin/xmlcatalog" "$LIBXML2_STAGE2/bin/xmllint"
+
+# remove libtool file
+rm -f "$LIBXML2_STAGE2/lib/libxml2.la"
+
+# # remove cmake and pkgconfig dirs
+# rm -rf "$LIBXML2_STAGE2/lib/cmake" "$LIBXML2_STAGE2/lib/pkgconfig"
 
 _popd
 rm -rf "$LIBXML2_SRC"
