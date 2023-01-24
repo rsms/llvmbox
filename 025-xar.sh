@@ -40,14 +40,11 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   --with-xml2-config=$LLVMBOX_SYSROOT/bin/xml2-config \
   --without-bzip2
 
-make -j$NCPU
-
-mkdir -p out
-make DESTDIR=out -j$NCPU install
+make -j$NCPU lib_static
 
 mkdir -p "$LLVMBOX_SYSROOT/include/xar"
-install -vm 0644 out/include/xar/xar.h "$LLVMBOX_SYSROOT/include/xar/xar.h"
-install -vm 0644 out/lib/libxar.a "$LLVMBOX_SYSROOT/lib/libxar.a"
+install -vm 0644 include/xar.h "$LLVMBOX_SYSROOT/include/xar/xar.h"
+install -vm 0644 lib/libxar.a "$LLVMBOX_SYSROOT/lib/libxar.a"
 
 _popd
 rm -rf "$XAR_SRC"
