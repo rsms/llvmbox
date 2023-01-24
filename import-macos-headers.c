@@ -173,6 +173,16 @@ SOFTWARE.
 #include <crt_externs.h>
 #include <execinfo.h>
 
+// Depended on by LLVM compiler-rt
+#include <asl.h> // sanitizer
+#include <sys/timeb.h> // sanitizer
+#include <os/log.h> // sanitizer
+#include <fstab.h> // sanitizer
+#include <pthread/introspection.h> // sanitizer
+#include <net/ethernet.h> // sanitizer
+#include <util.h> // sanitizer
+#include <TargetConditionals.h> // builtins
+
 // Depended on by several frameworks
 #include <AssertMacros.h>
 #include <device/device_types.h>

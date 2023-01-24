@@ -24,8 +24,8 @@ IFS=. read -r MIN_VER_MAJ MIN_VER_MIN <<< "$TARGET_SYS_MINVERSION"
 
 _pbzx() {
   if [ ! -x "$PBZX" ]; then
-    echo clang -llzma -lxar -I /usr/local/include pbzx.c -o "$PBZX"
-         clang -llzma -lxar -I /usr/local/include pbzx.c -o "$PBZX"
+    echo clang -llzma -lxar -I /usr/local/include "$PROJECT/pbzx.c" -o "$PBZX"
+         clang -llzma -lxar -I /usr/local/include "$PROJECT/pbzx.c" -o "$PBZX"
   fi
   "$PBZX" "$@"
 }
@@ -106,12 +106,12 @@ _import_headers() { # <sdk-dir> <sysversion>
 
   echo "  finding headers"
   "$STAGE1_CC" --sysroot="$sdkdir" \
-    -o "$tmpfile" "$PROJECT/headers-macos.c" -MD -MV -MF "$tmpfile.d"
+    -o "$tmpfile" "$PROJECT/import-macos-headers.c" -MD -MV -MF "$tmpfile.d"
 
   echo "  copying headers -> $(_relpath "$dst_incdir")/"
   while read -r line; do
     [[ "$line" != *":"* ]] || continue        # ignore first line
-    [[ "$line" != *"/headers-macos.c"* ]] || continue
+    [[ "$line" != *"/import-macos-headers.c"* ]] || continue
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
     path=${line/ \\/}                         # "foo \" => "foo"
     name="${path/*\/usr\/include\//}"         # /a/b/usr/include/foo/bar.h => foo/bar.h
@@ -143,6 +143,10 @@ _import_libs() { # <sdk-dir> <sysversion>
 
     # match symlinks
     for ent in "$srcdir/"*; do
+      [[ "$ent" != *".1.tbd" ]] || continue
+      [[ "$ent" != *".A.tbd" ]] || continue
+      [[ "$ent" != *".B.tbd" ]] || continue
+      [[ "$ent" != *".C.tbd" ]] || continue
       [ -L "$ent" ] || continue
       dst="$(readlink "$ent")"
       [ "$dst" = "$name" ] || continue
@@ -183,7 +187,7 @@ for d in "/Volumes/Command Line Developer Tools"*; do
     ID=$(sha1sum <<< "$d" | cut -d' ' -f1)
   fi
   SUBDIR="$CLT_TMP_DIR/$ID"
-  if [ -d "$SUBDIR" ]; then
+  if [ -f "$SUBDIR/processed.mark" ]; then
     # echo "skipping already-processed $(_relpath "$SUBDIR")"
     continue
   fi
@@ -214,6 +218,7 @@ for d in "/Volumes/Command Line Developer Tools"*; do
   printf "  ..." ; wait ; echo
   rm -rf Payload Bom PackageInfo Distribution Resources *.pkg
   _popd
+  touch "$SUBDIR/processed.mark"
 done
 
 # add SDKs from extracted "Command Line Developer Tools" installers
