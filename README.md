@@ -74,8 +74,9 @@ Host requirements:
 
 Tested host systems:
 
-- Ubuntu 20 x86_64
-- macOS 10.15 x86_64
+- Ubuntu 20 x86_64 (up to and including 025-xar.sh)
+- macOS 10.15 x86_64 (up to and including 025-xar.sh)
+- macOS 12 aarch64 (up to and including 025-xar.sh)
 
 
 If you have a lot of RAM, it is usually much faster to build in a ramfs:

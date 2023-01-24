@@ -15,7 +15,7 @@ CFLAGS="$STAGE1_CFLAGS -fPIC" \
 LDFLAGS="$STAGE1_LDFLAGS" \
   ./configure --static --prefix=
 
-make -j$(nproc)
+make -j$NCPU
 make check
 
 rm -rf "$ZLIB_STAGE1"

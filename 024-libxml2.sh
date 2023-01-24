@@ -14,9 +14,11 @@ rm -f test/icu_parse_test.xml  # we don't build libxml2 with icu
 
 # note: need to use --prefix instead of DESTDIR during install
 # for xml2-config to function properly
-CC=$HOST_STAGE2_CC \
-LD=$HOST_STAGE2_LD \
-AR=$HOST_STAGE2_AR \
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
+CFLAGS="${STAGE2_CFLAGS[@]}" \
+LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./configure \
   --prefix= \
   --enable-static \
@@ -37,10 +39,10 @@ AR=$HOST_STAGE2_AR \
   --without-readline \
   --without-modules \
   --with-lzma="$LLVMBOX_SYSROOT" \
-  --with-zlib="$LLVMBOX_SYSROOT" \
+  --with-zlib="$LLVMBOX_SYSROOT"
 
-make -j$(nproc)
-make DESTDIR="$LLVMBOX_SYSROOT" -j$(nproc) install
+make -j$NCPU
+make DESTDIR="$LLVMBOX_SYSROOT" install # don't use -j here
 
 # rewrite bin/xml2-config to be relative to its install location
 cp "$LLVMBOX_SYSROOT/bin/xml2-config" xml2-config

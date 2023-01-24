@@ -27,14 +27,13 @@ if(NOT LLVMBOX_BUILD_DIR)
   # message("LLVMBOX_BUILD_DIR=${LLVMBOX_BUILD_DIR}")
 endif()
 
+if(NOT LLVM_STAGE1)
+  set(LLVM_STAGE1 $ENV{LLVM_STAGE1})
+  get_filename_component(LLVM_STAGE1 "${LLVM_STAGE1}" ABSOLUTE)
+endif()
+
 if(NOT CLANG_PREFIX)
-  set(CLANG_PREFIX $ENV{LLVM_HOST})
-  # if(NOT CLANG_PREFIX)
-  #   set(CLANG_PREFIX "${LLVMBOX_BUILD_DIR}/llvm-host/bin")
-  # else()
-  get_filename_component(CLANG_PREFIX "${CLANG_PREFIX}/bin" ABSOLUTE)
-  # endif()
-  # message("CLANG_PREFIX=${CLANG_PREFIX}")
+  get_filename_component(CLANG_PREFIX "${LLVM_STAGE1}/bin" ABSOLUTE)
 endif()
 
 if(NOT CLANG_TARGET)
@@ -46,15 +45,29 @@ if(NOT CLANG_TARGET)
   endif()
 endif()
 
-# if(NOT CMAKE_SYSROOT)
-#   get_filename_component(CMAKE_SYSROOT "$ENV{LLVMBOX_SYSROOT}" ABSOLUTE)
-#   # # NOTE: Match compiler target to our prebuilt sysroot/linux/usr/lib/<target>/ directories.
-#   # if("${CLANG_TARGET}" MATCHES "(x86_64|aarch64|arm|i386)-(.*-)?linux(-gnu|-gnueabihf)?")
-#   #   set(CMAKE_SYSROOT "${LLVMBOX_SOURCE_DIR}/prebuilt/third_party/sysroot/linux")
-#   # else()
-#   #   message(FATAL_ERROR "No sysroot available for ${CLANG_TARGET}")
-#   # endif()
-# endif()
+if(NOT CMAKE_SYSROOT)
+  get_filename_component(CMAKE_SYSROOT "$ENV{LLVMBOX_SYSROOT}" ABSOLUTE)
+  # # NOTE: Match compiler target to our prebuilt sysroot/linux/usr/lib/<target>/ directories.
+  # if("${CLANG_TARGET}" MATCHES "(x86_64|aarch64|arm|i386)-(.*-)?linux(-gnu|-gnueabihf)?")
+  #   set(CMAKE_SYSROOT "${LLVMBOX_SOURCE_DIR}/prebuilt/third_party/sysroot/linux")
+  # else()
+  #   message(FATAL_ERROR "No sysroot available for ${CLANG_TARGET}")
+  # endif()
+endif()
+
+set(EXTRA_LDFLAGS     "-L${CMAKE_SYSROOT}/lib --rtlib=compiler-rt")
+set(EXTRA_LDFLAGS_CXX "-nostdlib++ -L${LLVM_STAGE1}/lib")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LDFLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${EXTRA_LDFLAGS}")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${EXTRA_LDFLAGS}")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EXTRA_LDFLAGS_CXX}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${EXTRA_LDFLAGS_CXX}")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${EXTRA_LDFLAGS_CXX}")
+
+set(CMAKE_OSX_DEPLOYMENT_TARGET $ENV{LLVMBOX_TARGET_SYS_VERSION})
+set(CMAKE_OSX_SYSROOT ${CMAKE_SYSROOT})
 
 if(NOT CMAKE_SYSTEM_NAME)
   if("${CLANG_TARGET}" MATCHES ".*-linux(-gnu)?")
@@ -126,7 +139,7 @@ endif()
 #   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 # endif()
 
-# set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
+set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)

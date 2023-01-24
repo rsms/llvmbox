@@ -18,45 +18,101 @@ PROJECT=${LLVMBOX_PROJECT:-$(realpath "$(dirname "$0")")}
 BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
 DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
 OUT_DIR=$(realpath "${LLVMBOX_OUT_DIR:-$PROJECT/out}")
-NCPU=${LLVMBOX_NCPU:-$(nproc)}
-mkdir -p "$DOWNLOAD_DIR" "$BUILD_DIR"
-# ————————————————————————————————————————————————————————————————————————————————————
-
+NCPU=${LLVMBOX_NCPU:-$(nproc)}; [ -n "$NCPU" ] || NCPU=$(nproc)
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
-HOST_TARGET=${HOST_TARGET:-}
-[ -n "$HOST_TARGET" ] || case "$HOST_SYS" in
-  Linux)  HOST_TARGET=$HOST_ARCH-linux-gnu ;;
-  Darwin) HOST_TARGET=$HOST_ARCH-apple-darwin ;;
-  *)      HOST_TARGET=$HOST_ARCH-$HOST_SYS ;;
-esac
 
-TARGET=${LLVMBOX_TARGET:-}  # e.g. x86_64-macos-none, aarch64-linux-musl
+# apple still uses the legacy name "arm64" (renamed to aarch64 in llvm, may 2014)
+[ "$HOST_ARCH" != "arm64" ] || HOST_ARCH=aarch64
+
+# ————————————————————————————————————————————————————————————————————————————————————
+
+_version_gte() { # <v> <minv>
+  local v1 v2 v3 min_v1 min_v2 min_v3
+  IFS=. read -r v1 v2 v3 <<< "$1"
+  IFS=. read -r min_v1 min_v2 min_v3 <<< "$2"
+  [ -n "$min_v2" ] || min_v2=0
+  [ -n "$min_v3" ] || min_v3=0
+  [ -n "$v2" ] || v2=$min_v2
+  [ -n "$v3" ] || v3=$min_v3
+  # echo "v   $v1 $v2 $v3"
+  # echo "min $min_v1 $min_v2 $min_v3"
+  if [ "$v1" -lt "$min_v1" ]; then return 1; fi
+  if [ "$v1" -gt "$min_v1" ]; then return 0; fi
+  if [ "$v2" -lt "$min_v2" ]; then return 1; fi
+  if [ "$v2" -gt "$min_v2" ]; then return 0; fi
+  if [ "$v3" -lt "$min_v3" ]; then return 1; fi
+  if [ "$v3" -gt "$min_v3" ]; then return 0; fi
+}
+
+TARGET=${LLVMBOX_TARGET:-}  # e.g. aarch64-linux, x86_64-macos, x86_64-macos.11.7
+TARGET_ARCH=                # e.g. x86_64, aarch64
+TARGET_SYS=                 # e.g. linux, macos, macos.11.7
+TARGET_SYS_VERSION=         # e.g. 11.7 (from macos.11.7) -- OS ABI (M.m[.p])
+TARGET_SYS_VERSION_MAJOR=   # e.g. 11
+TARGET_SYS_MINVERSION=      # compatibility version of OS ABI
+TARGET_SYS=                 # e.g. macos (from macos.11.7)
+TARGET_TRIPLE=              # e.g. x86_64-linux-gnu (for clang/llvm)
+TARGET_CMAKE_SYSTEM_NAME=   # e.g. Linux
 if [ -z "$TARGET" ]; then
   case "$HOST_SYS" in
-    Darwin) TARGET=$HOST_ARCH-macos-none ;;
-    Linux)  TARGET=$HOST_ARCH-linux-musl ;;
+    Darwin) TARGET=$HOST_ARCH-macos ;;
+    Linux)  TARGET=$HOST_ARCH-linux ;;
     *)      _err "couldn't guess TARGET from $HOST_SYS"
   esac
 fi
-TARGET_SYS_AND_ABI=${TARGET#*-}     # e.g. linux-musl
-TARGET_SYS=${TARGET_SYS_AND_ABI%-*} # e.g. linux
-TARGET_ARCH=${TARGET%%-*}           # e.g. x86_64
-
-TARGET_CMAKE_SYSTEM_NAME=$TARGET_SYS  # e.g. linux, macos
-case $TARGET_CMAKE_SYSTEM_NAME in
-  apple|macos|darwin) TARGET_CMAKE_SYSTEM_NAME="Darwin";;
-  freebsd)            TARGET_CMAKE_SYSTEM_NAME="FreeBSD";;
-  windows)            TARGET_CMAKE_SYSTEM_NAME="Windows";;
-  linux)              TARGET_CMAKE_SYSTEM_NAME="Linux";;
-  native)             TARGET_CMAKE_SYSTEM_NAME="";;
+TARGET_ARCH=${TARGET%-*}
+TARGET_SYS=${TARGET#*-}
+if [[ "$TARGET_SYS" == *"."* ]]; then
+  TARGET_SYS_VERSION=${TARGET_SYS#*.} # macos.11.7 => 11.7
+  TARGET_SYS=${TARGET_SYS%%.*}        # macos.11.7 => macos
+fi
+[ "$TARGET_SYS" = native ] && case "$HOST_SYS" in
+  Darwin) TARGET_SYS=macos ;;
+  Linux)  TARGET_SYS=linux ;;
+  *) _err "$TARGET: couldn't guess TARGET_SYS from HOST_SYS=$HOST_SYS"
 esac
+case "$TARGET_SYS" in
+  macos)
+    TARGET_CMAKE_SYSTEM_NAME="Darwin"
+    TARGET_TRIPLE=$TARGET_ARCH-apple-darwin ;;
+  freebsd)
+    TARGET_CMAKE_SYSTEM_NAME="FreeBSD"
+    TARGET_TRIPLE=$TARGET_ARCH-freebsd-gnu ;;
+  windows)
+    TARGET_CMAKE_SYSTEM_NAME="Windows"
+    TARGET_TRIPLE=$TARGET_ARCH-windows-gnu ;;
+  linux)
+    TARGET_CMAKE_SYSTEM_NAME="Linux"
+    TARGET_TRIPLE=$TARGET_ARCH-linux-gnu ;; # gotta be "gnu" until after stage2
+  *) _err "unsupported TARGET system '$TARGET_SYS' in '$TARGET'"
+esac
+# set TARGET_SYS_MINVERSION (oldest OS ABI we support.)
+# Note: macOS SDKs didn't ship with complete libSystem.tbd files until 10.15
+case "$TARGET_ARCH-$TARGET_SYS" in
+  x86_64-macos)  TARGET_SYS_MINVERSION=10.15 ;;
+  aarch64-macos) TARGET_SYS_MINVERSION=11.0 ;;
+  *)             TARGET_SYS_MINVERSION=1.0 ;;
+esac
+# check so that TARGET_SYS_VERSION >= TARGET_SYS_MINVERSION
+if [ -z "$TARGET_SYS_VERSION" ]; then
+  TARGET_SYS_VERSION=$TARGET_SYS_MINVERSION
+elif [[ "$TARGET_SYS_VERSION" =~ ^[0-9]+(\.[0-9]+(\.[0-9]+)?)?$ ]]; then
+  _version_gte "$TARGET_SYS_VERSION" "$TARGET_SYS_MINVERSION" ||
+    _err "TARGET version $TARGET_SYS_VERSION too old, older than the minimum $TARGET_SYS_MINVERSION"
+else
+  _err "invalid TARGET version format '$TARGET_SYS_VERSION'; expected M[.m[.p]]"
+fi
+TARGET_SYS_VERSION_MAJOR=${TARGET_SYS_VERSION%%.*}  # e.g. 1 in 1.2.3
+# rewrite TARGET to canonical form arch-sysname-sysversionmajor
+TARGET=$TARGET_ARCH-$TARGET_SYS-$TARGET_SYS_VERSION_MAJOR
 
-# ————————————————————————————————————————————————————————————————————————————————————
-
+SYSROOTS_DIR=$PROJECT/sysroots
 LLVMBOX_SYSROOT_BASE=${LLVMBOX_SYSROOT_BASE:-$OUT_DIR/sysroot}
 LLVMBOX_SYSROOT=${LLVMBOX_SYSROOT:-$LLVMBOX_SYSROOT_BASE/$TARGET}
 export LLVMBOX_SYSROOT
+
+# ————————————————————————————————————————————————————————————————————————————————————
 
 LLVM_RELEASE=15.0.7
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
@@ -65,10 +121,7 @@ LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/llvmorg-${LLVM_RELEASE
   LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/${LLVM_RELEASE}.tar.gz
 LLVM_SRC_STAGE1=${LLVM_SRC_STAGE1:-$OUT_DIR/src/llvm-stage1}
 LLVM_SRC=${LLVM_SRC:-$OUT_DIR/src/llvm}
-LLVM_STAGE1=${LLVM_HOST:-$OUT_DIR/llvm-stage1}
-LLVM_HOST=$LLVM_STAGE1
-LLVM_DESTDIR=${LLVM_DESTDIR:-$OUT_DIR/llvm-$TARGET}
-export LLVMBOX_LLVM_HOST=$LLVM_HOST
+LLVM_STAGE1=${LLVM_STAGE1:-$OUT_DIR/llvm-stage1}
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
@@ -100,6 +153,7 @@ XAR_SRC=${XAR_SRC:-$BUILD_DIR/src/xar}
 XAR_DESTDIR=${XAR_DESTDIR:-$BUILD_DIR/xar-$TARGET}
 
 LINUX_VERSION=6.1.7
+LINUX_VERSION_MAJOR=${LINUX_VERSION%%.*}
 LINUX_SHA256=4ab048bad2e7380d3b827f1fad5ad2d2fc4f2e80e1c604d85d1f8781debe600f
 LINUX_SRC=${LINUX_SRC:-$BUILD_DIR/src/linux}
 LINUX_HEADERS_DESTDIR=${LINUX_HEADERS_DESTDIR:-$BUILD_DIR/linux-${LINUX_VERSION}-headers}
@@ -127,17 +181,15 @@ if [ "$HOST_SYS" = "Linux" ]; then
   STAGE1_CC="$(command -v  gcc || true)"
   STAGE1_CXX="$(command -v g++ || true)"
   STAGE1_LDFLAGS="-static-libgcc -static"
-  # STAGE1_CC="$OUT_DIR/gcc-musl/bin/gcc"
-  # STAGE1_CXX="$OUT_DIR/gcc-musl/bin/g++"
-  # STAGE1_AR="$OUT_DIR/gcc-musl/bin/ar"
-  # STAGE1_RANLIB="$OUT_DIR/gcc-musl/bin/ranlib"
-  # STAGE1_LD="$OUT_DIR/gcc-musl/bin/ld"
-  # STAGE1_LDFLAGS="-static-libgcc -static"
 elif [ "$HOST_SYS" = "Darwin" ]; then
+  HOST_MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
+  [ -d "$HOST_MACOS_SDK" ] || _err "macOS SDK not found. Try: xcode-select --install"
   STAGE1_CC="$(command -v  clang || true)"
   STAGE1_CXX="$(command -v clang++ || true)"
-  STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=10.10"
-  STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=10.10"
+  STAGE1_MACOS_VERSION=10.15
+  [ "$HOST_ARCH" != x86_64 ] && STAGE1_MACOS_VERSION=11.7
+  STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
+  STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
 fi
 STAGE1_ASM=${STAGE1_ASM:-$STAGE1_CC}
 STAGE1_LD=${STAGE1_LD:-$STAGE1_CXX}
@@ -150,57 +202,41 @@ for tool in CC CXX AR RANLIB LD; do
   [ -x "$tool" ] || _err "$tool not found ($var)"
 done
 
-HOST_CC="$LLVM_HOST/bin/clang"
-HOST_CXX="$LLVM_HOST/bin/clang++"
-HOST_ASM=$HOST_CC
-HOST_LD=$HOST_CC
-HOST_RC="$LLVM_HOST/bin/llvm-rc"
-HOST_AR="$LLVM_HOST/bin/llvm-ar"
-HOST_RANLIB="$LLVM_HOST/bin/llvm-ranlib"
+# ————————————————————————————————————————————————————————————————————————————————————
 
-HOST_STAGE2_CC=$HOST_CC
-HOST_STAGE2_CXX=$HOST_CXX
-HOST_STAGE2_ASM=$HOST_STAGE2_CC
-HOST_STAGE2_LD=$HOST_STAGE2_CC
-HOST_STAGE2_RC=$HOST_RC
-HOST_STAGE2_AR=$HOST_AR
-HOST_STAGE2_RANLIB=$HOST_RANLIB
+STAGE2_CC="$LLVM_STAGE1/bin/clang"
+STAGE2_CXX="$LLVM_STAGE1/bin/clang++"
+STAGE2_ASM=$STAGE2_CC
+STAGE2_LD=$STAGE2_CC
+STAGE2_RC="$LLVM_STAGE1/bin/llvm-rc"
+STAGE2_AR="$LLVM_STAGE1/bin/llvm-ar"
+STAGE2_RANLIB="$LLVM_STAGE1/bin/llvm-ranlib"
 
-# prefer clang from current system over gcc
-[ -z "${CC:-}" ]  && command -v clang >/dev/null && export CC=clang
-[ -z "${CXX:-}" ] && command -v clang++ >/dev/null && export CXX=clang++
-
-# flags for compiling for target, after sysroot has been initialized
-TARGET_COMMON_FLAGS=(
-  -B"$LLVMBOX_SYSROOT/bin" \
+STAGE2_CFLAGS=(
+  --target=$TARGET_TRIPLE \
   --sysroot="$LLVMBOX_SYSROOT" \
   -isystem "$LLVMBOX_SYSROOT/include" \
-  --target=$TARGET \
 )
-TARGET_CFLAGS=(
-  "${TARGET_COMMON_FLAGS[@]}" \
+STAGE2_LDFLAGS=(
+  --target=$TARGET_TRIPLE \
+  --sysroot="$LLVMBOX_SYSROOT" \
+  --rtlib=compiler-rt \
+  -L"$LLVMBOX_SYSROOT/lib" \
+  -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
 )
-TARGET_LDFLAGS=(
-  "${TARGET_COMMON_FLAGS[@]}" \
-  -fuse-ld=lld \
-)
-
 case "$TARGET_SYS" in
-  apple|darwin|macos)
-    MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
-    [ -d "$MACOS_SDK" ] ||
-      _err "macos sdk not found at $MACOS_SDK; try running: xcode-select --install"
-    TARGET_CFLAGS+=( -mmacosx-version-min=10.10 )
-    TARGET_LDFLAGS+=( -mmacosx-version-min=10.10 )
+  macos)
+    STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
+    STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
+    # STAGE2_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" )
+    # STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION \
+    #   -isystem "$HOST_MACOS_SDK/usr/include" )
+    # STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION )
+    # STAGE2_CFLAGS+=( -I"$LLVMBOX_SYSROOT/include" )
+    # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )
     ;;
   linux)
-    HOST_STAGE2_CC=$PROJECT/utils/musl-clang
-    HOST_STAGE2_CXX=$PROJECT/utils/musl-clang++
-    HOST_STAGE2_ASM=$HOST_STAGE2_CC
-    HOST_STAGE2_LD=$HOST_STAGE2_CC
-    TARGET_LDFLAGS+=(\
-      -static-libgcc \
-    )
+    STAGE2_LDFLAGS+=( -nostartfiles "$LLVMBOX_SYSROOT/lib/crt1.o" )
     ;;
 esac
 
@@ -211,7 +247,7 @@ _relpath() { # <path>
   case "$1" in
     "$PWD0/"*) echo "${1##${2:-$PWD0}/}" ;;
     "$PWD0")   echo "." ;;
-    *)         echo "$1" ;;
+    *)         echo "${1/$HOME\//~/}" ;;
   esac
 }
 
@@ -227,11 +263,6 @@ _popd() {
 
 _array_join() { # <gluechar> <element> ...
   local IFS="$1"; shift; echo "$*"
-}
-
-_relpath() { # <path>
-  local f="${1/$HOME\//~/}"
-  echo "${f##$PWD0/}"
 }
 
 _sha_test() { # <file> [<sha256> | <sha512>]
@@ -265,6 +296,7 @@ _sha_verify() { # <file> [<sha256> | <sha512>]
 _download_nocache() { # <url> <outfile> [<sha256> | <sha512>]
   local url=$1 ; local outfile=$2 ; local checksum=${3:-}
   rm -f "$outfile"
+  mkdir -p "$(dirname "$outfile")"
   echo "${outfile##$PWD0/}: fetch $url"
   command -v wget >/dev/null &&
     wget -q --show-progress -O "$outfile" "$url" ||
@@ -309,21 +341,4 @@ _fetch_source_tar() { # <url> (<sha256> | <sha512> | "") <outdir> [<tarfile>]
   local tarfile=${4:-$DOWNLOAD_DIR/$(basename "$url")}
   _download    "$url" "$tarfile" "$checksum"
   _extract_tar "$tarfile" "$outdir"
-}
-
-_print_exe_links() { # <exefile>
-  local OUT
-  local objdump="$LLVM_HOST"/bin/llvm-objdump
-  [ -f "$objdump" ] || objdump=llvm-objdump
-  local PAT='NEEDED|RUNPATH|RPATH'
-  case "$HOST_SYS" in
-    Darwin) PAT='RUNPATH|RPATH|\.dylib' ;;
-  esac
-  OUT=$( "$objdump" -p "$1" | grep -E "$PAT" | awk '{printf $1 " " $2 "\n"}' )
-  if [ -n "$OUT" ]; then
-    echo "$1: dynamically linked:"
-    echo "$OUT"
-  else
-    echo "$1: statically linked"
-  fi
 }

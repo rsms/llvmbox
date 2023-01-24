@@ -14,58 +14,40 @@ source "$(dirname "$0")/config.sh"
 #       musl-fts [linux]
 #
 
-TARGET_CFLAGS+=(
-  -I"$ZLIB_DIST/include" \
-  -I"$XC_DESTDIR/include" \
-  -I"$OPENSSL_DESTDIR/include" \
-  -I"$MUSLFTS_DESTDIR/include" \
-)
-TARGET_LDFLAGS+=(
-  -L"$ZLIB_DIST/lib" \
-  -L"$XC_DESTDIR/lib" \
-  -L"$OPENSSL_DESTDIR/lib" \
-  -L"$MUSLFTS_DESTDIR/lib" -lfts \
-)
-
-
-# Workaround for a bug in xar's build process which generates incorrect paths to
-# libxml2 headers in xar/src/xar.d.
-# Instead of e.g. /tmp/libxml2-TARGET/include/libxml2/libxml/xmlreader.h
-# it writes e.g. /tmp/libxml2/include/libxml2/libxml/xmlreader.h
-# The bug manifests itself like this during a build:
-#   make: *** No rule to make target `/tmp/libxml2/include/libxml2/libxml/xmlreader.h',
-#   needed by `src/xar.o'.  Stop.
-#
-rm -f "$(dirname "$LIBXML2_DESTDIR")/libxml2"
-ln -s "$(basename "$LIBXML2_DESTDIR")" "$(dirname "$LIBXML2_DESTDIR")/libxml2"
-
 rm -rf "$XAR_SRC"
 mkdir -p "$(dirname "$XAR_SRC")"
 cp -a "$PROJECT/xar" "$XAR_SRC"
-
 _pushd "$XAR_SRC"
 
-CC=$HOST_STAGE2_CC \
-LD=$HOST_STAGE2_LD \
-AR=$HOST_STAGE2_AR \
-RANLIB=$HOST_STAGE2_RANLIB \
-CFLAGS="${TARGET_CFLAGS[@]}" \
-CPPFLAGS="${TARGET_CFLAGS[@]}" \
-LDFLAGS="${TARGET_LDFLAGS[@]}" \
+# # fix for -lfts on macos
+# if [ "$TARGET_SYS" = macos ]; then
+#   mkdir libtmp
+#   ln -s "$LLVMBOX_SYSROOT/lib/libSystem.tbd" libtmp/libfts.tbd
+# fi
+
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
+RANLIB=$STAGE2_RANLIB \
+CFLAGS="${STAGE2_CFLAGS[@]} -Wno-deprecated-declarations" \
+CPPFLAGS="${STAGE2_CFLAGS[@]}" \
+LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./configure \
   --prefix= \
   --enable-static \
   --disable-shared \
-  --with-lzma="$XC_DESTDIR" \
-  --with-xml2-config=$LIBXML2_DESTDIR/bin/xml2-config \
+  --with-lzma="$LLVMBOX_SYSROOT" \
+  --with-xml2-config=$LLVMBOX_SYSROOT/bin/xml2-config \
   --without-bzip2
 
-make -j$(nproc)
+make -j$NCPU
 
-rm -rf "$XAR_DESTDIR"
-mkdir -p "$XAR_DESTDIR"
-make DESTDIR="$XAR_DESTDIR" install
-# rm -rf "$XAR_DESTDIR/bin" "$XAR_DESTDIR/share"
+mkdir -p out
+make DESTDIR=out -j$NCPU install
 
-echo "$XAR_VERSION" > "$XAR_DESTDIR/version"
+mkdir -p "$LLVMBOX_SYSROOT/include/xar"
+install -vm 0644 out/include/xar/xar.h "$LLVMBOX_SYSROOT/include/xar/xar.h"
+install -vm 0644 out/lib/libxar.a "$LLVMBOX_SYSROOT/lib/libxar.a"
 
+_popd
+rm -rf "$XAR_SRC"

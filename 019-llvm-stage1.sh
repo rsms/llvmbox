@@ -34,10 +34,10 @@ case "$HOST_SYS" in
     LLVM_STAGE1_COMPONENTS+=( llvm-libtool-darwin )
     EXTRA_CMAKE_ARGS+=( \
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 \
-      -DCMAKE_SYSROOT=$MACOS_SDK \
-      -DCMAKE_OSX_SYSROOT=$MACOS_SDK \
-      -DDEFAULT_SYSROOT=$MACOS_SDK \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET=$STAGE1_MACOS_VERSION \
+      -DCMAKE_SYSROOT=$HOST_MACOS_SDK \
+      -DCMAKE_OSX_SYSROOT=$HOST_MACOS_SDK \
+      -DDEFAULT_SYSROOT=$HOST_MACOS_SDK \
     )
     ;;
   Linux)
@@ -49,9 +49,9 @@ case "$HOST_SYS" in
       -DLIBUNWIND_HAS_NODEFAULTLIBS_FLAG=OFF \
       -DCOMPILER_RT_BUILD_MEMPROF=OFF \
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
+      -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
     )
     # -D_GLIBCXX_USE_CXX11_ABI=1
-
     # EXTRA_CMAKE_ARGS+=( -DLLVM_DEFAULT_TARGET_TRIPLE=$HOST_ARCH-linux-musl )
     #
     # COMPILER_RT_USE_BUILTINS_LIBRARY
@@ -61,6 +61,12 @@ case "$HOST_SYS" in
     # COMPILER_RT_BUILD_MEMPROF=OFF
     #   if left enabled, the memprof cmake will try to unconditionally create a shared
     #   lib which will fail with errors like "undefined reference to '_Unwind_GetIP'".
+    # LLVM_ENABLE_PER_TARGET_RUNTIME_DIR
+    #   When on (default for linux, but not mac), rt libs are installed at
+    #   lib/clang/$LLVM_RELEASE/lib/$HOST_ARCH-unknown-linux-gnu/ with plain names
+    #   like "libclang_rt.builtins.a".
+    #   When off, libs have an arch suffix, e.g. "libclang_rt.builtins-x86_64.a" and
+    #   are installed in lib/clang/$LLVM_RELEASE/lib/.
     ;;
 esac
 
@@ -185,5 +191,30 @@ ninja -j$NCPU \
   install-llvm-headers \
   install-cxxabi-stripped
 
-cp -a bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
-ln -fs llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
+cp -av bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
+ln -fsv llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
+
+# cp -av "$ZLIB_STAGE1"/include/{zconf,zlib}.h "$LLVM_STAGE1"/include/
+# cp -av "$ZLIB_STAGE1"/lib/libz.a "$LLVM_STAGE1"/lib/
+
+if [ "$HOST_SYS" = "Linux" ]; then
+  # [linux] Somehow clang looks for compiler-rt builtins lib in a different place
+  # than where it actually installs it. This is an ugly workaround.
+  CLANG_LIB_DIR="$LLVM_STAGE1/lib/clang/$LLVM_RELEASE/lib"
+  mkdir -p "$CLANG_LIB_DIR/linux"
+
+  # Fix for LLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF
+  _pushd "$CLANG_LIB_DIR"
+  for lib in *.a; do
+    ln -vs "../${lib}" "$CLANG_LIB_DIR/linux/$lib"
+  done
+
+  # Fix for LLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
+  # # [linux] Somehow clang looks for compiler-rt builtins lib in a different place
+  # # than where it actually installs it. This is an ugly workaround.
+  # _pushd "$CLANG_LIB_DIR/${HOST_ARCH}-unknown-linux-gnu"
+  # for lib in *.a; do
+  #   ln -vs "../${HOST_ARCH}-unknown-linux-gnu/${lib}" \
+  #     "$CLANG_LIB_DIR/linux/$(basename "$lib" .a)-${HOST_ARCH}.a"
+  # done
+fi

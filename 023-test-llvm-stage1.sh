@@ -12,12 +12,8 @@ CXXFLAGS=( -nostdinc++ -I"$LLVM_STAGE1/include/c++/v1" )
 CXX_LDFLAGS=( -nostdlib++ -L"$LLVM_STAGE1/lib" -lc++ -lc++abi )
 
 # flags for using LLVMBOX_SYSROOT instead of host system
-CFLAGS_SYSROOT=( -ferror-limit=1 --sysroot="$LLVMBOX_SYSROOT" )
-LDFLAGS_SYSROOT=(
-  --sysroot="$LLVMBOX_SYSROOT" \
-  -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
-  -L"$LLVM_STAGE1/lib" \
-)
+CFLAGS_SYSROOT=( "${STAGE2_CFLAGS[@]}" )
+LDFLAGS_SYSROOT=( "${STAGE2_LDFLAGS[@]}" )
 
 # flags for linking c++ along with libs from LLVM_STAGE1 (uses host libc++)
 CXX_STAGE1_LDFLAGS=()
@@ -25,7 +21,6 @@ CXX_STAGE1_LDFLAGS=()
 case "$HOST_SYS" in
 Darwin)
   CFLAGS+=(
-    -isystem "$MACOS_SDK/usr/include" \
     -Wno-nullability-completeness \
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
@@ -35,7 +30,7 @@ Darwin)
     -DTARGET_OS_EMBEDDED=0 \
     -DTARGET_OS_IPHONE=0 \
   )
-  CXX_STAGE1_LDFLAGS+=( -L"$MACOS_SDK/usr/lib" -lc++ -lc++abi )
+  CXX_STAGE1_LDFLAGS+=( -lc++ -lc++abi )
   ;;
 Linux)
   CXX_TARGET_I=$(echo "$LLVM_STAGE1/include/$TARGET_ARCH-"*)/c++/v1
@@ -111,15 +106,34 @@ _print_linking() { # <file>
 _pushd "$PROJECT"
 
 echo "————————————————————————————————————————————————————————————"
-echo "cc shared libc"; out=$BUILD_DIR/_hello_c
+echo "cc shared default libc"; out=$BUILD_DIR/_hello_c
 _cc test/hello.c -o "$out"
-"$out" ; _print_linking "$out"
+_print_linking "$out" ; "$out"
 
 echo "————————————————————————————————————————————————————————————"
-echo "c++ shared libc"; out=$BUILD_DIR/_hello_cc
+echo "c++ shared default libc"; out=$BUILD_DIR/_hello_cc
 _cxx -std=c++17 test/hello.cc -o "$out"
-"$out" ; _print_linking "$out"
+_print_linking "$out" ; "$out"
 
+echo "————————————————————————————————————————————————————————————"
+echo "c++ shared default libc, atomics"; out=$BUILD_DIR/_cxx-atomic_cc
+_cxx -std=c++17 test/cxx-atomic.cc -o "$out"
+"$out" || true ; _print_linking "$out"
+
+# macos: building against LLVMBOX_SYSROOT works with C, but not C++
+if [ "$HOST_SYS" = Darwin ]; then
+  echo "————————————————————————————————————————————————————————————"
+  echo "cc shared sysroot libc"; out=$BUILD_DIR/_hello_c_sysroot
+  _cc_sysroot test/hello.c -o "$out"
+  _print_linking "$out" ; "$out"
+
+  echo "————————————————————————————————————————————————————————————"
+  echo "cc shared sysroot libc, explicit libSystem"; out=$BUILD_DIR/_hello_c_sysroot2
+  _cc_sysroot -lSystem test/hello.c -o "$out"
+  _print_linking "$out" ; "$out"
+fi
+
+# linux: building against LLVMBOX_SYSROOT
 if [ "$HOST_SYS" = Linux ]; then
   # Linux stage1 build is currently unable to statically link using glibc.
   # If we try the below C build, we get the following errors:
@@ -132,24 +146,24 @@ if [ "$HOST_SYS" = Linux ]; then
   # echo "————————————————————————————————————————————————————————————"
   # echo "cc static libc"; out=$BUILD_DIR/_hello_c_static
   # _cc -static test/hello.c -o "$out"
-  # "$out" ; _print_linking "$out"
+  # _print_linking "$out" ; "$out"
   #
   # echo "————————————————————————————————————————————————————————————"
   # echo "c++ static libc"; out=$BUILD_DIR/_hello_cc_static
   # _cxx -static -std=c++17 test/hello.cc -o "$out"
-  # "$out" ; _print_linking "$out"
+  # _print_linking "$out" ; "$out"
 
   # however, it works with musl (must have run 022-musl-libc.sh)
   if [ -f "$LLVMBOX_SYSROOT/lib/libc.a" ]; then
     echo "————————————————————————————————————————————————————————————"
-    echo "cc shared musl-libc"; out=$BUILD_DIR/_hello_c_musl
+    echo "cc shared musl libc"; out=$BUILD_DIR/_hello_c_musl
     _cc_sysroot test/hello.c -o "$out"
-    "$out" ; _print_linking "$out"
+    _print_linking "$out" ; "$out"
 
     echo "————————————————————————————————————————————————————————————"
-    echo "cc static musl-libc"; out=$BUILD_DIR/_hello_c_musl_static
+    echo "cc static musl libc"; out=$BUILD_DIR/_hello_c_musl_static
     _cc_sysroot -static test/hello.c -o "$out"
-    "$out" ; _print_linking "$out"
+    _print_linking "$out" ; "$out"
 
     # We can NOT link c++ programs with musl; stage1 libc++ is built with
     # host libc which is likely glibc.
@@ -157,20 +171,21 @@ if [ "$HOST_SYS" = Linux ]; then
     # echo "————————————————————————————————————————————————————————————"
     # echo "c++ shared musl-libc"; out=$BUILD_DIR/_hello_cc_musl
     # _cxx_sysroot test/hello.cc -o "$out"
-    # "$out" ; _print_linking "$out"
+    # _print_linking "$out" ; "$out"
     #
     # echo "————————————————————————————————————————————————————————————"
     # echo "c++ static musl-libc"; out=$BUILD_DIR/_hello_cc_musl_static
     # _cxx_sysroot -static test/hello.cc -o "$out"
-    # "$out" ; _print_linking "$out"
+    # _print_linking "$out" ; "$out"
   fi
 fi
 
+# llvm libs
 echo "————————————————————————————————————————————————————————————"
-echo "cc shared libc + llvm-c libs"; out=$BUILD_DIR/_hello_llvm_c
+echo "llvm API example (stage1 libs: libc, llvm-c, z)"; out=$BUILD_DIR/_hello_llvm_c
 _cc $("$LLVM_STAGE1/bin/llvm-config" --cflags) -c test/hello-llvm.c -o "$out.o"
 _ldxx_stage1 \
   $("$LLVM_STAGE1/bin/llvm-config" --cxxflags --ldflags --libs core native) \
   -I"$ZLIB_STAGE1/include" "$ZLIB_STAGE1/lib/libz.a" \
   "$out.o" -o "$out"
-"$out" ; _print_linking "$out"
+_print_linking "$out" ; "$out"

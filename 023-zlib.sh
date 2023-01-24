@@ -7,17 +7,18 @@ _fetch_source_tar \
 
 _pushd "$ZLIB_SRC"
 
-CC=$HOST_STAGE2_CC \
-LD=$HOST_STAGE2_LD \
-AR=$HOST_STAGE2_AR \
-CFLAGS="-Wno-deprecated-non-prototype" \
+CC=$STAGE2_CC \
+LD=$STAGE2_LD \
+AR=$STAGE2_AR \
+CFLAGS="${STAGE2_CFLAGS[@]} -Wno-deprecated-non-prototype" \
+LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   ./configure --static --prefix=
 
-make -j$(nproc)
+make -j$NCPU
 echo "——————————————————— check ———————————————————"
-make -j$(nproc) check
+make -j$NCPU check
 echo "——————————————————— install ———————————————————"
-make DESTDIR="$LLVMBOX_SYSROOT" -j$(nproc) install
+make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
 
 _popd
 rm -rf "$ZLIB_SRC"

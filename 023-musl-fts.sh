@@ -20,7 +20,7 @@ source "$(dirname "$0")/config.sh"
 #     CC=$HOST_CC \
 #     AR=$HOST_AR \
 #     RANLIB=$HOST_RANLIB \
-#     CFLAGS="--target=$TARGET" \
+#     CFLAGS="--target=$TARGET_TRIPLE" \
 #     ./configure --prefix= && make clean && make
 #     cp -a config.h fts.c fts.h /PATH/TO/SRC/llvm/musl-fts
 #     exit
@@ -37,9 +37,9 @@ cp -a "$PROJECT/musl-fts" "$MUSLFTS_SRC"
 _pushd "$MUSLFTS_SRC"
 
 set -x
-"$HOST_STAGE2_CC" -DHAVE_CONFIG_H -I. -c fts.c -o fts.o
-"$HOST_STAGE2_AR" cr libfts.a fts.o
-"$HOST_STAGE2_RANLIB" libfts.a
+"$STAGE2_CC" "${STAGE2_CFLAGS[@]}" -DHAVE_CONFIG_H -I. -c fts.c -o fts.o
+"$STAGE2_AR" cr libfts.a fts.o
+"$STAGE2_RANLIB" libfts.a
 install -D -m 0644 libfts.a "$LLVMBOX_SYSROOT/lib/libfts.a"
 install -D -m 0644 fts.h "$LLVMBOX_SYSROOT/include/fts.h"
 set +x
