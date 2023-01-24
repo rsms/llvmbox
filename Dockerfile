@@ -13,7 +13,4 @@ ENV LLVMBOX_BUILD_DIR=/build
 
 RUN mkdir /build
 
-ADD config.sh .
-ADD 010-llvm-source.sh .
-ADD 011-zlib.sh .
-ADD 012-llvm-host-alpine.sh .
+ADD . .
