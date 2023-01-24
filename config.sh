@@ -186,7 +186,7 @@ elif [ "$HOST_SYS" = "Darwin" ]; then
   [ -d "$HOST_MACOS_SDK" ] || _err "macOS SDK not found. Try: xcode-select --install"
   STAGE1_CC="$(command -v  clang || true)"
   STAGE1_CXX="$(command -v clang++ || true)"
-  STAGE1_MACOS_VERSION=10.15
+  STAGE1_MACOS_VERSION=10.10
   [ "$HOST_ARCH" != x86_64 ] && STAGE1_MACOS_VERSION=11.7
   STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
   STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
