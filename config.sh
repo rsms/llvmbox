@@ -222,6 +222,7 @@ STAGE2_LDFLAGS=(
   --sysroot="$LLVMBOX_SYSROOT" \
   --rtlib=compiler-rt \
   -L"$LLVMBOX_SYSROOT/lib" \
+  -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
 )
 case "$TARGET_SYS" in
   macos)
@@ -233,6 +234,9 @@ case "$TARGET_SYS" in
     # STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION )
     # STAGE2_CFLAGS+=( -I"$LLVMBOX_SYSROOT/include" )
     # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )
+    ;;
+  linux)
+    STAGE2_LDFLAGS+=( -nostartfiles "$LLVMBOX_SYSROOT/lib/crt1.o" )
     ;;
 esac
 
