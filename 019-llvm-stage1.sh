@@ -25,9 +25,14 @@ LLVM_STAGE1_COMPONENTS=(
 mkdir -p "$BUILD_DIR/llvm-stage1-build"
 _pushd "$BUILD_DIR/llvm-stage1-build"
 
-CMAKE_C_FLAGS=( -w -I"$ZLIB_STAGE1/include" )
-CMAKE_LD_FLAGS=( -L"$ZLIB_STAGE1/lib" )
+CMAKE_C_FLAGS=( -w )
+CMAKE_LD_FLAGS=( )
 EXTRA_CMAKE_ARGS=()
+
+# zlib
+[ -f "$ZLIB_STAGE1/lib/libz.a" ] || _err "$ZLIB_STAGE1/lib/libz.a not found"
+CMAKE_C_FLAGS+=( -w -I"$ZLIB_STAGE1/include" )
+CMAKE_LD_FLAGS+=( -L"$ZLIB_STAGE1/lib" )
 
 case "$HOST_SYS" in
   Darwin)
@@ -106,11 +111,12 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DLLVM_ENABLE_EH=OFF \
   -DLLVM_ENABLE_RTTI=OFF \
   -DLLVM_ENABLE_FFI=OFF \
-  -DLLVM_ENABLE_ZLIB=1 \
   -DLLVM_ENABLE_ZSTD=OFF \
+  -DLLVM_ENABLE_ZLIB=1 \
   -DZLIB_LIBRARY="$ZLIB_STAGE1/lib/libz.a" \
   -DZLIB_INCLUDE_DIR="$ZLIB_STAGE1/include" \
   -DLLVM_ENABLE_BACKTRACES=OFF \
+  -DLLDB_ENABLE_PYTHON=OFF \
   -DLLVM_INCLUDE_UTILS=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \
   -DLLVM_INCLUDE_GO_TESTS=OFF \
@@ -134,6 +140,13 @@ cmake -G Ninja -Wno-dev "$LLVM_SRC/llvm" \
   -DCLANG_DEFAULT_OBJCOPY=llvm-objcopy \
   -DCLANG_PLUGIN_SUPPORT=OFF \
   -DCLANG_VENDOR=llvmbox \
+  \
+  -DLLDB_ENABLE_CURSES=OFF \
+  -DLLDB_ENABLE_FBSDVMCORE=OFF \
+  -DLLDB_ENABLE_LIBEDIT=OFF \
+  -DLLDB_ENABLE_LUA=OFF \
+  -DLLDB_ENABLE_LZMA=OFF \
+  -DLLDB_ENABLE_PYTHON=OFF \
   \
   -DLIBCXX_ENABLE_STATIC=ON \
   -DLIBCXX_ENABLE_SHARED=OFF \
@@ -192,24 +205,18 @@ ninja -j$NCPU \
 cp -av bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
 ln -fsv llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
 
-# cp -av "$ZLIB_STAGE1"/include/{zconf,zlib}.h "$LLVM_STAGE1"/include/
-# cp -av "$ZLIB_STAGE1"/lib/libz.a "$LLVM_STAGE1"/lib/
-
 if [ "$HOST_SYS" = "Linux" ]; then
-  # [linux] Somehow clang looks for compiler-rt builtins lib in a different place
-  # than where it actually installs it. This is an ugly workaround.
+  # [linux] Sometimes(??) the rtlibs are installed at lib instead of lib/linux
+  # Check for that now to pervent hard-to-debug errors later
   CLANG_LIB_DIR="$LLVM_STAGE1/lib/clang/$LLVM_RELEASE/lib"
-  mkdir -p "$CLANG_LIB_DIR/linux"
-
-  # Fix for LLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF
-  _pushd "$CLANG_LIB_DIR"
-  for lib in *.a; do
-    ln -vs "../${lib}" "$CLANG_LIB_DIR/linux/$lib"
-  done
+  EXPECT_FILE="$CLANG_LIB_DIR/linux/libclang_rt.builtins-$HOST_ARCH.a"
+  [ -e "$EXPECT_FILE" ] ||
+    _err "expected file not found: $EXPECT_FILE"
 
   # Fix for LLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
   # # [linux] Somehow clang looks for compiler-rt builtins lib in a different place
   # # than where it actually installs it. This is an ugly workaround.
+  # mkdir -p "$CLANG_LIB_DIR/linux"
   # _pushd "$CLANG_LIB_DIR/${HOST_ARCH}-unknown-linux-gnu"
   # for lib in *.a; do
   #   ln -vs "../${HOST_ARCH}-unknown-linux-gnu/${lib}" \

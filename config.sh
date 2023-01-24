@@ -126,7 +126,7 @@ LLVM_STAGE1=${LLVM_STAGE1:-$OUT_DIR/llvm-stage1}
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
 ZLIB_SRC=${ZLIB_SRC:-$BUILD_DIR/src/zlib}
-ZLIB_STAGE1=${ZLIB_HOST:-$BUILD_DIR/zlib-stage1}
+ZLIB_STAGE1=${ZLIB_HOST:-$OUT_DIR/zlib-stage1}
 ZLIB_DIST=${ZLIB_DIST:-$BUILD_DIR/zlib-$TARGET}
 
 ZSTD_VERSION=1.5.2
@@ -186,7 +186,7 @@ elif [ "$HOST_SYS" = "Darwin" ]; then
   [ -d "$HOST_MACOS_SDK" ] || _err "macOS SDK not found. Try: xcode-select --install"
   STAGE1_CC="$(command -v  clang || true)"
   STAGE1_CXX="$(command -v clang++ || true)"
-  STAGE1_MACOS_VERSION=10.15
+  STAGE1_MACOS_VERSION=10.10
   [ "$HOST_ARCH" != x86_64 ] && STAGE1_MACOS_VERSION=11.7
   STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
   STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
