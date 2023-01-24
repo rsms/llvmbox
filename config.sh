@@ -180,7 +180,7 @@ STAGE1_LDFLAGS=
 if [ "$HOST_SYS" = "Linux" ]; then
   STAGE1_CC="$(command -v  gcc || true)"
   STAGE1_CXX="$(command -v g++ || true)"
-  STAGE1_LDFLAGS="-static-libgcc -static"
+  STAGE1_LDFLAGS="-static-libgcc"
 elif [ "$HOST_SYS" = "Darwin" ]; then
   HOST_MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
   [ -d "$HOST_MACOS_SDK" ] || _err "macOS SDK not found. Try: xcode-select --install"
