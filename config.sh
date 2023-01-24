@@ -226,7 +226,11 @@ STAGE2_LDFLAGS=(
 )
 case "$TARGET_SYS" in
   macos)
-    STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
+    STAGE2_CFLAGS+=(
+      -DTARGET_OS_EMBEDDED=0 \
+      -DTARGET_OS_IPHONE=0 \
+      -mmacosx-version-min=$TARGET_SYS_VERSION \
+    )
     STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
     # STAGE2_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" )
     # STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION \
