@@ -1,0 +1,13 @@
+FROM debian:stable
+
+WORKDIR /llvm-box
+
+RUN apt-get update
+RUN apt-get install -y locales curl build-essential cmake ninja-build python3 rsync patch
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+ENV LLVMBOX_BUILD_DIR=/build
+
+RUN mkdir /build
+
+ADD . .
