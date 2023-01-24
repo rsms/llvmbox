@@ -53,9 +53,15 @@ LLVM_DISTRIBUTION_COMPONENTS=(
   "${LLVM_TOOLCHAIN_TOOLS[@]}" \
 )
 
-CMAKE_C_FLAGS=( -I"$LLVMBOX_SYSROOT/include" )
-CMAKE_CXX_FLAGS=( )
-CMAKE_LD_FLAGS=( )
+CMAKE_C_FLAGS=( \
+  -isystem "$LLVMBOX_SYSROOT/include" \
+)
+CMAKE_CXX_FLAGS=(
+  -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
+)
+CMAKE_LD_FLAGS=(
+  -nostdlib++ -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi \
+)
 EXTRA_CMAKE_ARGS=( -Wno-dev )
 
 # zlib
@@ -96,12 +102,6 @@ if [ -d "$XAR_STAGE2" ]; then
 else
   EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=0 )
 fi
-CMAKE_C_FLAGS+=(
-  -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
-)
-CMAKE_LD_FLAGS+=(
-  -nostdlib++ -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi \
-)
 
 case "$HOST_SYS" in
   Darwin)
@@ -149,7 +149,7 @@ esac
 
 
 CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]:-}"
-CMAKE_CXX_FLAGS="${CMAKE_C_FLAGS[@]:-} ${CMAKE_CXX_FLAGS[@]:-}"
+CMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS[@]:-} ${CMAKE_C_FLAGS[@]:-}"
 CMAKE_LD_FLAGS="${CMAKE_LD_FLAGS[@]:-}"
 
 mkdir -p "$BUILD_DIR/llvm-stage2"
