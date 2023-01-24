@@ -52,7 +52,7 @@ TARGET_SYS_VERSION=         # e.g. 11.7 (from macos.11.7) -- OS ABI (M.m[.p])
 TARGET_SYS_VERSION_MAJOR=   # e.g. 11
 TARGET_SYS_MINVERSION=      # compatibility version of OS ABI
 TARGET_SYS=                 # e.g. macos (from macos.11.7)
-TARGET_TRIPLE=              # e.g. x86_64-linux-musl (for clang/llvm)
+TARGET_TRIPLE=              # e.g. x86_64-linux-gnu (for clang/llvm)
 TARGET_CMAKE_SYSTEM_NAME=   # e.g. Linux
 if [ -z "$TARGET" ]; then
   case "$HOST_SYS" in
@@ -84,7 +84,7 @@ case "$TARGET_SYS" in
     TARGET_TRIPLE=$TARGET_ARCH-windows-gnu ;;
   linux)
     TARGET_CMAKE_SYSTEM_NAME="Linux"
-    TARGET_TRIPLE=$TARGET_ARCH-linux-musl ;;
+    TARGET_TRIPLE=$TARGET_ARCH-linux-gnu ;; # gotta be "gnu" until after stage2
   *) _err "unsupported TARGET system '$TARGET_SYS' in '$TARGET'"
 esac
 # set TARGET_SYS_MINVERSION (oldest OS ABI we support.)
@@ -181,12 +181,6 @@ if [ "$HOST_SYS" = "Linux" ]; then
   STAGE1_CC="$(command -v  gcc || true)"
   STAGE1_CXX="$(command -v g++ || true)"
   STAGE1_LDFLAGS="-static-libgcc -static"
-  # STAGE1_CC="$OUT_DIR/gcc-musl/bin/gcc"
-  # STAGE1_CXX="$OUT_DIR/gcc-musl/bin/g++"
-  # STAGE1_AR="$OUT_DIR/gcc-musl/bin/ar"
-  # STAGE1_RANLIB="$OUT_DIR/gcc-musl/bin/ranlib"
-  # STAGE1_LD="$OUT_DIR/gcc-musl/bin/ld"
-  # STAGE1_LDFLAGS="-static-libgcc -static"
 elif [ "$HOST_SYS" = "Darwin" ]; then
   HOST_MACOS_SDK=$(xcrun -sdk macosx --show-sdk-path)
   [ -d "$HOST_MACOS_SDK" ] || _err "macOS SDK not found. Try: xcode-select --install"
