@@ -175,6 +175,7 @@ SOFTWARE.
 
 // Depended on by LLVM compiler-rt
 #include <TargetConditionals.h> // builtins
+#include <libkern/OSCacheControl.h> // builtins
 #include <asl.h> // sanitizer
 #include <CoreFoundation/CFBase.h> // sanitizer
 #include <fstab.h> // sanitizer
