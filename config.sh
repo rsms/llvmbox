@@ -263,7 +263,7 @@ case "$TARGET_SYS" in
     )
     ;;
 esac
-STAGE2_LDFLAGS_EXE=( "${STAGE2_LDFLAGS[@]}" "${STAGE2_LDFLAGS_EXE[@]}" )
+STAGE2_LDFLAGS_EXE=( "${STAGE2_LDFLAGS[@]}" "${STAGE2_LDFLAGS_EXE[@]:-}" )
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
