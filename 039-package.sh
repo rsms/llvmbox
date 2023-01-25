@@ -50,6 +50,7 @@ save
 end
 END
 mv lib/libc++_all.a lib/libc++.a
+"$STAGE2_RANLIB" lib/libc++.a
 
 
 TARFILE="$LLVMBOX_DESTDIR.tar.xz"
