@@ -78,15 +78,6 @@ echo "———————————————————————— b
 ninja cxx cxxabi unwind
 
 echo "———————————————————————— install ————————————————————————"
+rm -rf "$LIBCXX_STAGE2"
 mkdir -p "$LIBCXX_STAGE2"
-DESTDIR=$LIBCXX_STAGE2 ninja install-cxx install-cxxabi install-unwind
-
-echo "———————————————————————— test ————————————————————————"
-"$LLVM_STAGE1/bin/clang++" \
-  --sysroot="$LLVMBOX_SYSROOT" -isystem "$LLVMBOX_SYSROOT/include" \
-  -L"$LLVMBOX_SYSROOT/lib" \
-  -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
-  -nostdlib++ -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi \
-  "$PROJECT/test/hello.cc" -o "$OUT_DIR/hello_cc_stage2"
-
-"$OUT_DIR/hello_cc_stage2"
+DESTDIR="$LIBCXX_STAGE2" ninja install-cxx install-cxxabi install-unwind

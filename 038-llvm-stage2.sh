@@ -54,7 +54,8 @@ LLVM_DISTRIBUTION_COMPONENTS=(
 )
 
 CMAKE_C_FLAGS=( \
-  "-isystem=$LLVMBOX_SYSROOT/include" \
+  -Wno-unused-command-line-argument \
+  -isystem"$LLVMBOX_SYSROOT/include" \
 )
 CMAKE_CXX_FLAGS=(
   -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
@@ -83,25 +84,25 @@ EXTRA_CMAKE_ARGS+=(
 EXTRA_CMAKE_ARGS+=( \
   -DLLVM_ENABLE_LIBXML2=FORCE_ON \
   -DLIBXML2_LIBRARY="$LIBXML2_STAGE2/lib/libxml2.a" \
-  -DLIBXML2_INCLUDE_DIR="$LIBXML2_STAGE2/include" \
+  -DLIBXML2_INCLUDE_DIR="$LIBXML2_STAGE2/include/libxml2" \
 )
 
-# xar (for mach-o linker)
-if [ -d "$XAR_STAGE2" ]; then
-  EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=1 )
-  CMAKE_C_FLAGS+=(
-    -I"$XAR_STAGE2/include" \
-    -I"$XC_STAGE2/include" \
-    -I"$OPENSSL_STAGE2/include" \
-  )
-  COMMON_LDFLAGS+=(
-    -L"$XAR_STAGE2/lib" \
-    -L"$XC_STAGE2/lib" -llzma \
-    -L"$OPENSSL_STAGE2/lib" -lcrypto \
-  )
-else
+# # xar (for mach-o linker)
+# if [ -d "$XAR_STAGE2" ]; then
+#   EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=1 )
+#   CMAKE_C_FLAGS+=(
+#     -I"$XAR_STAGE2/include" \
+#     -I"$XC_STAGE2/include" \
+#     -I"$OPENSSL_STAGE2/include" \
+#   )
+#   COMMON_LDFLAGS+=(
+#     -L"$XAR_STAGE2/lib" \
+#     -L"$XC_STAGE2/lib" -llzma \
+#     -L"$OPENSSL_STAGE2/lib" -lcrypto \
+#   )
+# else
   EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=0 )
-fi
+# fi
 
 case "$HOST_SYS" in
   Darwin)
@@ -253,8 +254,13 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   \
   "${EXTRA_CMAKE_ARGS[@]:-}"
 
-# note: the "distribution" target builds LLVM_DISTRIBUTION_COMPONENTS
+echo "———————————————————————— build ————————————————————————"
 ninja -j$NCPU
+
+echo "———————————————————————— install ————————————————————————"
+rm -rf "$LLVM_STAGE2"
+mkdir -p "$LLVM_STAGE2"
+DESTDIR="$LLVM_STAGE2" ninja -j$NCPU install
 
 # Having trouble?
 #   Missing headers on macOS?
@@ -272,43 +278,3 @@ ninja -j$NCPU
 #   llvm-tblgen \
 #   llvm-libraries \
 #   llvm-headers
-
-
-exit
-
-
-rm -rf "$LLVM_STAGE1"
-mkdir -p "$LLVM_STAGE1"
-
-ninja -j$NCPU \
-  install-distribution-stripped \
-  install-lld-stripped \
-  install-builtins-stripped \
-  install-compiler-rt-stripped \
-  install-llvm-objcopy-stripped \
-  install-llvm-tblgen-stripped \
-  install-llvm-libraries-stripped \
-  install-llvm-headers \
-  install-cxxabi-stripped
-
-cp -av bin/clang-tblgen "$LLVM_STAGE1/bin/clang-tblgen"
-ln -fsv llvm-objcopy "$LLVM_STAGE1/bin/llvm-strip"
-
-if [ "$HOST_SYS" = "Linux" ]; then
-  # [linux] Sometimes(??) the rtlibs are installed at lib instead of lib/linux
-  # Check for that now to pervent hard-to-debug errors later
-  CLANG_LIB_DIR="$LLVM_STAGE1/lib/clang/$LLVM_RELEASE/lib"
-  EXPECT_FILE="$CLANG_LIB_DIR/linux/libclang_rt.builtins-$HOST_ARCH.a"
-  [ -e "$EXPECT_FILE" ] ||
-    _err "expected file not found: $EXPECT_FILE"
-
-  # Fix for LLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
-  # # [linux] Somehow clang looks for compiler-rt builtins lib in a different place
-  # # than where it actually installs it. This is an ugly workaround.
-  # mkdir -p "$CLANG_LIB_DIR/linux"
-  # _pushd "$CLANG_LIB_DIR/${HOST_ARCH}-unknown-linux-gnu"
-  # for lib in *.a; do
-  #   ln -vs "../${HOST_ARCH}-unknown-linux-gnu/${lib}" \
-  #     "$CLANG_LIB_DIR/linux/$(basename "$lib" .a)-${HOST_ARCH}.a"
-  # done
-fi

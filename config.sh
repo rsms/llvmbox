@@ -122,7 +122,8 @@ LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/llvmorg-${LLVM_RELEASE
 LLVM_SRC_STAGE1=${LLVM_SRC_STAGE1:-$OUT_DIR/src/llvm-stage1}
 LLVM_SRC=${LLVM_SRC:-$OUT_DIR/src/llvm}
 LLVM_STAGE1=${LLVM_STAGE1:-$OUT_DIR/llvm-stage1}
-LIBCXX_STAGE2=$OUT_DIR/libcxx-stage2
+LIBCXX_STAGE2=${LIBCXX_STAGE2:-$OUT_DIR/libcxx-stage2}
+LLVM_STAGE2=${LLVM_STAGE2:-$OUT_DIR/llvm-stage2}
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
@@ -216,7 +217,7 @@ STAGE2_RANLIB="$LLVM_STAGE1/bin/llvm-ranlib"
 STAGE2_CFLAGS=(
   --target=$TARGET_TRIPLE \
   --sysroot="$LLVMBOX_SYSROOT" \
-  -isystem "$LLVMBOX_SYSROOT/include" \
+  -isystem"$LLVMBOX_SYSROOT/include" \
 )
 STAGE2_LDFLAGS=(
   --target=$TARGET_TRIPLE \
@@ -235,7 +236,7 @@ case "$TARGET_SYS" in
     STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_VERSION )
     # STAGE2_LDFLAGS+=( -L"$HOST_MACOS_SDK/usr/lib" )
     # STAGE2_CFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION \
-    #   -isystem "$HOST_MACOS_SDK/usr/include" )
+    #   -isystem"$HOST_MACOS_SDK/usr/include" )
     # STAGE2_LDFLAGS+=( -mmacosx-version-min=$TARGET_SYS_MINVERSION )
     # STAGE2_CFLAGS+=( -I"$LLVMBOX_SYSROOT/include" )
     # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )

@@ -35,7 +35,7 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   --without-python \
   --without-readline \
   --without-modules \
-  --with-lzma="$XC_STAGE2" \
+  --without-lzma \
   --with-zlib="$ZLIB_STAGE2"
 
 make -j$NCPU
