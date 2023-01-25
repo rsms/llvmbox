@@ -26,7 +26,6 @@ for src in \
 ;do
   _copyinto "$src/" "$LLVMBOX_DESTDIR/sysroot/$TARGET/"
 done
-ln -s "$TARGET" "$LLVMBOX_DESTDIR/sysroot/host"
 
 # _copyinto "$SYSROOTS_DIR/lib/" "$LLVMBOX_DESTDIR/sysroot/lib/"
 # _copyinto "$SYSROOTS_DIR/include/" "$LLVMBOX_DESTDIR/sysroot/include/"

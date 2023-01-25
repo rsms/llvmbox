@@ -121,7 +121,7 @@ esac
 # Note that if sysroot is relative, clang will treat it as relative to itself.
 # I.e. sysroot=foo with clang at /bar/bin/clang results in sysroot=/bar/bin/foo.
 # See line ~200 of clang/lib/Driver/Driver.cpp
-EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/host/" )
+EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/$TARGET/" )
 #
 # C_INCLUDE_DIRS is a colon-separated list of paths to search by default.
 # Relative paths are relative to sysroot. The user can pass -nostdlibinc to disable
