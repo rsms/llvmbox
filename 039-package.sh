@@ -2,6 +2,8 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
+LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVM_RELEASE-$TARGET}
+
 rm -rf "$LLVMBOX_DESTDIR"
 mkdir -p "$LLVMBOX_DESTDIR"
 
@@ -12,6 +14,9 @@ _copyinto() {
 
 for src in \
   "$LLVM_STAGE2" \
+  "$ZLIB_STAGE2" \
+  "$ZSTD_STAGE2" \
+  "$LIBXML2_STAGE2" \
 ;do
   _copyinto "$src/" "$LLVMBOX_DESTDIR/"
 done
@@ -19,9 +24,6 @@ done
 mkdir -p "$LLVMBOX_DESTDIR/sysroot/$TARGET"
 for src in \
   "$LLVMBOX_SYSROOT" \
-  "$ZLIB_STAGE2" \
-  "$ZSTD_STAGE2" \
-  "$LIBXML2_STAGE2" \
   "$LIBCXX_STAGE2" \
 ;do
   _copyinto "$src/" "$LLVMBOX_DESTDIR/sysroot/$TARGET/"
@@ -36,3 +38,10 @@ done
 #     mkdir -v "$LLVMBOX_DESTDIR/sysroot/$dir/llvm-native"
 #   fi
 # done
+
+TARFILE="$LLVMBOX_DESTDIR.tar.xz"
+echo "creating $(_relpath "$TARFILE")"
+XZ_OPT='-T0' tar \
+  -C "$(dirname "$LLVMBOX_DESTDIR")" \
+  -cJpf "$TARFILE" \
+  "$(basename "$LLVMBOX_DESTDIR")"
