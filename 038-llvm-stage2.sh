@@ -128,7 +128,7 @@ EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/$TARGET/" )
 # Relative paths are relative to sysroot. The user can pass -nostdlibinc to disable
 # searching of these paths.
 # See line ~600 of clang/lib/Driver/ToolChains/Linux.cpp
-EXTRA_CMAKE_ARGS+=( -DC_INCLUDE_DIRS="include:include/c++/v1" )
+EXTRA_CMAKE_ARGS+=( -DC_INCLUDE_DIRS="include/c++/v1:include" )
 #
 # ENABLE_LINKER_BUILD_ID causes clang to pass --build-id to ld
 EXTRA_CMAKE_ARGS+=( -DENABLE_LINKER_BUILD_ID=ON )
