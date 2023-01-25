@@ -103,6 +103,7 @@ _import_headers() { # <sdk-dir> <sysversion>
   rm -rf "$dst_incdir"
   mkdir -p "$dst_incdir"
   local tmpfile="$BUILD_DIR/libc-headers-tmp"
+  local name framework
 
   echo "  finding headers"
   "$STAGE1_CC" --sysroot="$sdkdir" \
@@ -114,8 +115,19 @@ _import_headers() { # <sdk-dir> <sysversion>
     [[ "$line" != *"/import-macos-headers.c"* ]] || continue
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
     path=${line/ \\/}                         # "foo \" => "foo"
-    name="${path/*\/usr\/include\//}"         # /a/b/usr/include/foo/bar.h => foo/bar.h
-    [[ "$name" != "/"* ]] || _err "expected path to contain /usr/include/: '$line'"
+
+
+    # .framework
+    # /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h
+
+    if [[ "$path" == *"/usr/include/"* ]]; then
+      name="${path/*\/usr\/include\//}" # /a/b/usr/include/foo/bar.h => foo/bar.h
+    elif [[ "$path" == *".framework/Headers/"* ]]; then
+      name="${path/*.framework\/Headers\//}"
+      framework=$(echo "$path" | sed -E 's/\/.+\/([^\/]+)\.framework\/Headers.+$/\1/')
+      name="$framework/$name" # e.g. CoreFoundation/CFBase.h
+    fi
+    [[ "$name" != "/"* ]] || _err "unexpected path: $line"
     ( mkdir -p "$(dirname "$dst_incdir/$name")" &&
       install -m 0644 "$path" "$dst_incdir/$name" ) &
   done < "$tmpfile.d"

@@ -174,14 +174,19 @@ SOFTWARE.
 #include <execinfo.h>
 
 // Depended on by LLVM compiler-rt
-#include <asl.h> // sanitizer
-#include <sys/timeb.h> // sanitizer
-#include <os/log.h> // sanitizer
-#include <fstab.h> // sanitizer
-#include <pthread/introspection.h> // sanitizer
-#include <net/ethernet.h> // sanitizer
-#include <util.h> // sanitizer
 #include <TargetConditionals.h> // builtins
+#include <asl.h> // sanitizer
+#include <CoreFoundation/CFBase.h> // sanitizer
+#include <fstab.h> // sanitizer
+#include <net/ethernet.h> // sanitizer
+#include <os/log.h> // sanitizer
+#include <pthread/introspection.h> // sanitizer
+#include <sys/syscall.h> // sanitizer
+#include <sys/timeb.h> // sanitizer
+#include <util.h> // sanitizer
+#include <objc/objc-sync.h> // sanitizer
+#include <mach-o/getsect.h> // sanitizer
+
 
 // Depended on by several frameworks
 #include <AssertMacros.h>
