@@ -54,7 +54,7 @@ LLVM_DISTRIBUTION_COMPONENTS=(
 )
 
 CMAKE_C_FLAGS=( \
-  -isystem "$LLVMBOX_SYSROOT/include" \
+  "-isystem=$LLVMBOX_SYSROOT/include" \
 )
 CMAKE_CXX_FLAGS=(
   -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
@@ -120,10 +120,27 @@ case "$HOST_SYS" in
       -DCOMPILER_RT_ENABLE_IOS=OFF \
       -DCOMPILER_RT_ENABLE_WATCHOS=OFF \
       -DCOMPILER_RT_ENABLE_TVOS=OFF \
-      -DDARWIN_osx_BUILTIN_ARCHS="x86_64;x86_64h" \
-      -DDARWIN_macosx_BUILTIN_ARCHS="x86_64;x86_64h" \
     )
-    # -DLLVM_BUILTIN_TARGETS=x86_64-darwin-apple
+    # to find out supported archs: ld -v 2>&1 | grep 'support archs:'
+    if [ "$TARGET_ARCH" == x86_64 ]; then
+      # needed to not include i386 target which won't work in our sysroot
+      EXTRA_CMAKE_ARGS+=(
+        -DDARWIN_osx_BUILTIN_ARCHS="x86_64;x86_64h" \
+        -DDARWIN_macosx_BUILTIN_ARCHS="x86_64;x86_64h" \
+      )
+    # elif [ "$TARGET_ARCH" == aarch64 ]; then
+    #   # needed on aarch64 since cmake will try 'clang -v' (which it expects to be ld)
+    #   # to discover supported architectures.
+    #   EXTRA_CMAKE_ARGS+=(
+    #     -DDARWIN_osx_BUILTIN_ARCHS="arm64" \
+    #     -DDARWIN_macosx_BUILTIN_ARCHS="arm64" \
+    #   )
+    fi
+    # all: asan;dfsan;msan;hwasan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan
+    EXTRA_CMAKE_ARGS+=(
+      -DCOMPILER_RT_SANITIZERS_TO_BUILD="asan;msan;safestack;scudo;ubsan_minimal" \
+    )
+    # -DLLVM_BUILTIN_TARGETS=$TARGET_ARCH-darwin-apple
     CMAKE_C_FLAGS+=(
       -I"$LLVMBOX_SYSROOT/include" \
       -w \
@@ -134,6 +151,8 @@ case "$HOST_SYS" in
       -L"$LLVMBOX_SYSROOT/lib" \
       -L"$LIBCXX_STAGE2/lib" \
     )
+    # required for CoreFoundation/CFBase.h which is used by compiler-rt/tsan
+    CMAKE_C_FLAGS+=( -Wno-elaborated-enum-base )
     ;;
   # Linux)
   #   EXTRA_CMAKE_ARGS+=(
@@ -217,7 +236,9 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   -DLLDB_ENABLE_LUA=OFF \
   -DLLDB_ENABLE_PYTHON=OFF \
   \
+  -DLIBCXX_ENABLE_SHARED=OFF \
   -DLIBCXXABI_ENABLE_SHARED=OFF \
+  -DLIBUNWIND_ENABLE_SHARED=OFF \
   \
   -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
   -DCOMPILER_RT_CAN_EXECUTE_TESTS=OFF \
@@ -225,6 +246,8 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   -DCOMPILER_RT_INCLUDE_TESTS=OFF \
   -DCOMPILER_RT_BUILD_GWP_ASAN=OFF \
   -DCOMPILER_RT_USE_BUILTINS_LIBRARY=ON \
+  -DCOMPILER_RT_ENABLE_STATIC_UNWINDER=ON \
+  -DCOMPILER_RT_STATIC_CXX_LIBRARY=ON \
   -DSANITIZER_USE_STATIC_CXX_ABI=ON \
   -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
   \
