@@ -39,6 +39,20 @@ done
 #   fi
 # done
 
+# merge libc++abi.a into libc++.a
+echo "merge sysroot/TARGET/ libc++abi.a + libc++.a => libc++.a"
+_pushd "$LLVMBOX_DESTDIR/sysroot/$TARGET"
+cat << END | "$STAGE2_AR" -M -
+create lib/libc++_all.a
+addlib lib/libc++.a
+addlib lib/libc++abi.a
+save
+end
+END
+mv lib/libc++_all.a lib/libc++.a
+"$STAGE2_RANLIB" lib/libc++.a
+
+
 TARFILE="$LLVMBOX_DESTDIR.tar.xz"
 echo "creating $(_relpath "$TARFILE")"
 XZ_OPT='-T0' tar \

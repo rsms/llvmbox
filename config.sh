@@ -241,6 +241,7 @@ STAGE2_LDFLAGS=(
   -L"$LLVMBOX_SYSROOT/lib" \
   -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
 )
+STAGE2_LDFLAGS_EXE=()
 case "$TARGET_SYS" in
   macos)
     STAGE2_CFLAGS+=(
@@ -257,9 +258,12 @@ case "$TARGET_SYS" in
     # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )
     ;;
   linux)
-    STAGE2_LDFLAGS+=( -nostartfiles "$LLVMBOX_SYSROOT/lib/crt1.o" )
+    STAGE2_LDFLAGS_EXE+=( \
+      -nostartfiles "$LLVMBOX_SYSROOT/lib/crt1.o" \
+    )
     ;;
 esac
+STAGE2_LDFLAGS_EXE=( "${STAGE2_LDFLAGS[@]}" "${STAGE2_LDFLAGS_EXE[@]:-}" )
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # functions
