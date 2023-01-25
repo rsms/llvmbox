@@ -107,6 +107,7 @@ case "$HOST_SYS" in
     CMAKE_C_FLAGS+=( -Wno-elaborated-enum-base )
     ;;
   Linux)
+    CMAKE_LD_FLAGS+=( -static )
     EXTRA_CMAKE_ARGS+=(
       -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-linux-musl" \
       -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
