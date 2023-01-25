@@ -2,57 +2,6 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-LLVM_TOOLCHAIN_TOOLS=(
-  llvm-ar \
-  llvm-cov \
-  llvm-cxxfilt \
-  llvm-dwp \
-  llvm-ranlib \
-  llvm-lib \
-  llvm-ml \
-  llvm-nm \
-  llvm-objcopy \
-  llvm-objdump \
-  llvm-pdbutil \
-  llvm-rc \
-  llvm-readobj \
-  llvm-size \
-  llvm-strings \
-  llvm-strip \
-  llvm-profdata \
-  llvm-symbolizer \
-  llvm-dwarfdump \
-  llvm-config \
-  dsymutil \
-)
-# symlink version of some of above tools that are enabled
-# by LLVM_INSTALL_BINUTILS_SYMLINKS
-LLVM_TOOLCHAIN_TOOLS+=(
-  addr2line \
-  ar \
-  c++filt \
-  ranlib \
-  nm \
-  objcopy \
-  objdump \
-  readelf \
-  size \
-  strings \
-  strip \
-)
-
-LLVM_DISTRIBUTION_COMPONENTS=(
-  lld
-  clang
-  clang-format
-  clang-resource-headers
-  clang-refactor
-  clang-scan-deps
-  libclang
-  builtins
-  "${LLVM_TOOLCHAIN_TOOLS[@]}" \
-)
-
 CMAKE_C_FLAGS=( \
   -Wno-unused-command-line-argument \
   -isystem"$LLVMBOX_SYSROOT/include" \
@@ -121,6 +70,8 @@ case "$HOST_SYS" in
       -DCOMPILER_RT_ENABLE_IOS=OFF \
       -DCOMPILER_RT_ENABLE_WATCHOS=OFF \
       -DCOMPILER_RT_ENABLE_TVOS=OFF \
+      -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-apple-darwin$TARGET_DARWIN_VERSION" \
+      -DCOMPILER_RT_COMMON_CFLAGS="-isystem$LLVMBOX_SYSROOT/include"\
     )
     # to find out supported archs: ld -v 2>&1 | grep 'support archs:'
     if [ "$TARGET_ARCH" == x86_64 ]; then
@@ -155,19 +106,33 @@ case "$HOST_SYS" in
     # required for CoreFoundation/CFBase.h which is used by compiler-rt/tsan
     CMAKE_C_FLAGS+=( -Wno-elaborated-enum-base )
     ;;
-  # Linux)
-  #   EXTRA_CMAKE_ARGS+=(
-  #     -DLIBCXX_HAS_MUSL_LIBC=ON \
-  #   )
-  #   ;;
+  Linux)
+    EXTRA_CMAKE_ARGS+=(
+      -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-linux-musl" \
+      -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
+    )
+    ;;
 esac
 
-# EXTRA_CMAKE_ARGS+=(
-#   -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${LLVM_DISTRIBUTION_COMPONENTS[@]}")" \
-#   -DLLVM_TOOLCHAIN_TOOLS="$(_array_join ";" "${LLVM_TOOLCHAIN_TOOLS[@]}")" \
-# )
+# note: there are clang-specific option, even though it doesn't start with CLANG_
+# See: llvm/clang/CMakeLists.txt
+#
+# DEFAULT_SYSROOT sets the default --sysroot=<path>.
+# Note that if sysroot is relative, clang will treat it as relative to itself.
+# I.e. sysroot=foo with clang at /bar/bin/clang results in sysroot=/bar/bin/foo.
+# See line ~200 of clang/lib/Driver/Driver.cpp
+EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/host/" )
+#
+# C_INCLUDE_DIRS is a colon-separated list of paths to search by default.
+# Relative paths are relative to sysroot. The user can pass -nostdlibinc to disable
+# searching of these paths.
+# See line ~600 of clang/lib/Driver/ToolChains/Linux.cpp
+EXTRA_CMAKE_ARGS+=( -DC_INCLUDE_DIRS="include:include/c++/v1" )
+#
+# ENABLE_LINKER_BUILD_ID causes clang to pass --build-id to ld
+EXTRA_CMAKE_ARGS+=( -DENABLE_LINKER_BUILD_ID=ON )
 
-
+# bake flags (array -> string)
 CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]:-}"
 CMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS[@]:-} ${CMAKE_C_FLAGS[@]:-}"
 CMAKE_LD_FLAGS="${CMAKE_LD_FLAGS[@]:-}"

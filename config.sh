@@ -18,6 +18,7 @@ PROJECT=${LLVMBOX_PROJECT:-$(realpath "$(dirname "$0")")}
 BUILD_DIR=$(realpath "$LLVMBOX_BUILD_DIR")
 DOWNLOAD_DIR=$(realpath "${LLVMBOX_DOWNLOAD_DIR:-$PROJECT/download}")
 OUT_DIR=$(realpath "${LLVMBOX_OUT_DIR:-$PROJECT/out}")
+LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox}
 NCPU=${LLVMBOX_NCPU:-$(nproc)}; [ -n "$NCPU" ] || NCPU=$(nproc)
 HOST_SYS=$(uname -s)
 HOST_ARCH=$(uname -m)
@@ -92,8 +93,9 @@ esac
 case "$TARGET_ARCH-$TARGET_SYS" in
   x86_64-macos)  TARGET_SYS_MINVERSION=10.15 ;;
   aarch64-macos) TARGET_SYS_MINVERSION=11.0 ;;
-  *)             TARGET_SYS_MINVERSION=1.0 ;;
+  *)             TARGET_SYS_MINVERSION=0.0 ;;
 esac
+
 # check so that TARGET_SYS_VERSION >= TARGET_SYS_MINVERSION
 if [ -z "$TARGET_SYS_VERSION" ]; then
   TARGET_SYS_VERSION=$TARGET_SYS_MINVERSION
@@ -104,8 +106,22 @@ else
   _err "invalid TARGET version format '$TARGET_SYS_VERSION'; expected M[.m[.p]]"
 fi
 TARGET_SYS_VERSION_MAJOR=${TARGET_SYS_VERSION%%.*}  # e.g. 1 in 1.2.3
+
+# TARGET_DARWIN_VERSION is the darwin version corresponding to the os version.
+# See: https://en.wikipedia.org/wiki/Darwin_(operating_system)#Release_history
+TARGET_DARWIN_VERSION=
+[ "$TARGET_SYS" != macos ] || case "$TARGET_SYS_VERSION" in
+  10.15) TARGET_DARWIN_VERSION=19.0.0 ;;
+  11.5)  TARGET_DARWIN_VERSION=20.6.0 ;;
+  12.5)  TARGET_DARWIN_VERSION=21.6.0 ;;
+  *)
+    # default to major version (macos 10.x = darwin 19.x, 11.x = 20.x, ...)
+    TARGET_DARWIN_VERSION=$(( $TARGET_SYS_VERSION_MAJOR + 9 )) ;;
+esac
+
 # rewrite TARGET to canonical form arch-sysname-sysversionmajor
-TARGET=$TARGET_ARCH-$TARGET_SYS-$TARGET_SYS_VERSION_MAJOR
+TARGET=$TARGET_ARCH-$TARGET_SYS
+[ "$TARGET_SYS_VERSION_MAJOR" = 0 ] || TARGET=$TARGET.$TARGET_SYS_VERSION_MAJOR
 
 SYSROOTS_DIR=$PROJECT/sysroots
 LLVMBOX_SYSROOT_BASE=${LLVMBOX_SYSROOT_BASE:-$OUT_DIR/sysroot}
