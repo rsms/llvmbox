@@ -18,7 +18,10 @@ make -j$NCPU
 echo "——————————————————— check ———————————————————"
 make -j$NCPU check
 echo "——————————————————— install ———————————————————"
-make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
+# make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
+rm -rf "$ZLIB_STAGE2"
+mkdir -p "$ZLIB_STAGE2"/{lib,include}
+make DESTDIR="$ZLIB_STAGE2" -j$NCPU install
 
 _popd
 rm -rf "$ZLIB_SRC"

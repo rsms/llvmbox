@@ -214,7 +214,7 @@ Testing musl with host compiler (linux only)
 ```
 export LLVMBOX_MUSL=`realpath $(echo $LLVMBOX_BUILD_DIR/musl-$(uname -m)-linux-*)`
 $LLVMBOX_BUILD_DIR/llvm-host/bin/clang \
-  -isystem $LLVMBOX_MUSL/include \
+  -isystem$LLVMBOX_MUSL/include \
   -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
   -nostdlib -L$LLVMBOX_MUSL/lib -lc \
   test/hello.c -o test/hello_c
@@ -228,14 +228,14 @@ This dose _NOT_ work for C++ using the host compiler since the host compiler is 
 
 ```
 $LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ \
-  -nostdinc++ -isystem $LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
+  -nostdinc++ -isystem$LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
   -I$LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
   -I$(echo $LLVMBOX_BUILD_DIR/llvm-host/include/$(uname -m)-unknown-linux-*)/c++/v1 \
   -L$(echo $LLVMBOX_BUILD_DIR/llvm-host/lib/$(uname -m)-unknown-linux-*) \
   -nostdlib++ -L$LLVMBOX_BUILD_DIR/llvm-host/lib \
   -lc++ \
   \
-  -isystem $LLVMBOX_MUSL/include \
+  -isystem$LLVMBOX_MUSL/include \
   -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
   -nostdlib -L$LLVMBOX_MUSL/lib -lc \
   test/hello.cc -o test/hello_cc
@@ -297,6 +297,7 @@ ls -l /tmp/crash
 - https://llvm.org/docs/BuildingADistribution.html
 - https://libcxx.llvm.org/BuildingLibcxx.html
 - https://libcxx.llvm.org/UsingLibcxx.html#alternate-libcxx
+- https://compiler-rt.llvm.org/
 - https://github.com/rust-lang/rust/issues/65051
 - https://wiki.musl-libc.org/building-llvm.html
 - https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/build/toolchain.md

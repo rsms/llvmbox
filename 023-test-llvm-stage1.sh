@@ -40,7 +40,7 @@ Linux)
   LIBCXX_I=$(echo | gcc -E -xc++ -Wp,-v - 2>&1 |
              grep '^ /' | head -n1 | awk '{print $1}' || true)
   [ -d "$LIBCXX_I" ] &&
-    CXX_STAGE1_LDFLAGS+=( -isystem "$LIBCXX_I" )
+    CXX_STAGE1_LDFLAGS+=( -isystem"$LIBCXX_I" )
   LIBSTDCXX=$("$STAGE1_CC" --print-file-name=libstdc++.a || true)
   if [ -e "$LIBSTDCXX" ]; then
     CXX_STAGE1_LDFLAGS+=(

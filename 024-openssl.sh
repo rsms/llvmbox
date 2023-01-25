@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
+#
+# see https://wiki.openssl.org/index.php/Compilation_and_Installation
+#
 
 _fetch_source_tar \
   https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz \
@@ -17,8 +20,8 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   --prefix=/ \
   --libdir=lib \
   --openssldir=/etc/ssl \
-  no-shared \
   no-zlib \
+  no-shared \
   no-async \
   no-comp \
   no-idea \
@@ -35,8 +38,11 @@ LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 
 make -j$NCPU
 
-mkdir -p "$LLVMBOX_SYSROOT"
-make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install_sw
+rm -rf "$OPENSSL_STAGE2"
+mkdir -p "$OPENSSL_STAGE2"
+make DESTDIR="$OPENSSL_STAGE2" -j$NCPU install_sw
+
+rm -rf "$OPENSSL_STAGE2"/bin "$OPENSSL_STAGE2"/lib/pkgconfig
 
 _popd
 rm -rf "$OPENSSL_SRC"

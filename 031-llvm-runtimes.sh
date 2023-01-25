@@ -2,8 +2,6 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-LIBCXX_DESTDIR=$OUT_DIR/libcxx-stage2
-
 CMAKE_C_FLAGS=()
 CMAKE_LD_FLAGS=()
 EXTRA_CMAKE_ARGS=( -Wno-dev )
@@ -76,23 +74,10 @@ cmake -G Ninja "$LLVM_SRC/runtimes" \
   "${EXTRA_CMAKE_ARGS[@]}"
 
 
-echo "———————————————————————— cxx ————————————————————————"
-ninja cxx
-echo "———————————————————————— cxxabi ————————————————————————"
-ninja cxxabi
-echo "———————————————————————— unwind ————————————————————————"
-ninja unwind
+echo "———————————————————————— build ————————————————————————"
+ninja cxx cxxabi unwind
 
 echo "———————————————————————— install ————————————————————————"
-mkdir -p "$LIBCXX_DESTDIR"
-DESTDIR=$LIBCXX_DESTDIR ninja install-cxx install-cxxabi install-unwind
-
-echo "———————————————————————— test ————————————————————————"
-"$LLVM_STAGE1/bin/clang++" \
-  --sysroot="$LLVMBOX_SYSROOT" -isystem "$LLVMBOX_SYSROOT/include" \
-  -L"$LLVMBOX_SYSROOT/lib" \
-  -nostdinc++ -I"$LIBCXX_DESTDIR/include/c++/v1" \
-  -nostdlib++ -L"$LIBCXX_DESTDIR/lib" -lc++ -lc++abi \
-  "$PROJECT/test/hello.cc" -o "$OUT_DIR/hello_cc_stage2"
-
-"$OUT_DIR/hello_cc_stage2"
+rm -rf "$LIBCXX_STAGE2"
+mkdir -p "$LIBCXX_STAGE2"
+DESTDIR="$LIBCXX_STAGE2" ninja install-cxx install-cxxabi install-unwind

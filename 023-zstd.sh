@@ -53,21 +53,15 @@ for f in "${SOURCES[@]}"; do
 done
 wait
 
-echo "create archive $LLVMBOX_SYSROOT/lib/libzstd.a"
-"$STAGE2_AR" cr "$LLVMBOX_SYSROOT/lib/libzstd.a" "${OBJECTS[@]}"
-"$STAGE2_RANLIB" "$LLVMBOX_SYSROOT/lib/libzstd.a"
+# DESTDIR="$LLVMBOX_SYSROOT"
+DESTDIR="$ZSTD_STAGE2"; rm -rf "$ZSTD_STAGE2"; mkdir -p "$ZSTD_STAGE2"/{lib,include}
 
-echo "install header $LLVMBOX_SYSROOT/include/zstd.h"
-install -m 0644 lib/zstd.h "$LLVMBOX_SYSROOT/include/zstd.h"
+echo "create archive $DESTDIR/lib/libzstd.a"
+"$STAGE2_AR" cr "$DESTDIR/lib/libzstd.a" "${OBJECTS[@]}"
+"$STAGE2_RANLIB" "$DESTDIR/lib/libzstd.a"
 
-# CC=$STAGE2_CC \
-# LD=$STAGE2_LD \
-# AR=$STAGE2_AR \
-# CFLAGS="${STAGE2_CFLAGS[@]} -O2 -DBACKTRACE_ENABLE=0 -flto=auto -ffat-lto-objects" \
-# LDFLAGS="${STAGE2_LDFLAGS[@]}" \
-# make HAVE_PTHREAD=1 ZSTD_LIB_MINIFY=1 prefix= -j$(nproc) lib-mt
-# install -vDm 0644 lib/zstd.h "$LLVMBOX_SYSROOT"/include/zstd.h
-# install -vDm 0644 lib/libzstd.a "$LLVMBOX_SYSROOT"/lib/libzstd.a
+echo "install header $DESTDIR/include/zstd.h"
+install -m 0644 lib/zstd.h "$DESTDIR/include/zstd.h"
 
 _popd
 rm -rf "$ZSTD_SRC"

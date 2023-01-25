@@ -7,7 +7,7 @@ LDFLAGS="-fuse-ld=lld --sysroot=$LLVMBOX_SYSROOT"
 CXXFLAGS="-nostdinc++ -I$LLVMBOX_SYSROOT/include/c++/v1"
 CXX_LDFLAGS="-nostdlib++ -lc++"
 if [ "$TARGET_SYS" = "macos" ]; then
-  CFLAGS="$CFLAGS -isystem $(xcrun -sdk macosx --show-sdk-path)/usr/include"
+  CFLAGS="$CFLAGS -isystem$(xcrun -sdk macosx --show-sdk-path)/usr/include"
 fi
 
 set -x
