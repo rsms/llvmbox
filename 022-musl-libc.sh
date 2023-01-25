@@ -13,9 +13,12 @@ source "$(dirname "$0")/config.sh"
 
 [ "$TARGET_SYS" = linux ] || { echo "$0: skipping (not targeting linux)"; exit; }
 
+# comment this out to enable building libc-shared.so in addition to libc.a
+CONFIG_ARGS="--disable-shared"
+
 _fetch_source_tar \
   https://musl.libc.org/releases/musl-$MUSL_VERSION.tar.gz \
-  $MUSL_SHA256 "$MUSL_SRC"
+  "$MUSL_SHA256" "$MUSL_SRC"
 
 _pushd "$MUSL_SRC"
 
@@ -25,8 +28,8 @@ AR=$STAGE2_AR \
 RANLIB=$STAGE2_RANLIB \
 CFLAGS="${STAGE2_CFLAGS[@]}" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
-LIBCC=-lclang_rt.builtins \
-./configure --target=$TARGET_TRIPLE --disable-shared --prefix=
+LIBCC="-L$LLVM_STAGE1/lib/clang/$LLVM_RELEASE/lib/linux -lclang_rt.builtins-$TARGET_ARCH" \
+./configure --target=$TARGET_TRIPLE --prefix= ${CONFIG_ARGS:-}
 
 make -j$NCPU
 
@@ -34,9 +37,16 @@ mkdir -p "$LLVMBOX_SYSROOT"
 DESTDIR=$LLVMBOX_SYSROOT make install
 # [ -e "$LLVMBOX_SYSROOT/lib/ld-musl-$TARGET_ARCH.so.1 -> /lib/libc.so" ]
 
-# fix absoulute dynamic loader symlink (only when configured with --enable-shared)
-[ -e "$LLVMBOX_SYSROOT/lib/ld-musl-$TARGET_ARCH.so.1" ] &&
-  ln -sf libc.so "$LLVMBOX_SYSROOT/lib/ld-musl-$TARGET_ARCH.so.1"
+rm -f "$LLVMBOX_SYSROOT/lib/ld-musl-$TARGET_ARCH.so.1"
+
+# Move shared lib aside (for now) to prevent other tools from linking against it.
+# To successfully run an exe linked against musl libc.so we have to use a custom
+# "interpreter" by passing "-dynamic-linker <path>" to ld. However we can't simply
+# add that to STAGE2_LDFLAGS since it would break linking libs.
+if [ -e "$LLVMBOX_SYSROOT/lib/libc.so" ]; then
+  mv -v "$LLVMBOX_SYSROOT/lib/libc.so" "$LLVMBOX_SYSROOT/lib/libc-shared.so"
+  ln -sv libc-shared.so "$LLVMBOX_SYSROOT/lib/ld-musl-$TARGET_ARCH.so.1"
+fi
 
 # remove wrappers (they don't work with our setup anyways)
 rm -f "$LLVMBOX_SYSROOT/bin/ld.musl-clang"

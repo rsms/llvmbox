@@ -13,7 +13,7 @@ CXX_LDFLAGS=( -nostdlib++ -L"$LLVM_STAGE1/lib" -lc++ -lc++abi )
 
 # flags for using LLVMBOX_SYSROOT instead of host system
 CFLAGS_SYSROOT=( "${STAGE2_CFLAGS[@]}" )
-LDFLAGS_SYSROOT=( "${STAGE2_LDFLAGS[@]}" )
+LDFLAGS_SYSROOT=( "${STAGE2_LDFLAGS_EXE[@]}" )
 
 # flags for linking c++ along with libs from LLVM_STAGE1 (uses host libc++)
 CXX_STAGE1_LDFLAGS=()
@@ -156,9 +156,20 @@ if [ "$HOST_SYS" = Linux ]; then
   # however, it works with musl (must have run 022-musl-libc.sh)
   if [ -f "$LLVMBOX_SYSROOT/lib/libc.a" ]; then
     echo "————————————————————————————————————————————————————————————"
-    echo "cc shared musl libc"; out=$BUILD_DIR/_hello_c_musl
+    echo "cc default musl libc"; out=$BUILD_DIR/_hello_c_musl
     _cc_sysroot test/hello.c -o "$out"
     _print_linking "$out" ; "$out"
+
+    # if musl was built with shared lib, test it
+    if [ -e "$LLVMBOX_SYSROOT/lib/libc-shared.so" ]; then
+      echo "————————————————————————————————————————————————————————————"
+      echo "cc shared musl libc"; out=$BUILD_DIR/_hello_c_musl_sh
+      _cc_sysroot \
+        -Wl,-dynamic-linker,"$LLVMBOX_SYSROOT/lib/libc/ld-musl-$TARGET_ARCH.so.1" \
+        -lc-shared \
+        test/hello.c -o "$out"
+      _print_linking "$out" ; "$out"
+    fi
 
     echo "————————————————————————————————————————————————————————————"
     echo "cc static musl libc"; out=$BUILD_DIR/_hello_c_musl_static
