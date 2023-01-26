@@ -404,3 +404,22 @@ _fetch_source_tar() { # <url> (<sha256> | <sha512> | "") <outdir> [<tarfile>]
   _download    "$url" "$tarfile" "$checksum"
   _extract_tar "$tarfile" "$outdir"
 }
+
+_human_filesize() { # <file>
+  local Z
+  if [ "$HOST_SYS" = "Darwin" ]; then
+    Z=$(stat -f "%z" "$1")
+  else
+    Z=$(stat -c "%s" "$1")
+  fi
+  if [ $Z -gt 1073741824 ]; then
+    awk "BEGIN{printf \"%.1f GB\n\", $Z / 1073741824}"
+  elif [ $Z -gt 1048575 ]; then
+    awk "BEGIN{printf \"%.1f MB\n\", $Z / 1048576}"
+  elif [ $Z -gt 1023 ]; then
+    awk "BEGIN{printf \"%.1f kB\n\", $Z / 1024}"
+  else
+    awk "BEGIN{printf \"%.0f B\n\", $Z}"
+  fi
+  shift
+}
