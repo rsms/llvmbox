@@ -36,6 +36,10 @@ EXTRA_CMAKE_ARGS+=( \
   -DLIBXML2_INCLUDE_DIR="$LIBXML2_STAGE2/include/libxml2" \
 )
 
+# xar is deprecated and so we have disabled it.
+# This means lld can't handle xar archives.
+# Re-enabling this means we have to build xc and openssl (libxar deps)
+# if so, rename the "disabled-02*.sh" scripts.
 # # xar (for mach-o linker)
 # if [ -d "$XAR_STAGE2" ]; then
 #   EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=1 )
@@ -50,7 +54,7 @@ EXTRA_CMAKE_ARGS+=( \
 #     -L"$OPENSSL_STAGE2/lib" -lcrypto \
 #   )
 # else
-  EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=0 )
+EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=0 )
 # fi
 
 case "$HOST_SYS" in
