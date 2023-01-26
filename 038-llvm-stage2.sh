@@ -11,7 +11,6 @@ DIST_COMPONENTS=(
   clang-resource-headers \
   compiler-rt \
   compiler-rt-headers \
-  dsymutil \
   lld \
   llvm-ar \
   llvm-as \

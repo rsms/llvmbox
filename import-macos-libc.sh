@@ -139,19 +139,37 @@ _import_libs() { # <sdk-dir> <sysversion>
   local sysver=$2
   local sysroot_name dst_libdir name ent alias src srcdir dst
   local libs_anyarch=( libSystem.tbd )
+  local cs1 cs2
 
   # import libs for any arch
   sysroot_name="any-macos.$sysver"
   dst_libdir="$SYSROOTS_DIR/lib/$sysroot_name"
-  rm -rf "$dst_libdir"
   for name in "${libs_anyarch[@]}"; do
     srcdir="$sdkdir/usr/lib"
     src="$srcdir/$name"
     [ -e "$src" ] || continue
     src="$(realpath "$src")"
-    echo "  copying lib $name -> $(_relpath "$dst_libdir")/"
-    mkdir -p "$dst_libdir"
-    install -m 0644 "$src" "$dst_libdir/$name"
+    dst="$dst_libdir/$name"
+
+    if [ -e "$dst" ]; then
+      cs1=$(sha256sum "$src" | cut -d' ' -f1)
+      cs2=$(sha256sum "$dst_libdir/$name" | cut -d' ' -f1)
+      if [ "$cs1" != "$cs2" ]; then
+        cat <<- END >&2
+
+  ——————————————————————————————————— note ————————————————————————————————————
+  Will NOT overwrite $(_relpath "$dst") which is different from
+  $(_relpath "$src")
+  To replace it, 'rm $(_relpath "$dst")' and re-run this script
+  —————————————————————————————————————————————————————————————————————————————
+
+END
+      fi
+    else
+      echo "  copying lib $name -> $(_relpath "$dst")"
+      mkdir -p "$dst_libdir"
+      install -m 0644 "$src" "$dst"
+    fi
 
     # match symlinks
     for ent in "$srcdir/"*; do
@@ -164,7 +182,7 @@ _import_libs() { # <sdk-dir> <sysversion>
       [ "$dst" = "$name" ] || continue
       alias="$(basename "$ent")"
       echo "  symlink $alias -> $name"
-      ln -s "$name" "$dst_libdir/$alias"
+      ln -sf "$name" "$dst_libdir/$alias"
     done
   done
 }
@@ -179,7 +197,7 @@ _import_sdk() { # <path> <version>
   [[ "$(basename "$sdkdir" .sdk)" == "MacOSX"* ]] ||
     _err "SDK doesn't start with 'MacOSX'; bailing out ($sdkdir)"
 
-  _import_headers "$sdkdir" "$sysver"
+  # _import_headers "$sdkdir" "$sysver"
   _import_libs    "$sdkdir" "$sysver"
 }
 
