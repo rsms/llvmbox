@@ -56,7 +56,9 @@ case "$HOST_SYS" in
       -DCOMPILER_RT_USE_BUILTINS_LIBRARY=OFF \
       -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
     )
-    # -D_GLIBCXX_USE_CXX11_ABI=1
+    # detect libc
+    [ "$(echo /lib/ld-musl*)" = "/lib/ld-musl*" ] ||
+      EXTRA_CMAKE_ARGS+=( -DLIBCXX_HAS_MUSL_LIBC=ON )
     # EXTRA_CMAKE_ARGS+=( -DLLVM_DEFAULT_TARGET_TRIPLE=$HOST_ARCH-linux-musl )
     #
     # COMPILER_RT_USE_BUILTINS_LIBRARY
