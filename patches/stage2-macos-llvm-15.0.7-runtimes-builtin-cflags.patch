@@ -1,0 +1,13 @@
+We need to provide -isystem<sysroot>/include to compiler-rt builtin compilation
+or else some headers aren't found (which is weird since cmake does set --sysroot)
+
+--- a/compiler-rt/cmake/Modules/CompilerRTDarwinUtils.cmake  2023-01-26 09:19:00.000000000 -0800
++++ b/compiler-rt/cmake/Modules/CompilerRTDarwinUtils.cmake  2023-01-26 09:19:01.000000000 -0800
+@@ -405,6 +405,7 @@
+   set(CMAKE_ASM_FLAGS "")
+ 
+   append_list_if(COMPILER_RT_HAS_ASM_LSE -DHAS_ASM_LSE CFLAGS)
++  append_list_if(COMPILER_RT_BUILTIN_CFLAGS ${COMPILER_RT_BUILTIN_CFLAGS} CFLAGS)
+ 
+   set(PROFILE_SOURCES ../profile/InstrProfiling.c
+                       ../profile/InstrProfilingBuffer.c
