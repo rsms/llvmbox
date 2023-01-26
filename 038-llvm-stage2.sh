@@ -108,7 +108,10 @@ case "$HOST_SYS" in
     )
     # required for CoreFoundation/CFBase.h which is used by compiler-rt/tsan
     CMAKE_C_FLAGS+=( -Wno-elaborated-enum-base )
+    # required for linking with CoreFoundation, required by dsymutil
+    CMAKE_LD_FLAGS+=( -F"$HOST_MACOS_SDK/System/Library/Frameworks" )
     ;;
+
   Linux)
     CMAKE_C_FLAGS+=( --target=$TARGET_ARCH-unknown-linux-musl )
     CMAKE_LD_FLAGS+=( \
