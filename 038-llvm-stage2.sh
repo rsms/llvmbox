@@ -71,7 +71,10 @@ case "$HOST_SYS" in
       -DCOMPILER_RT_ENABLE_WATCHOS=OFF \
       -DCOMPILER_RT_ENABLE_TVOS=OFF \
       -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-apple-darwin$TARGET_DARWIN_VERSION" \
-      -DCOMPILER_RT_COMMON_CFLAGS="-isystem$LLVMBOX_SYSROOT/include"\
+      -DCOMPILER_RT_COMMON_CFLAGS="-isystem$LLVMBOX_SYSROOT/include" \
+      -DCOMPILER_RT_BUILTIN_CFLAGS="-isystem$LLVMBOX_SYSROOT/include" \
+      -DLLVM_TOOLCHAIN_TOOLS=llvm-libtool-darwin \
+      -DCMAKE_LIBTOOL="$STAGE2_LIBTOOL" \
     )
     # to find out supported archs: ld -v 2>&1 | grep 'support archs:'
     if [ "$TARGET_ARCH" == x86_64 ]; then
