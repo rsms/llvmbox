@@ -2,6 +2,61 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
+DIST_COMPONENTS=(
+  builtins \
+  clang \
+  clang-format \
+  clang-headers \
+  clang-libraries \
+  clang-resource-headers \
+  compiler-rt \
+  compiler-rt-headers \
+  dsymutil \
+  lld \
+  llvm-ar \
+  llvm-as \
+  llvm-config \
+  llvm-cov \
+  llvm-dlltool \
+  llvm-dwarfdump \
+  llvm-headers \
+  llvm-libraries \
+  llvm-libtool-darwin \
+  llvm-nm \
+  llvm-objcopy \
+  llvm-objdump \
+  llvm-otool \
+  llvm-profdata \
+  llvm-ranlib \
+  llvm-rc \
+  llvm-size \
+  llvm-strings \
+  llvm-strip \
+  llvm-symbolizer \
+  llvm-tblgen \
+  llvm-xray \
+)
+EXTRA_COMPONENTS=( # components without install targets
+  clang-tblgen \
+)
+BINUTILS_SYMLINKS=( # "alias target"
+  "addr2line        llvm-symbolizer" \
+  "ar               llvm-ar" \
+  "debuginfod       llvm-debuginfod" \
+  "debuginfod-find  llvm-debuginfod-find" \
+  "dlltool          llvm-ar" \
+  "dwp              llvm-dwp" \
+  "nm               llvm-nm" \
+  "objcopy          llvm-objcopy" \
+  "objdump          llvm-objdump" \
+  "ranlib           llvm-ar" \
+  "readelf          llvm-readobj" \
+  "size             llvm-size" \
+  "strings          llvm-strings" \
+  "strip            llvm-objcopy" \
+  "windres          llvm-rc" \
+) # ack --type=cmake '  add_llvm_tool_symlink' out/src/llvm/ | cat
+
 CMAKE_C_FLAGS=( \
   -Wno-unused-command-line-argument \
   -isystem"$LLVMBOX_SYSROOT/include" \
@@ -87,13 +142,13 @@ case "$HOST_SYS" in
         -DDARWIN_osx_BUILTIN_ARCHS="x86_64;x86_64h" \
         -DDARWIN_macosx_BUILTIN_ARCHS="x86_64;x86_64h" \
       )
-    # elif [ "$TARGET_ARCH" == aarch64 ]; then
-    #   # needed on aarch64 since cmake will try 'clang -v' (which it expects to be ld)
-    #   # to discover supported architectures.
-    #   EXTRA_CMAKE_ARGS+=(
-    #     -DDARWIN_osx_BUILTIN_ARCHS="arm64" \
-    #     -DDARWIN_macosx_BUILTIN_ARCHS="arm64" \
-    #   )
+    elif [ "$TARGET_ARCH" == aarch64 ]; then
+      # needed on aarch64 since cmake will try 'clang -v' (which it expects to be ld)
+      # to discover supported architectures.
+      EXTRA_CMAKE_ARGS+=(
+        -DDARWIN_osx_BUILTIN_ARCHS="arm64" \
+        -DDARWIN_macosx_BUILTIN_ARCHS="arm64" \
+      )
     fi
     # all: asan;dfsan;msan;hwasan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan
     EXTRA_CMAKE_ARGS+=(
@@ -175,6 +230,7 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   \
   -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64;RISCV;WebAssembly" \
   -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
+  -DLLVM_DISTRIBUTION_COMPONENTS="$(_array_join ";" "${DIST_COMPONENTS[@]}")" \
   -DLLVM_INSTALL_BINUTILS_SYMLINKS=ON \
   -DLLVM_APPEND_VC_REV=OFF \
   -DLLVM_ENABLE_LTO=Thin \
@@ -234,18 +290,33 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   -DSANITIZER_USE_STATIC_CXX_ABI=ON \
   -DSANITIZER_USE_STATIC_LLVM_UNWINDER=ON \
   \
+  -DLLVM_TABLEGEN="$LLVM_STAGE1/bin/llvm-tblgen" \
+  -DCLANG_TABLEGEN="$LLVM_STAGE1/bin/clang-tblgen" \
+  \
   "${EXTRA_CMAKE_ARGS[@]:-}"
 
 echo "———————————————————————— build ————————————————————————"
-ninja -j$NCPU
+ninja -j$NCPU distribution "${EXTRA_COMPONENTS[@]}"
 
 echo "———————————————————————— install ————————————————————————"
 rm -rf "$LLVM_STAGE2"
 mkdir -p "$LLVM_STAGE2"
-DESTDIR="$LLVM_STAGE2" ninja -j$NCPU install
+DESTDIR="$LLVM_STAGE2" ninja -j$NCPU install-distribution-stripped
 
-# strip
+# no install target for clang-tblgen
+install -vm 0755 bin/clang-tblgen "$LLVM_STAGE2/bin/clang-tblgen"
+
 _pushd "$LLVM_STAGE2"/bin
+
+# create binutils-compatible symlinks
+for name_target in "${BINUTILS_SYMLINKS[@]}"; do
+  IFS=' ' read -r name target <<< "$name_target"
+  echo "symlink $name -> $target"
+  ln -sf $target $name
+done
+
+# strip (yes, one more time :-)
+#STRIP_VERBOSE=1 # uncomment to print file size changes
 EXES=()
 for f in *; do
   [ -f "$f" ] || continue
@@ -253,8 +324,15 @@ for f in *; do
 done
 IFS=$'\n' EXES=( $(sort -u <<< "${EXES[*]}") ); unset IFS
 for f in "${EXES[@]}"; do
-  echo "strip $f"
-  "$LLVM_STAGE1/bin/llvm-strip" "$f" || echo "-- skipping" &
+  if [ -z "${STRIP_VERBOSE:-}" ]; then
+    echo "strip $f"
+    "$LLVM_STAGE1/bin/llvm-strip" "$f" 2>/dev/null || true &
+  else
+    Z1=$(_human_filesize "$f")
+    echo -n "strip $f"
+    "$LLVM_STAGE1/bin/llvm-strip" "$f" 2>/dev/null || true
+    echo -e ":\t$Z1 -> $(_human_filesize "$f")"
+  fi
 done
 wait
 
