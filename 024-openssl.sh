@@ -11,9 +11,10 @@ _fetch_source_tar \
 
 _pushd "$OPENSSL_SRC"
 
-CC=$STAGE2_CC \
-LD=$STAGE2_LD \
-AR=$STAGE2_AR \
+CC="$STAGE2_CC" \
+LD="$STAGE2_LD" \
+AR="$STAGE2_AR" \
+RANLIB="$STAGE2_RANLIB" \
 CFLAGS="${STAGE2_CFLAGS[@]}" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
 ./config \

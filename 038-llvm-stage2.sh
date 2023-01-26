@@ -107,7 +107,11 @@ case "$HOST_SYS" in
     CMAKE_C_FLAGS+=( -Wno-elaborated-enum-base )
     ;;
   Linux)
-    CMAKE_LD_FLAGS+=( -static )
+    CMAKE_C_FLAGS+=( --target=$TARGET_ARCH-unknown-linux-musl )
+    CMAKE_LD_FLAGS+=( \
+      -static \
+      -L"$LLVM_STAGE1"/lib/$TARGET_ARCH-unknown-linux-gnu \
+    )
     EXTRA_CMAKE_ARGS+=(
       -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-linux-musl" \
       -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
@@ -162,6 +166,7 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   -DLLVM_TARGETS_TO_BUILD="X86;ARM;AArch64;RISCV;WebAssembly" \
   -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" \
   -DLLVM_INSTALL_BINUTILS_SYMLINKS=ON \
+  -DLLVM_ENABLE_LTO=Thin \
   -DLLVM_ENABLE_MODULES=OFF \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_ENABLE_TERMINFO=OFF \

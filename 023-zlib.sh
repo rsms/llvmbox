@@ -7,18 +7,24 @@ _fetch_source_tar \
 
 _pushd "$ZLIB_SRC"
 
-CC=$STAGE2_CC \
-LD=$STAGE2_LD \
-AR=$STAGE2_AR \
+[ "$TARGET_SYS" != macos ] ||
+  patch -p1 < "$PROJECT/patches/zlib-macos-ar.patch"
+
+CC="$STAGE2_CC" \
+LD="$STAGE2_LD" \
+AR="$STAGE2_AR" \
+RANLIB="$STAGE2_RANLIB" \
 CFLAGS="${STAGE2_CFLAGS[@]} -Wno-deprecated-non-prototype" \
 LDFLAGS="${STAGE2_LDFLAGS[@]}" \
   ./configure --static --prefix=
 
+echo "——————————————————— build ———————————————————"
 make -j$NCPU
+
 echo "——————————————————— check ———————————————————"
 make -j$NCPU check
+
 echo "——————————————————— install ———————————————————"
-# make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
 rm -rf "$ZLIB_STAGE2"
 mkdir -p "$ZLIB_STAGE2"/{lib,include}
 make DESTDIR="$ZLIB_STAGE2" -j$NCPU install

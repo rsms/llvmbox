@@ -228,6 +228,7 @@ STAGE2_LD=$STAGE2_CC
 STAGE2_RC="$LLVM_STAGE1/bin/llvm-rc"
 STAGE2_AR="$LLVM_STAGE1/bin/llvm-ar"
 STAGE2_RANLIB="$LLVM_STAGE1/bin/llvm-ranlib"
+STAGE2_LIBTOOL="$LLVM_STAGE1/bin/llvm-libtool-darwin"
 
 STAGE2_CFLAGS=(
   --target=$TARGET_TRIPLE \
@@ -242,6 +243,42 @@ STAGE2_LDFLAGS=(
   -Wl,-rpath,"$LLVMBOX_SYSROOT/lib" \
 )
 STAGE2_LDFLAGS_EXE=()
+
+# enable ThinLTO (MUCH slower to build but smaller and faster products)
+# See https://clang.llvm.org/docs/ThinLTO.html
+LLVMBOX_ENABLE_LTO=${LLVMBOX_ENABLE_LTO:-true}
+if [ -z "$LLVMBOX_ENABLE_LTO" ] || [ "$LLVMBOX_ENABLE_LTO" = "0" ]; then
+  LLVMBOX_ENABLE_LTO=false
+else
+  LLVMBOX_ENABLE_LTO=true
+fi
+STAGE2_LTO_CACHE="$BUILD_DIR/lto-cache"
+STAGE2_LTO_FLAGS=
+if $LLVMBOX_ENABLE_LTO; then
+  # note: do NOT set --target for STAGE2_LDFLAGS
+  STAGE2_LTO_CFLAGS=( -flto=thin )
+  STAGE2_LTO_LDFLAGS=( -flto=thin )
+  case "$TARGET_SYS" in
+    macos)
+      STAGE2_LTO_LDFLAGS+=( "-Wl,-cache_path_lto,$STAGE2_LTO_CACHE" )
+      ;;
+    linux)
+      STAGE2_LTO_CFLAGS+=( --target=$TARGET_ARCH-unknown-linux-musl )
+      STAGE2_LTO_LDFLAGS+=( "-Wl,--thinlto-cache-dir=$STAGE2_LTO_CACHE" )
+      ;;
+    *)
+      echo "disabling LLVMBOX_ENABLE_LTO; not supported for $TARGET_SYS" >&2
+      LLVMBOX_ENABLE_LTO=false
+      STAGE2_LTO_CFLAGS=
+      STAGE2_LTO_LDFLAGS=
+      ;;
+  esac
+  if $LLVMBOX_ENABLE_LTO; then
+    STAGE2_CFLAGS+=( "${STAGE2_LTO_CFLAGS[@]}" )
+    STAGE2_LDFLAGS+=( "${STAGE2_LTO_LDFLAGS[@]}" )
+  fi
+fi
+
 case "$TARGET_SYS" in
   macos)
     STAGE2_CFLAGS+=(
