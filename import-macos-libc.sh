@@ -197,7 +197,7 @@ _import_sdk() { # <path> <version>
   [[ "$(basename "$sdkdir" .sdk)" == "MacOSX"* ]] ||
     _err "SDK doesn't start with 'MacOSX'; bailing out ($sdkdir)"
 
-  # _import_headers "$sdkdir" "$sysver"
+  _import_headers "$sdkdir" "$sysver"
   _import_libs    "$sdkdir" "$sysver"
 }
 
