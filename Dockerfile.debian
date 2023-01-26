@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:stable as stage1
 
 WORKDIR /llvm-box
 
@@ -8,6 +8,20 @@ RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 ENV LLVMBOX_BUILD_DIR=/build
 
-RUN mkdir /build
-
 ADD . .
+
+RUN mkdir /build
+RUN ./build.sh 01
+
+
+from debian:stable as stage2
+WORKDIR /llvm-box
+
+RUN apt-get update
+RUN apt-get install -y locales curl build-essential cmake ninja-build python3 rsync patch
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+ENV LLVMBOX_BUILD_DIR=/build
+
+COPY --from=stage1 /build /build
+COPY --from=stage1 /llvm-box /llvm-box
