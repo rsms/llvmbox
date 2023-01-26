@@ -52,10 +52,19 @@ END
 mv lib/libc++_all.a lib/libc++.a
 "$STAGE2_RANLIB" lib/libc++.a
 
+# clang's darwin driver seems to not respect our C_INCLUDE_DIRS but looks for
+# <sysroot>/usr/{include,lib}
+if [ "$TARGET_SYS" = macos ]; then
+  mkdir -pv "$LLVMBOX_DESTDIR/sysroot/$TARGET/usr"
+  ln -sv ../include "$LLVMBOX_DESTDIR/sysroot/$TARGET/usr/include"
+  ln -sv ../lib "$LLVMBOX_DESTDIR/sysroot/$TARGET/usr/lib"
+fi
 
-TARFILE="$LLVMBOX_DESTDIR.tar.xz"
-echo "creating $(_relpath "$TARFILE")"
-XZ_OPT='-T0' tar \
-  -C "$(dirname "$LLVMBOX_DESTDIR")" \
-  -cJpf "$TARFILE" \
-  "$(basename "$LLVMBOX_DESTDIR")"
+if [ "${1:-}" != "-notar" ]; then
+  TARFILE="$LLVMBOX_DESTDIR.tar.xz"
+  echo "creating $(_relpath "$TARFILE")"
+  XZ_OPT='-T0' tar \
+    -C "$(dirname "$LLVMBOX_DESTDIR")" \
+    -cJpf "$TARFILE" \
+    "$(basename "$LLVMBOX_DESTDIR")"
+fi
