@@ -1,0 +1,16 @@
+--- a/configure	2023-01-25 16:16:12.000000000 -0800
++++ b/configure	2023-01-25 16:16:19.000000000 -0800
+@@ -260,12 +260,7 @@
+         SHAREDLIBV=libz.$VER$shared_ext
+         SHAREDLIBM=libz.$VER1$shared_ext
+         LDSHARED=${LDSHARED-"$cc -dynamiclib -install_name $libdir/$SHAREDLIBM -compatibility_version $VER1 -current_version $VER3"}
+-        if libtool -V 2>&1 | grep Apple > /dev/null; then
+-            AR="libtool"
+-        else
+-            AR="/usr/bin/libtool"
+-        fi
+-        ARFLAGS="-o" ;;
++        ;;
+   *)
+         LDSHARED=${LDSHARED-"$cc -shared"} ;;
+   esac

@@ -2,8 +2,8 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-CMAKE_C_FLAGS=()
-CMAKE_LD_FLAGS=()
+CMAKE_C_FLAGS=( "${STAGE2_LTO_CFLAGS[@]}" )
+CMAKE_LD_FLAGS=( "${STAGE2_LTO_LDFLAGS[@]}" )
 EXTRA_CMAKE_ARGS=( -Wno-dev )
 
 case "$HOST_SYS" in
@@ -26,7 +26,9 @@ case "$HOST_SYS" in
   Linux)
     EXTRA_CMAKE_ARGS+=(
       -DLIBCXX_HAS_MUSL_LIBC=ON \
+      -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-linux-musl" \
     )
+    CMAKE_LD_FLAGS+=( -L"$LLVM_STAGE1"/lib/$TARGET_ARCH-unknown-linux-gnu )
     ;;
 esac
 
