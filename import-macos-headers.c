@@ -188,6 +188,9 @@ SOFTWARE.
 #include <objc/objc-sync.h> // sanitizer
 #include <mach-o/getsect.h> // sanitizer
 
+// Depended on by LLVM dsymutil
+#include <CoreFoundation/CoreFoundation.h>
+
 
 // Depended on by several frameworks
 #include <AssertMacros.h>
