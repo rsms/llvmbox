@@ -244,19 +244,23 @@ rm -rf "$LLVM_STAGE2"
 mkdir -p "$LLVM_STAGE2"
 DESTDIR="$LLVM_STAGE2" ninja -j$NCPU install
 
+# strip
+_pushd "$LLVM_STAGE2"/bin
+EXES=()
+for f in *; do
+  [ -f "$f" ] || continue
+  EXES+=( "$(basename "$(realpath "$f")")" )
+done
+IFS=$'\n' EXES=( $(sort -u <<< "${EXES[*]}") ); unset IFS
+for f in "${EXES[@]}"; do
+  echo "strip $f"
+  "$LLVM_STAGE1/bin/llvm-strip" "$f" || echo "-- skipping" &
+done
+wait
+
 # Having trouble?
 #   Missing headers on macOS?
 #     1. Open import-macos-headers.c and add them
 #     2. Run ./import-macos-libc.sh on a mac with SDKs installed
 #     3. Recreate your build sysroot (bash 020-sysroot.sh)
 #     4. Try again
-
-# ninja -j$NCPU \
-#   distribution \
-#   lld \
-#   builtins \
-#   compiler-rt \
-#   llvm-objcopy \
-#   llvm-tblgen \
-#   llvm-libraries \
-#   llvm-headers
