@@ -221,6 +221,23 @@ ls -l /tmp/crash
 ```
 
 
+### macOS code signing
+
+macOS on aarch64/arm64 is a pretty hostile dev environment where code signing is required.
+
+Notes from around the world wild web:
+
+- https://github.com/golang/go/issues/42684 "cmd/go: macOS on arm64 requires codesigning"
+- https://github.com/ziglang/zig/issues/7103 "stage2: code signing in self-hosted MachO linker (arm64)"
+- https://apple.stackexchange.com/a/317002 "What are the restrictions of ad-hoc code signing?"
+- https://developer.apple.com/forums/thread/130313 "executable is killed after codesign"
+
+Tools & utilities:
+
+- https://github.com/mitchellh/gon "Sign, notarize, and package macOS CLI tools and applications written in any language. Available as both a CLI and a Go library"
+- https://github.com/thefloweringash/sigtool "minimal multicall binary providing helpers for working with embedded signatures in Mach-O files"
+- https://github.com/kubkon/ZachO "Zig's Mach-O parser"
+
 
 ## Useful resources
 
