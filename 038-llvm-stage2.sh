@@ -28,6 +28,7 @@ DIST_COMPONENTS=(
   llvm-profdata \
   llvm-ranlib \
   llvm-rc \
+  llvm-readobj \
   llvm-size \
   llvm-strings \
   llvm-strip \
@@ -37,6 +38,12 @@ DIST_COMPONENTS=(
 )
 EXTRA_COMPONENTS=( # components without install targets
   clang-tblgen \
+  lib/liblldCOFF.a \
+  lib/liblldCommon.a \
+  lib/liblldELF.a \
+  lib/liblldMachO.a \
+  lib/liblldMinGW.a \
+  lib/liblldWasm.a \
 )
 BINUTILS_SYMLINKS=( # "alias target"
   "addr2line        llvm-symbolizer" \
@@ -305,11 +312,21 @@ DESTDIR="$LLVM_STAGE2" ninja -j$NCPU install-distribution-stripped
 # no install target for clang-tblgen
 install -vm 0755 bin/clang-tblgen "$LLVM_STAGE2/bin/clang-tblgen"
 
+# no install targets for lld libs
+for f in lib/liblld*.a; do
+  install -vm 0644 $f "$LLVM_STAGE2/lib/$(basename "$f")"
+done
+
+# copy lld headers from source (they are not affected by build)
+cp -av "$LLVM_SRC/lld/include/lld" "$LLVM_STAGE2/include/lld"
+
+# bin/ fixes
 _pushd "$LLVM_STAGE2"/bin
 
 # create binutils-compatible symlinks
 for name_target in "${BINUTILS_SYMLINKS[@]}"; do
   IFS=' ' read -r name target <<< "$name_target"
+  [ -e $target ] || continue
   echo "symlink $name -> $target"
   ln -sf $target $name
 done

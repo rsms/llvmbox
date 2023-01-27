@@ -9,54 +9,52 @@ if [ -z "$LLVM_ROOT" ]; then
   echo "LLVM_ROOT not set in env (e.g. LLVM_ROOT=/path/to/llvm so that \$LLVM_ROOT/bin/clang is found)" >&2
   exit 1
 fi
-
-LLVM_COMPONENTS=(
-  engine \
-  option \
-  passes \
-  all-targets \
-  libdriver \
-  lto \
-  linker \
-  debuginfopdb \
-  debuginfodwarf \
-  windowsmanifest \
-  orcjit \
-  mcjit \
-  coverage \
-)
-
+LLVM_ROOT=`cd "$PWD0"; realpath "$LLVM_ROOT"`
 SOURCES=( $(echo *.{c,cc}) )
-OBJECTS=()
-for f in "${SOURCES[@]}"; do OBJECTS+=( $f.o ); done
-
-CFLAGS=(
-  $("$PROJECT"/utils/config --cflags) \
+BUILD_DIR=build-$(uname -m)-$(uname -s)
+LTO_CACHE=$BUILD_DIR/lto-cache
+CFLAGS=( \
+  -flto=thin \
+  $("$LLVM_ROOT"/bin/llvm-config --cflags) \
+  -DMYCLANG_SYSROOT="\"$LLVM_ROOT/sysroot/host\"" \
 )
 CXXFLAGS=(
-  $("$PROJECT"/utils/config --cxxflags) \
+  -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --cxxflags) \
 )
 LDFLAGS=(
-  $("$PROJECT"/utils/config --ldflags-cxx) \
-  $("$LLVM_ROOT"/bin/llvm-config --ldflags) \
-  $("$LLVM_ROOT"/bin/llvm-config --link-static --libfiles "${LLVM_COMPONENTS[@]}") \
-  "$LLVM_ROOT"/lib/libclang*.a \
-  "$LLVM_ROOT"/lib/liblld*.a \
+  -flto=thin \
+  "$LLVM_ROOT"/lib/libllvm.a \
 )
-# LDFLAGS+=( "$LLVM_ROOT"/lib/libz.a )
-LDFLAGS+=( $HOME/tmp/stage2-zlib/lib/libz.a ) # FIXME TODO
+# LDFLAGS=(
+#   -flto=thin \
+#   $("$LLVM_ROOT"/bin/llvm-config --ldflags --system-libs --link-static --libs) \
+#   "$LLVM_ROOT"/lib/libclang*.a \
+#   "$LLVM_ROOT"/lib/liblld*.a \
+#   "$LLVM_ROOT"/lib/libz.a \
+# )
+case "$(uname -s)" in
+  Linux)  LDFLAGS+=( -static "-Wl,--thinlto-cache-dir=$LTO_CACHE" ) ;;
+  Darwin) LDFLAGS+=( "-Wl,-cache_path_lto,$LTO_CACHE" ) ;;
+esac
 
+OBJECTS=()
+mkdir -p "$BUILD_DIR"
 for f in "${SOURCES[@]}"; do
-  [ "$f" -nt "$f.o" -o "$SELF_SCRIPT" -nt "$f.o" ] || continue
+  obj=$BUILD_DIR/$f.o
+  OBJECTS+=( "$obj" )
+  [ "$f" -nt "$obj" -o "$SELF_SCRIPT" -nt "$obj" ] || continue
   if [[ "$f" == *.cc ]]; then
-    echo "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $f.o $f
-         "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $f.o $f
+    echo "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $obj $f
+         "$LLVM_ROOT"/bin/clang++ "${CXXFLAGS[@]}" -c -o $obj $f
   else
-    echo "$LLVM_ROOT"/bin/clang "${CFLAGS[@]}" -c -o $f.o $f
-         "$LLVM_ROOT"/bin/clang "${CFLAGS[@]}" -c -o $f.o $f
+    echo "$LLVM_ROOT"/bin/clang "${CFLAGS[@]}" -c -o $obj $f
+         "$LLVM_ROOT"/bin/clang "${CFLAGS[@]}" -c -o $obj $f
   fi
 done
 
-echo "$LLVM_ROOT"/bin/clang++ "${LDFLAGS[@]}" "${OBJECTS[@]}" -o myclang/myclang
-     "$LLVM_ROOT"/bin/clang++ "${LDFLAGS[@]}" "${OBJECTS[@]}" -o myclang/myclang
+echo "$LLVM_ROOT"/bin/clang++ "${LDFLAGS[@]}" "${OBJECTS[@]}" -o myclang
+     "$LLVM_ROOT"/bin/clang++ "${LDFLAGS[@]}" "${OBJECTS[@]}" -o myclang
+
+[ -L ld64.lld ] || ln -sfv myclang ld64.lld
+[ -L ld.lld ] || ln -sfv myclang ld.lld

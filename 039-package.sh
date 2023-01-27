@@ -2,8 +2,6 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVM_RELEASE-$TARGET}
-
 rm -rf "$LLVMBOX_DESTDIR"
 mkdir -p "$LLVMBOX_DESTDIR"
 
@@ -22,6 +20,7 @@ for src in \
 done
 
 mkdir -p "$LLVMBOX_DESTDIR/sysroot/$TARGET"
+ln -sfv "$TARGET" "$LLVMBOX_DESTDIR/sysroot/host"
 for src in \
   "$LLVMBOX_SYSROOT" \
   "$LIBCXX_STAGE2" \

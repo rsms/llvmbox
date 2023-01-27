@@ -8,7 +8,7 @@ PREFIX=
 
 while [ $# -gt 0 ]; do case "$1" in
   -h|--help) cat << EOF
-Builds the entire thing; runs all build scripts with <prefix>
+Builds the entire thing; runs all build scripts
 usage: $0 [options] [<prefix>]
 options:
   --dryrun       Don't actually run scripts, just print what would be done

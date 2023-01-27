@@ -9,11 +9,7 @@ This is an attempt to build fully static, self-contained LLVM tools and librarie
   - clang libs (libLLVMLibDriver.a, ...)
   - lld libs (libLLVMLinker.a, ...)
 - statically-linked tools, linked with the above static libaries:
-  - clang
-  - lld
-  - llvm-ar
-  - llvm-ranlib
-  - llvm-objdump
+  - clang, lld, ar, ranlib, objdump etc
 
 You should be able to build your own compiler suite by:
 
@@ -31,34 +27,7 @@ TL;DR:
 ```sh
 export LLVMBOX_BUILD_DIR=$HOME/tmp
 utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
-
-# build stage1 compiler
-bash 010-llvm-source-stage1.sh &&
-bash 010-zlib-stage1.sh &&
-bash 019-llvm-stage1.sh
-
-# build sysroot (some scripts are no-op on non-linux)
-bash 020-sysroot.sh &&
-bash 021-linux-headers.sh &&
-bash 022-musl-libc.sh
-
-# test stage1 compiler
-bash 023-test-llvm-stage1.sh
-
-# build packages for stage2 in sysroot
-bash 023-musl-fts.sh &&
-bash 023-xc.sh &&
-bash 023-zlib.sh &&
-bash 023-zstd.sh &&
-bash 024-libxml2.sh &&
-bash 025-xar.sh
-
-# build stage2 compiler
-bash 030-llvm-source-stage2.sh
-bash 050-llvm-stage2.sh
-
-# test stage2 compiler
-bash 090-test-hello.sh
+./build.sh
 
 # test full-featured program linking with llvm libs
 ./myclang/build.sh
@@ -74,10 +43,12 @@ Host requirements:
 
 Tested host systems:
 
-- Ubuntu 20 x86_64 (up to and including 025-xar.sh)
-- macOS 10.15 x86_64 (up to and including 025-xar.sh)
-- macOS 12 aarch64 (up to and including 025-xar.sh)
+- Ubuntu 20 x86_64
+- Alpine 3.16 x86_64
+- macOS 10.15 x86_64
+- macOS 12 aarch64
 
+### Detailed build instructions
 
 If you have a lot of RAM, it is usually much faster to build in a ramfs:
 
@@ -92,65 +63,36 @@ Define your build directory
 export LLVMBOX_BUILD_DIR=build
 ```
 
-Execute the first section of build steps:
+Run all build scripts in order:
 
 ```
-for f in $(echo 01*.sh | sort); do bash $f; done
+./build.sh
 ```
 
-Now, there are a few alternatives:
-
-
-### Alternative 1: custom build scripts
+Run just some build scripts, starting with a prefix, for example:
 
 ```
-for f in $(echo 02*.sh | sort); do bash $f; done
+./build.sh 02
 ```
 
-Succeeds on macOS
-
-
-### Alternative 2: "stage2" build
-
-Alternative 1: "stage2" build. This is supposed to be the "correct" way to build an llvm distribution but after about 20 hours of trying to make it work on either macOS and Ubuntu, I have doubts.
+Run build scripts a la carte, steps of your liking.
+For example, to build the "stage1" compiler, run:
 
 ```
-bash stage2.sh
+bash 010-llvm-source-stage1.sh
+bash 010-zlib-stage1.sh
+bash 019-llvm-stage1.sh
 ```
 
 
-Linux builds passes stage1 but fails stage2, suffering from high memory usage; linker is OOM killed:
+### Build problems
+
+If the linker gets OOM killed, try setting NCPU to a smaller number than `nproc`:
 
 ```
-clang++: error: unable to execute command: Killed
-clang++: error: linker command failed due to signal (use -v to see invocation)
+export NCPU=4
+bash 019-llvm-stage1.sh # or whatever step failed
 ```
-
-macOS builds passes stage1 but fails stage2 with libc++ link errors like these:
-
-```
-ld64.lld: error: undefined symbol: std::__2::generic_category()
->>> referenced by /tmp/lto.tmp:(symbol std::__2::make_error_code[abi:v15007](std::__2::errc)+0x10)
-```
-
-If the linker gets OOM killed, try some of the following ideas:
-
-- set LLVMBOX_LTO_JOBS=N, e.g. `LLVMBOX_LTO_JOBS=2 bash stage2.sh`
-- allocate more swap space (if you use zfs, see `utils/linux-swap-zfs.sh`)
-- disable LTO: `BOOTSTRAP_LLVM_ENABLE_LTO` in stage1.cmake, `LLVM_ENABLE_LTO` in stage2.cmake (must do a full complete clean rebuild after changing these)
-
-
-
-----
-
-## Experiment: build with bazel
-
-```
-cd experiments/bazel
-bash build-llvm-bazel.sh
-```
-
-Uses bazel to build llvm in a sandbox. Build works on linux and mac, but produces invalid results that link to shared libraries on the build host. There seem to be no way of building a "stage2" with LLVM's bazel workspace (see experiments/bazel/targets.txt)
 
 
 ----
@@ -243,17 +185,6 @@ $LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ \
 LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1/__locale:572:13: error: unknown type name 'mask'
     bool is(mask __m, char_type __c) const
 ```
-
-
-
-## Issues
-
-
-Linux llvm host build _"warning: Using 'NAME' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking"_
-
-    [567/3170] Linking CXX executable bin/llvm-config
-    /usr/bin/ld: lib/libLLVMSupport.a(Path.cpp.o): in function `llvm::sys::fs::expandTildeExpr(llvm::SmallVectorImpl<char>&)':
-    Path.cpp:(.text._ZN4llvm3sys2fsL15expandTildeExprERNS_15SmallVectorImplIcEE+0x1a6): warning: Using 'getpwnam' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
 
 
 
