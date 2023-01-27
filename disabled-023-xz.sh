@@ -2,11 +2,11 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-# xar DEPENDS_ON xc
+# xar DEPENDS_ON xz
 
-_fetch_source_tar https://tukaani.org/xz/xz-$XC_VERSION.tar.xz "$XC_SHA256" "$XC_SRC"
+_fetch_source_tar https://tukaani.org/xz/xz-$XZ_VERSION.tar.xz "$XZ_SHA256" "$XZ_SRC"
 
-_pushd "$XC_SRC"
+_pushd "$XZ_SRC"
 
 CC="$STAGE2_CC" \
 LD="$STAGE2_LD" \
@@ -36,12 +36,12 @@ make -j$NCPU
 LD_LIBRARY_PATH="$PWD/src/liblzma/.libs" make -j$NCPU check
 
 # make DESTDIR="$LLVMBOX_SYSROOT" -j$NCPU install
-rm -rf "$XC_STAGE2"
-mkdir -p "$XC_STAGE2"/{lib,include}
-make DESTDIR="$XC_STAGE2" -j$NCPU install
+rm -rf "$XZ_STAGE2"
+mkdir -p "$XZ_STAGE2"/{lib,include}
+make DESTDIR="$XZ_STAGE2" -j$NCPU install
 
 # remove libtool file which is just going to confuse libxml2
-rm -fv "$XC_STAGE2"/lib/*.la
+rm -fv "$XZ_STAGE2"/lib/*.la
 
 _popd
-rm -rf "$XC_SRC"
+rm -rf "$XZ_SRC"

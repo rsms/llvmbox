@@ -99,19 +99,19 @@ EXTRA_CMAKE_ARGS+=( \
 
 # xar is deprecated and so we have disabled it.
 # This means lld can't handle xar archives.
-# Re-enabling this means we have to build xc and openssl (libxar deps)
+# Re-enabling this means we have to build xz and openssl (libxar deps.)
 # if so, rename the "disabled-02*.sh" scripts.
 # # xar (for mach-o linker)
 # if [ -d "$XAR_STAGE2" ]; then
 #   EXTRA_CMAKE_ARGS+=( -DLLVM_HAVE_LIBXAR=1 )
 #   CMAKE_C_FLAGS+=(
 #     -I"$XAR_STAGE2/include" \
-#     -I"$XC_STAGE2/include" \
+#     -I"$XZ_STAGE2/include" \
 #     -I"$OPENSSL_STAGE2/include" \
 #   )
 #   COMMON_LDFLAGS+=(
 #     -L"$XAR_STAGE2/lib" \
-#     -L"$XC_STAGE2/lib" -llzma \
+#     -L"$XZ_STAGE2/lib" -llzma \
 #     -L"$OPENSSL_STAGE2/lib" -lcrypto \
 #   )
 # else

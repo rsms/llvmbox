@@ -7,9 +7,9 @@ source "$(dirname "$0")/config.sh"
 #     xar
 #       libxml2
 #         zlib
-#         xc
+#         xz
 #       openssl
-#       xc
+#       xz
 #       zlib
 #       musl-fts [linux]
 #
@@ -48,7 +48,7 @@ LDFLAGS="${LDFLAGS[@]}" \
   --prefix= \
   --enable-static \
   --disable-shared \
-  --with-lzma="$XC_STAGE2" \
+  --with-lzma="$XZ_STAGE2" \
   --with-xml2-config=$LIBXML2_STAGE2/bin/xml2-config \
   --without-bzip2
 

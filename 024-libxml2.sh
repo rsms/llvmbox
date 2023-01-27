@@ -1,7 +1,8 @@
 #!/bin/bash
-# libxml2 depends on zlib and xc
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
+
+[ -f "$ZLIB_STAGE2/lib/libz.a" ] || _err "$ZLIB_STAGE2/lib/libz.a not found"
 
 _fetch_source_tar \
   https://download.gnome.org/sources/libxml2/${LIBXML2_VERSION%.*}/libxml2-$LIBXML2_VERSION.tar.xz \
