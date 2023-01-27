@@ -5,13 +5,22 @@ SELF_SCRIPT=$(realpath "$0")
 cd "$(dirname "$0")"
 PROJECT=$(realpath "$PWD/..")
 
-if [ -z "$LLVM_ROOT" ]; then
-  echo "LLVM_ROOT not set in env (e.g. LLVM_ROOT=/path/to/llvm so that \$LLVM_ROOT/bin/clang is found)" >&2
-  exit 1
-fi
-LLVM_ROOT=`cd "$PWD0"; realpath "$LLVM_ROOT"`
+_usage() {
+  echo "usage: $0 <llvmroot>"
+}
+
+case "${1:-}" in
+  "")
+    echo "$0: <llvmroot> not provided" >&2
+    _usage >&2
+    exit 1
+    ;;
+  -h*|--help) _usage; exit 0 ;;
+  *) LLVM_ROOT=`cd "$PWD0"; realpath "$1"` ;;
+esac
+
 SOURCES=( $(echo *.{c,cc}) )
-BUILD_DIR=build-$(uname -m)-$(uname -s)
+BUILD_DIR=build-$(sha1sum "$LLVM_ROOT/bin/clang" | cut -d' ' -f1)
 LTO_CACHE=$BUILD_DIR/lto-cache
 CFLAGS=( \
   -flto=thin \
@@ -22,7 +31,10 @@ CXXFLAGS=(
   -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --cxxflags) \
 )
-LDFLAGS=( -flto=thin )
+LDFLAGS=( \
+  -flto=thin \
+  $("$LLVM_ROOT"/bin/llvm-config --ldflags --system-libs)
+)
 if [ -e "$LLVM_ROOT"/lib/libllvm.a ]; then
   LDFLAGS+=( "$LLVM_ROOT"/lib/libllvm.a )
 else
