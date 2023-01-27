@@ -58,12 +58,3 @@ if [ "$TARGET_SYS" = macos ]; then
   ln -sv ../include "$LLVMBOX_DESTDIR/sysroot/$TARGET/usr/include"
   ln -sv ../lib "$LLVMBOX_DESTDIR/sysroot/$TARGET/usr/lib"
 fi
-
-if [ "${1:-}" != "-notar" ]; then
-  TARFILE="$LLVMBOX_DESTDIR.tar.xz"
-  echo "creating $(_relpath "$TARFILE")"
-  XZ_OPT='-T0' tar \
-    -C "$(dirname "$LLVMBOX_DESTDIR")" \
-    -cJpf "$TARFILE" \
-    "$(basename "$LLVMBOX_DESTDIR")"
-fi
