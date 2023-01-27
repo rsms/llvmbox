@@ -22,17 +22,17 @@ CXXFLAGS=(
   -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --cxxflags) \
 )
-LDFLAGS=(
-  -flto=thin \
-  "$LLVM_ROOT"/lib/libllvm.a \
-)
-# LDFLAGS=(
-#   -flto=thin \
-#   $("$LLVM_ROOT"/bin/llvm-config --ldflags --system-libs --link-static --libs) \
-#   "$LLVM_ROOT"/lib/libclang*.a \
-#   "$LLVM_ROOT"/lib/liblld*.a \
-#   "$LLVM_ROOT"/lib/libz.a \
-# )
+LDFLAGS=( -flto=thin )
+if [ -e "$LLVM_ROOT"/lib/libllvm.a ]; then
+  LDFLAGS+=( "$LLVM_ROOT"/lib/libllvm.a )
+else
+  LDFLAGS+=(
+    $("$LLVM_ROOT"/bin/llvm-config --ldflags --system-libs --link-static --libs) \
+    "$LLVM_ROOT"/lib/libclang*.a \
+    "$LLVM_ROOT"/lib/liblld*.a \
+    "$LLVM_ROOT"/lib/libz.a \
+  )
+fi
 case "$(uname -s)" in
   Linux)  LDFLAGS+=( -static "-Wl,--thinlto-cache-dir=$LTO_CACHE" ) ;;
   Darwin) LDFLAGS+=( "-Wl,-cache_path_lto,$LTO_CACHE" ) ;;
