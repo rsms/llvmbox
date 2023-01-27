@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# build a prelinked relocatable object
+# build a prelinked relocatable object as a static library (.a archive)
 #
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
@@ -28,7 +28,7 @@ OBJFILES=( $(echo */*.o) )
 # echo "${OBJFILES[@]}" > "$OBJDIR/index.txt"
 
 echo "link objects into $PRELINK_FILE (LTO)"
-"$LLVMBOX_DESTDIR"/bin/ld.lld -r -o $PRELINK_FILE \
+"$LLVMBOX_DESTDIR"/bin/ld.lld -r -o "$PRELINK_FILE" \
   --lto-O3 \
   --no-call-graph-profile-sort \
   --as-needed \
