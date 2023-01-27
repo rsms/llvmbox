@@ -355,6 +355,12 @@ for f in "${EXES[@]}"; do
 done
 wait
 
+# create a symlink, handy during development
+if [ "$(dirname "$LLVM_STAGE2")" = "$OUT_DIR" ]; then
+  rm -f "$OUT_DIR/llvmbox"
+  ln -sv "$(basename "$LLVM_STAGE2")" "$OUT_DIR/llvmbox"
+fi
+
 # Having trouble?
 #   Missing headers on macOS?
 #     1. Open import-macos-headers.c and add them
