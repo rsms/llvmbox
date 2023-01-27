@@ -397,6 +397,17 @@ _extract_tar() { # <file> <outdir>
   rm -rf "$extract_dir"
 }
 
+_create_tar_xz_from_dir() { # <srcdir> <dstfile>
+  command -v tar >/dev/null || _err "can't find \"tar\" in PATH"
+  [[ "$2" == *".tar.xz" ]] || _err "$2 doesn't end with .tar.xz" # avoid ambiguity
+  local srcdir="$(realpath "$1")"
+  if command -v xz >/dev/null; then
+    tar -C "$(dirname "$srcdir")" -c "$(basename "$srcdir")" | xz -9 -f -T0 -v > "$2"
+  else
+    XZ_OPT='-9 -T0' tar -C "$(dirname "$srcdir")" -cJpf "$2" "$(basename "$srcdir")"
+  fi
+}
+
 _fetch_source_tar() { # <url> (<sha256> | <sha512> | "") <outdir> [<tarfile>]
   [ $# -gt 2 ] || _err "_fetch_source_tar ($#)"
   local url=$1
