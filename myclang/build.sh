@@ -23,16 +23,13 @@ SOURCES=( $(echo *.{c,cc}) )
 BUILD_DIR=build-$(sha1sum "$LLVM_ROOT/bin/clang" | cut -d' ' -f1)
 LTO_CACHE=$BUILD_DIR/lto-cache
 CFLAGS=( \
-  -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --cflags) \
   -DMYCLANG_SYSROOT="\"$LLVM_ROOT/sysroot/host\"" \
 )
 CXXFLAGS=(
-  -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --cxxflags) \
 )
 LDFLAGS=( \
-  -flto=thin \
   $("$LLVM_ROOT"/bin/llvm-config --ldflags --system-libs)
 )
 if [ -e "$LLVM_ROOT"/lib/libllvm.a ]; then
@@ -45,10 +42,15 @@ else
     "$LLVM_ROOT"/lib/libz.a \
   )
 fi
-case "$(uname -s)" in
-  Linux)  LDFLAGS+=( -static "-Wl,--thinlto-cache-dir=$LTO_CACHE" ) ;;
-  Darwin) LDFLAGS+=( "-Wl,-cache_path_lto,$LTO_CACHE" ) ;;
-esac
+[ "$(uname -s)" = Linux ] && LDFLAGS+=( -static )
+# # LTO
+# CFLAGS+=( -flto=thin )
+# CXXFLAGS+=( -flto=thin )
+# LDFLAGS+=( -flto=thin )
+# case "$(uname -s)" in
+#   Linux)  LDFLAGS+=( "-Wl,--thinlto-cache-dir=$LTO_CACHE" ) ;;
+#   Darwin) LDFLAGS+=( "-Wl,-cache_path_lto,$LTO_CACHE" ) ;;
+# esac
 
 OBJECTS=()
 mkdir -p "$BUILD_DIR"

@@ -28,6 +28,7 @@ case "$HOST_SYS" in
       -DLIBCXX_HAS_MUSL_LIBC=ON \
       -DLLVM_DEFAULT_TARGET_TRIPLE="$TARGET_ARCH-linux-musl" \
     )
+    CMAKE_C_FLAGS+=( --target=$TARGET_ARCH-linux-musl )
     CMAKE_LD_FLAGS+=( -L"$LLVM_STAGE1"/lib/$TARGET_ARCH-unknown-linux-gnu )
     ;;
 esac

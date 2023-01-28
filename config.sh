@@ -141,6 +141,7 @@ LIBCXX_STAGE2=${LIBCXX_STAGE2:-$OUT_DIR/libcxx-stage2}
 LLVM_STAGE2=${LLVM_STAGE2:-$OUT_DIR/llvm-stage2}
 
 LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVM_RELEASE-$TARGET_ARCH-$TARGET_SYS}
+LLVMBOX_DESTDIR_DEV=${LLVMBOX_DESTDIR_DEV:-$(dirname "$LLVMBOX_DESTDIR")/llvmbox-dev-$LLVM_RELEASE-$TARGET_ARCH-$TARGET_SYS}
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
@@ -246,16 +247,20 @@ STAGE2_LDFLAGS=(
 )
 STAGE2_LDFLAGS_EXE=()
 
-# enable ThinLTO (MUCH slower to build but smaller and faster products)
+# Set LLVMBOX_ENABLE_LTO=1 to enable ThinLTO.
+# The result is a much slower build with better-optimized products.
+# However, the real-world practical gains are low in our testing.
+# Since this affects all libraries (libc, libc++, llvm libs)
+# See file lto.md
 # See https://clang.llvm.org/docs/ThinLTO.html
-LLVMBOX_ENABLE_LTO=${LLVMBOX_ENABLE_LTO:-true}
-if [ -z "$LLVMBOX_ENABLE_LTO" ] || [ "$LLVMBOX_ENABLE_LTO" = "0" ]; then
-  LLVMBOX_ENABLE_LTO=false
-else
-  LLVMBOX_ENABLE_LTO=true
-fi
+case "${LLVMBOX_ENABLE_LTO:-}" in
+  0|false|no|"") LLVMBOX_ENABLE_LTO=false ;;
+  1|true|yes)    LLVMBOX_ENABLE_LTO=true ;;
+  *) _err "unexpected value of LLVMBOX_ENABLE_LTO \"$LLVMBOX_ENABLE_LTO\"" ;;
+esac
 STAGE2_LTO_CACHE="$BUILD_DIR/lto-cache"
-STAGE2_LTO_FLAGS=
+STAGE2_LTO_CFLAGS=
+STAGE2_LTO_LDFLAGS=
 if $LLVMBOX_ENABLE_LTO; then
   # note: do NOT set --target for STAGE2_LDFLAGS
   STAGE2_LTO_CFLAGS=( -flto=thin )
@@ -418,6 +423,21 @@ _fetch_source_tar() { # <url> (<sha256> | <sha512> | "") <outdir> [<tarfile>]
   _extract_tar "$tarfile" "$outdir"
 }
 
+_copyinto() {
+  echo "rsync $(_relpath "$1") -> $(_relpath "$2")"
+  rsync -a \
+    --exclude "*.DS_Store" \
+    --exclude "*/.git*" \
+    --exclude ".git*" \
+    "$@"
+}
+
+_symlink() { # <linkfile-to-create> <target>
+  echo "symlink $(_relpath "$1") -> $(_relpath "$2")"
+  [ ! -e "$1" ] || [ -L "$1" ] || _err "$(_relpath "$1") exists (not a link)"
+  ln -fs "$2" "$1"
+}
+
 _human_filesize() { # <file>
   local Z
   if [ "$HOST_SYS" = "Darwin" ]; then
@@ -435,4 +455,21 @@ _human_filesize() { # <file>
     awk "BEGIN{printf \"%.0f B\n\", $Z}"
   fi
   shift
+}
+
+_print_linking() { # <file>
+  local OUT
+  local objdump="$LLVM_STAGE1/bin/llvm-objdump"
+  [ -f "$objdump" ] || objdump=objdump
+  local PAT='NEEDED|RUNPATH|RPATH'
+  case "$HOST_SYS" in
+    Darwin) PAT='RUNPATH|RPATH|\.dylib' ;;
+  esac
+  OUT=$( "$objdump" -p "$1" | grep -E "$PAT" | awk '{printf $1 " " $2 "\n"}' || true )
+  if [ -n "$OUT" ]; then
+    echo "$(_relpath "$1") is dynamically linked:"
+    echo "$OUT"
+  else
+    echo "$(_relpath "$1") is statically linked."
+  fi
 }

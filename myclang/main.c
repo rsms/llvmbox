@@ -20,13 +20,17 @@ bool LLDLinkWasm(int argc, char*const* argv);
 // llvm-utils.cc
 char* LLVMGetMainExecutable(const char* argv0);
 
-static char* mkflag(const char* flag, const char* value1, const char* value2) {
-  char* s = malloc(strlen(flag) + strlen(value1) + (value2 ? strlen(value2) : 0) + 1);
+static char* mkflag(
+  const char* flag, char glue, const char* value1, const char* value2)
+{
+  char* s = malloc(strlen(flag) + strlen(value1) + (value2 ? strlen(value2) : 0) + 2);
   if (!s)
     return NULL;
   int i = 0;
   memcpy(&s[i], flag, strlen(flag));
   i += strlen(flag);
+  if (glue)
+    s[i++] = glue;
   memcpy(&s[i], value1, strlen(value1));
   i += strlen(value1);
   if (value2) {
@@ -38,11 +42,11 @@ static char* mkflag(const char* flag, const char* value1, const char* value2) {
 }
 
 static int cc_main(int argc, char* argv[]) {
-  char* i_include = mkflag("-isystem", MYCLANG_SYSROOT, "/include");
-  char* i_clang_include = mkflag("-isystem", MYCLANG_SYSROOT,
-    "/lib/clang/" CLANG_VERSION_STRING "/include");
+  char* i_include = mkflag("-isystem", 0, MYCLANG_SYSROOT, "/include");
+  char* resource_dir = mkflag("-resource-dir", '=', MYCLANG_SYSROOT,
+    "/../../lib/clang/" CLANG_VERSION_STRING);
 
-  if (!i_include || !i_clang_include)
+  if (!i_include || !resource_dir)
     return 2;
 
   const char* default_args[] = {
@@ -50,7 +54,7 @@ static int cc_main(int argc, char* argv[]) {
     "--sysroot=" MYCLANG_SYSROOT,
     "-fuse-ld=lld",
     i_include,
-    i_clang_include,
+    resource_dir,
     #if __APPLE__
       "-Wl,-platform_version,macos,10.15,10.15",
       "-DTARGET_OS_EMBEDDED",

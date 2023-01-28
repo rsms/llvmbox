@@ -330,8 +330,7 @@ _pushd "$LLVM_STAGE2"/bin
 for name_target in "${BINUTILS_SYMLINKS[@]}"; do
   IFS=' ' read -r name target <<< "$name_target"
   [ -e $target ] || continue
-  echo "symlink $name -> $target"
-  ln -sf $target $name
+  _symlink $name $target
 done
 
 # strip (yes, one more time :-)
@@ -354,12 +353,6 @@ for f in "${EXES[@]}"; do
   fi
 done
 wait
-
-# create a symlink, handy during development
-if [ "$(dirname "$LLVM_STAGE2")" = "$OUT_DIR" ]; then
-  rm -f "$OUT_DIR/llvmbox"
-  ln -sv "$(basename "$LLVM_STAGE2")" "$OUT_DIR/llvmbox"
-fi
 
 # Having trouble?
 #   Missing headers on macOS?

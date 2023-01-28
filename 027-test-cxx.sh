@@ -13,7 +13,10 @@ FLAGS=(
   -nostdlib++ -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi -lunwind \
   "${STAGE2_LTO_CFLAGS[@]}" "${STAGE2_LTO_LDFLAGS[@]}" \
 )
-[ "$TARGET_SYS" = linux ] && FLAGS+=( -static )
+[ "$TARGET_SYS" = linux ] && FLAGS+=(
+  -static \
+  --target=$TARGET_ARCH-linux-musl \
+)
 
 for srcfile in \
   test/hello.cc \

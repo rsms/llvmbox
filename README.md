@@ -48,6 +48,15 @@ Tested host systems:
 - macOS 10.15 x86_64
 - macOS 12 aarch64
 
+
+### Build phases
+
+- `01` builds stage1 compiler & libs (aka host compiler)
+- `02` builds stage2 compiler & libs
+- `03` packages stage2 compiler into a "llvmbox" product
+- `04` packages stage2 libs & headers into "llvmbox-dev" products
+
+
 ### Detailed build instructions
 
 If you have a lot of RAM, it is usually much faster to build in a ramfs:
@@ -69,7 +78,7 @@ Run all build scripts in order:
 ./build.sh
 ```
 
-Run just some build scripts, starting with a prefix, for example:
+Run [one phase](#build-phases), for example:
 
 ```
 ./build.sh 02
@@ -83,6 +92,7 @@ bash 010-llvm-source-stage1.sh
 bash 010-zlib-stage1.sh
 bash 019-llvm-stage1.sh
 ```
+
 
 
 ### Build problems
