@@ -28,14 +28,11 @@ TL;DR:
 export LLVMBOX_BUILD_DIR=$HOME/tmp
 utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
 ./build.sh
-
-# test full-featured program linking with llvm libs
-./myclang/build.sh
 ```
 
 Host requirements:
 
-- compiler that can build clang (e.g. gcc)
+- compiler that can build clang (for example gcc or clang)
 - ninja or equivalent
 - cmake 3
 - python3
