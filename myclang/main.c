@@ -44,7 +44,7 @@ static char* mkflag(
 static int cc_main(int argc, char* argv[]) {
   char* i_include = mkflag("-isystem", 0, MYCLANG_SYSROOT, "/include");
   char* resource_dir = mkflag("-resource-dir", '=', MYCLANG_SYSROOT,
-    "/../../lib/clang/" CLANG_VERSION_STRING);
+    "/../lib/clang/" CLANG_VERSION_STRING);
 
   if (!i_include || !resource_dir)
     return 2;

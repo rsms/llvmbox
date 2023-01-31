@@ -1,10 +1,19 @@
 #!/bin/bash
 set -euo pipefail
+SELF_SCRIPT="$(realpath "$0")"
 source "$(dirname "$0")/config.sh"
 
-CMAKE_C_FLAGS=( "${STAGE2_LTO_CFLAGS[@]}" )
-CMAKE_LD_FLAGS=( "${STAGE2_LTO_LDFLAGS[@]}" )
+CMAKE_C_FLAGS=()
+CMAKE_LD_FLAGS=()
 EXTRA_CMAKE_ARGS=( -Wno-dev )
+
+IS_STEP1=true ; [ "${1:-}" = "-step2" ] && IS_STEP1=false
+
+if ! $IS_STEP1; then
+  CMAKE_C_FLAGS+=( "${STAGE2_LTO_CFLAGS[@]}" )
+  CMAKE_LD_FLAGS+=( "${STAGE2_LTO_LDFLAGS[@]}" )
+  EXTRA_CMAKE_ARGS+=( -DLLVM_ENABLE_LTO=Thin )
+fi
 
 case "$HOST_SYS" in
   Darwin)
@@ -36,6 +45,9 @@ esac
 CMAKE_C_FLAGS="${CMAKE_C_FLAGS[@]:-}"
 CMAKE_LD_FLAGS="${CMAKE_LD_FLAGS[@]:-}"
 
+$LLVMBOX_ENABLE_LTO &&
+  rm -rf "$BUILD_DIR/llvm-runtimes"
+
 mkdir -p "$BUILD_DIR/llvm-runtimes"
 _pushd "$BUILD_DIR/llvm-runtimes"
 
@@ -51,6 +63,7 @@ cmake -G Ninja "$LLVM_SRC/runtimes" \
   -DCMAKE_RANLIB="$STAGE2_RANLIB" \
   -DCMAKE_LINKER="$STAGE2_LD" \
   \
+  -DCMAKE_COMPILE_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CMAKE_C_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_LD_FLAGS" \
@@ -71,6 +84,7 @@ cmake -G Ninja "$LLVM_SRC/runtimes" \
   -DLIBCXXABI_ENABLE_SHARED=OFF \
   -DLIBCXXABI_INCLUDE_TESTS=OFF \
   -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
+  \
   -DLIBUNWIND_ENABLE_SHARED=OFF \
   -DLIBUNWIND_USE_COMPILER_RT=ON \
   \
@@ -80,7 +94,28 @@ cmake -G Ninja "$LLVM_SRC/runtimes" \
 echo "———————————————————————— build ————————————————————————"
 ninja cxx cxxabi unwind
 
-echo "———————————————————————— install ————————————————————————"
-rm -rf "$LIBCXX_STAGE2"
-mkdir -p "$LIBCXX_STAGE2"
-DESTDIR="$LIBCXX_STAGE2" ninja install-cxx install-cxxabi install-unwind
+if $IS_STEP1; then
+  # verify non-lto
+  ( rm -rf x && mkdir x && cd x && ar x ../lib/libc++.a
+    file regex.cpp.o | grep -qv "LLVM" || _err "non-lto build is actually LTO" )
+  echo "———————————————————————— install ————————————————————————"
+  rm -rf "$LIBCXX_STAGE2"
+  mkdir -p "$LIBCXX_STAGE2"
+  DESTDIR="$LIBCXX_STAGE2" ninja install-cxx install-cxxabi install-unwind
+  rm -f "$LIBCXX_STAGE2/lib/libc++experimental.a"
+  if $LLVMBOX_ENABLE_LTO; then
+    _popd
+    echo "———————————————————————— step2 ————————————————————————"
+    exec bash "$SELF_SCRIPT" -step2
+  fi
+else
+  # verify lto
+  ( rm -rf x && mkdir x && cd x && ar x ../lib/libc++.a
+    file regex.cpp.o | grep -q "LLVM" || _err "lto build is not LTO" )
+  echo "———————————————————————— install lib-lto ————————————————————————"
+  rm -rf "$LIBCXX_STAGE2/lib-lto"
+  mkdir -p "$LIBCXX_STAGE2/lib-lto"
+  install -vm 0644 lib/libc++.a    "$LIBCXX_STAGE2/lib-lto/"
+  install -vm 0644 lib/libc++abi.a "$LIBCXX_STAGE2/lib-lto/"
+  install -vm 0644 lib/libunwind.a "$LIBCXX_STAGE2/lib-lto/"
+fi

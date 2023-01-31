@@ -5,20 +5,23 @@ source "$(dirname "$0")/config.sh"
 LLVM_SRC="$LLVM_SRC_STAGE1"
 
 LLVM_STAGE1_COMPONENTS=(
+  builtins \
+  clang \
+  clang-resource-headers \
   dsymutil \
+  llc \
   llvm-ar \
   llvm-config \
   llvm-cov \
   llvm-dwarfdump \
+  llvm-link \
   llvm-nm \
   llvm-objdump \
   llvm-profdata \
   llvm-ranlib \
-  llvm-size \
   llvm-rc \
-  clang \
-  clang-resource-headers \
-  builtins \
+  llvm-size \
+  opt \
   runtimes \
 )
 

@@ -19,8 +19,8 @@ CC="$STAGE2_CC" \
 LD="$STAGE2_LD" \
 AR="$STAGE2_AR" \
 RANLIB="$STAGE2_RANLIB" \
-CFLAGS="${STAGE2_CFLAGS[@]}" \
-LDFLAGS="${STAGE2_LDFLAGS[@]}" \
+CFLAGS="${STAGE2_CFLAGS[@]} ${STAGE2_LTO_CFLAGS[@]}" \
+LDFLAGS="${STAGE2_LDFLAGS[@]} ${STAGE2_LTO_LDFLAGS[@]}" \
 ./configure \
   --prefix= \
   --enable-static \

@@ -1,269 +1,110 @@
-This is an attempt to build fully static, self-contained LLVM tools and libraries.
+llvmbox is a highly "portable" distribution of the LLVM tools and development libraries, without external dependencies.
 
-## Goal
+Simply unpack the tar file and you have a fully-functional compiler toolchain that is fully self-contained (does not need libc or even a dynamic linker to be present on your system.)
 
-- static libries
-  - libc++ (libc++.a, libc++abi.a, libunwind.a)
-  - compiler-rt (clang_rt.crtbegin.o, clang_rt.crtend.o, libclang_rt.\*.a)
-  - llvm IR, opt etc libs (libLLVMPasses.a, ...)
-  - clang libs (libLLVMLibDriver.a, ...)
-  - lld libs (libLLVMLinker.a, ...)
-- statically-linked tools, linked with the above static libaries:
-  - clang, lld, ar, ranlib, objdump etc
+Features:
 
-You should be able to build your own compiler suite by:
+- Self-contained; install with wget/curl
+- Runs on any Linux system ("Linux-distro less" — there's no "gnu", "musl" or "ulibc" variants; all it needs is linux syscall)
+- Contains its own sysroot
+  - Does not need libc nor libc++ headers to be installed on your system
+  - On Linux, does not need linux headers to be installed on your system
+  - On macOS, does not need Xcode or Command Line Developer Tools
+- LLVM development libraries in separate installable archive
+  - Separate distribution reduces file size for when you just need the toolchain.
+  - Includes ThinLTO libraries in lib-lto in addition to precompiled target code libraries, enabling you to build 100% LTOd products. This includes libc and libc++, not just LLVM libs.
+  - Includes libraries for building your own custom clang and lld tools
+  - Includes a development time-optimized library `liball_llvm_clang_lld.a` which contains all llvm libs, clang libs, lld libs and dependencies. It allows building your own clang or lld with link speeds in the 100s of milliseconds.
 
-1. making a main.cc file that calls clang_main and/or lld_main
-2. compiling that main.cc file with clang & lld
-3. statically linking that main object with libc++, clang, lld and llvm libs
-   so that the resulting executable does not require a dynamic linker to run
-   (exception: on darwin it has to dynamically link with libSystem.dylib, but that's it)
+Supported systems:
 
+  - Linux: x86_64 (aarch64: work in progress)
+  - macOS: minimum OS 10.15, x86_64 (arm64: work in progress)
+  - Windows: NOT YET SUPPORTED — [contributions welcome!](CONTRIBUTING.md)
 
-## Build
-
-TL;DR:
-
-```sh
-export LLVMBOX_BUILD_DIR=$HOME/tmp
-utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
-./build.sh
-
-# test full-featured program linking with llvm libs
-./myclang/build.sh
-```
-
-Host requirements:
-
-- compiler that can build clang (e.g. gcc)
-- ninja or equivalent
-- cmake 3
-- python3
-- bash
-
-Tested host systems:
-
-- Ubuntu 20 x86_64
-- Alpine 3.16 x86_64
-- macOS 10.15 x86_64
-- macOS 12 aarch64
-
-
-### Build phases
-
-- `01` builds stage1 compiler & libs (aka host compiler)
-- `02` builds stage2 compiler & libs
-- `03` packages stage2 compiler into a "llvmbox" product
-- `04` packages stage2 libs & headers into "llvmbox-dev" products
-
-
-### Detailed build instructions
-
-If you have a lot of RAM, it is usually much faster to build in a ramfs:
-
-- Linux: `export LLVMBOX_BUILD_DIR=/dev/shm`
-- Linux with tmpfs: `mkdir -p ~/tmp && sudo mount -t tmpfs -o size=16G tmpfs ~/tmp && export LLVMBOX_BUILD_DIR=$HOME/tmp`
-- macOS: `utils/macos-tmpfs.sh ~/tmp && export LLVMBOX_BUILD_DIR=$HOME/tmp`
-
-
-Define your build directory
-
-```
-export LLVMBOX_BUILD_DIR=build
-```
-
-Run all build scripts in order:
-
-```
-./build.sh
-```
-
-Run [one phase](#build-phases), for example:
-
-```
-./build.sh 02
-```
-
-Run build scripts a la carte, steps of your liking.
-For example, to build the "stage1" compiler, run:
-
-```
-bash 010-llvm-source-stage1.sh
-bash 010-zlib-stage1.sh
-bash 019-llvm-stage1.sh
-```
-
-
-
-### Build problems
-
-If the linker gets OOM killed, try setting NCPU to a smaller number than `nproc`:
-
-```
-export NCPU=4
-bash 019-llvm-stage1.sh # or whatever step failed
-```
-
-
-----
-
-## Test
-
-The ultimate test is to be able to build "myclang", our own "custom clang" that links in all the code needed for clang (which is almost everything).
+## Usage
 
 ```sh
-LLVM_ROOT=path-to-llvm-installation ./myclang/build.sh
+# download & install in current directory
+wget -qO- https:// | tar xz
+
+# create example C++ source
+cat << EXAMPLE > hello.cc
+#include <iostream>
+int main(int argc, const char** argv) {
+  std::cout << "hello from " << argv[0] << "\n";
+  return 0;
+}
+EXAMPLE
+
+# compile
+[ $(uname -s) = Linux ] && LDFLAGS=-static
+./llvmbox-VERSION/bin/clang++ $LDFLAGS hello.cc -o hello
+
+# run example
+./hello
 ```
 
-For example:
+
+## Using LLVM libraries
+
+LLVM libraries are distributed in a separate archive "llvmbox-dev." Its directory tree can either be merged into the toolchain ("llvmbox") tree, or placed anywhere, given appropriate compiler and linker flags are used.
 
 ```sh
-LLVM_ROOT=$LLVMBOX_BUILD_DIR/llvm-x86_64-macos-none ./myclang/build.sh
+# download & install in current directory
+wget -qO- https:// | tar xz
+
+# fetch example program
+wget https://github.com/rsms/llvmbox/blob/954ee63a9c82c4f2dca2dd319496f1cfa5d7d06d/test/hello-llvm.c
+
+# compile
+./llvmbox-VERSION/bin/clang $CFLAGS \
+  $(./llvmbox-dev-VERSION/bin/llvm-config --cflags) \
+  -c hello-llvm.c -o hello-llvm.o
+
+# link
+LDFLAGS="$LDFLAGS -Lllvmbox-dev-VERSION/lib"
+[ $(uname -s) = Linux ] && LDFLAGS="$LDFLAGS -static"
+./llvmbox-VERSION/bin/clang++ $LDFLAGS \
+  $(./llvmbox-dev-VERSION/bin/llvm-config --ldflags --system-libs --libs core native) \
+  hello-llvm.o -o hello-llvm
+
+# run example
+./hello-llvm
 ```
 
 
-### Test host compiler
-
-After building the host compiler, you should be able to compile C++ programs:
-
-```
-$LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ test/hello.cc -o test/hello_cc
-test/hello_cc
-```
-
-The final program should be statically linked with libc++, ie. not contain any links to c++ libraries (but may contain links to shared host system libc.)
-
-```
-$LLVMBOX_BUILD_DIR/llvm-host/bin/llvm-objdump -p test/hello_cc | grep -E 'NEEDED|\.dylib'
-```
+If you are interested in building your own C/C++ compiler based on clang & lld, have a look at the [`myclang`](myclang/) example.
 
 
-### Test utilities
+### Building with LTO libs
 
-There are also wrapper scripts to help with testing, which invokes clang with the appropriate flags:
+[ThinLTO](https://clang.llvm.org/docs/ThinLTO.html) performs whole-program optimization during the linker stage. This can in some cases greatly improve performance and often leads to slightly smaller binaries. The cost is longer link times. llvmbox ships with both regular machine code libraries as well as ThinLTO libraries. During development you can link with regular libraries with millisecond-fast link times and for production builds you can link with LTO for improved runtime performance.
+
+Continuing off of our "hello-llvm" example above, let's change compiler and linker flags. `-flto=thin` enables creation of LTO objects. We need to set library search path to the location of the LTO libraries: `lib-lto`. (The `lib` directory of llvmbox contains "regular" libraries with machine code.)
 
 ```sh
-LLVM_ROOT=/dev/shm/llvm-host utils/cc test/hello.c -o test/hello_c
-LLVM_ROOT=/dev/shm/llvm-host utils/c++ test/hello.cc -o test/hello_cc
+CFLAGS="$CFLAGS -flto=thin"
+LDFLAGS="$LDFLAGS -Lllvmbox-dev-VERSION/lib-lto"
+
+./llvmbox-VERSION/bin/clang \
+  $(./llvmbox-dev-VERSION/bin/llvm-config --cflags) \
+  -flto=thin \
+  -c hello-llvm.c -o hello-llvm.o
+
+./llvmbox-VERSION/bin/clang++ $LDFLAGS \
+  $(./llvmbox-dev-VERSION/bin/llvm-config --system-libs --libs core native) \
+  hello-llvm.o -o hello-llvm
 ```
 
-Another useful utility is `utils/config` which prints compiler and linker flags. For example, it can be used to configure builds:
+Turn on ThinLTO cache to enable fast incremental compilation:
 
 ```sh
-#!/bin/sh
-export LLVM_ROOT=$HOME/tmp/llvm-x86_64-macos-none
-MY_CXXFLAGS="$(utils/config --cxxflags)"
-MY_LDFLAGS="$(utils/config --ldflags-cxx)"
-"$LLVM_ROOT/bin/clang++" $MY_CXXFLAGS -c main.cc -o main.o
-"$LLVM_ROOT/bin/clang++" $MY_LDFLAGS main.o -o myprogram
+mkdir -p lto-cache
+case "$(uname -s)" in
+  Linux)  LDFLAGS="$LDFLAGS -Wl,--thinlto-cache-dir=$PWD/lto-cache" ;;
+  Darwin) LDFLAGS="$LDFLAGS -Wl,-cache_path_lto,$PWD/lto-cache" ;;
+esac
 ```
 
-
-### Testing musl
-
-Testing musl with host compiler (linux only)
-
-```
-export LLVMBOX_MUSL=$(echo $LLVMBOX_BUILD_DIR/musl-$(uname -m)-linux-*)
-$LLVMBOX_BUILD_DIR/llvm-host/bin/clang \
-  -isystem$LLVMBOX_MUSL/include \
-  -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
-  -nostdlib -L$LLVMBOX_MUSL/lib -lc \
-  test/hello.c -o test/hello_c
-test/hello_c
-# this should not print anything:
-$LLVMBOX_BUILD_DIR/llvm-host/bin/llvm-objdump -p test/hello_c | grep NEEDED
-```
-
-
-This dose _NOT_ work for C++ using the host compiler since the host compiler is likely linked with glibc, not musl. I.e:
-
-```
-$LLVMBOX_BUILD_DIR/llvm-host/bin/clang++ \
-  -nostdinc++ -isystem$LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
-  -I$LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1 \
-  -I$(echo $LLVMBOX_BUILD_DIR/llvm-host/include/$(uname -m)-unknown-linux-*)/c++/v1 \
-  -L$(echo $LLVMBOX_BUILD_DIR/llvm-host/lib/$(uname -m)-unknown-linux-*) \
-  -nostdlib++ -L$LLVMBOX_BUILD_DIR/llvm-host/lib \
-  -lc++ \
-  \
-  -isystem$LLVMBOX_MUSL/include \
-  -nostartfiles $LLVMBOX_MUSL/lib/crt1.o \
-  -nostdlib -L$LLVMBOX_MUSL/lib -lc \
-  test/hello.cc -o test/hello_cc
-
-LLVMBOX_BUILD_DIR/llvm-host/include/c++/v1/__locale:572:13: error: unknown type name 'mask'
-    bool is(mask __m, char_type __c) const
-```
-
-
-
-## Dev notes
-
-### Navigating cmake
-
-ack is useful for looking around for cmake stuff, e.g.
-
-    ack --type=cmake '\bCOMPILER_RT_USE_' ~/tmp/src/llvm
-
-
-### Core dumps on Ubuntu
-
-Enable saving of core dumps on ubuntu:
-
-```sh
-sudo systemctl enable apport.service
-sudo service apport start
-mkdir -p ~/.config/apport
-cat << END >> ~/.config/apport/settings
-[main]
-unpackaged=true
-END
-```
-
-Now, when a process crashes:
-
-```sh
-rm -rf /tmp/crash && mkdir /tmp/crash
-apport-unpack /var/crash/_path_to_program.1000.crash /tmp/crash
-ls -l /tmp/crash
-(cd /tmp/crash && tar czf ../some-core-dump.tar.gz .)
-```
-
-
-### macOS code signing
-
-macOS on aarch64/arm64 is a pretty hostile dev environment where code signing is required.
-
-Notes from around the world wild web:
-
-- https://github.com/golang/go/issues/42684 "cmd/go: macOS on arm64 requires codesigning"
-- https://github.com/ziglang/zig/issues/7103 "stage2: code signing in self-hosted MachO linker (arm64)"
-- https://apple.stackexchange.com/a/317002 "What are the restrictions of ad-hoc code signing?"
-- https://developer.apple.com/forums/thread/130313 "executable is killed after codesign"
-
-Tools & utilities:
-
-- https://github.com/mitchellh/gon "Sign, notarize, and package macOS CLI tools and applications written in any language. Available as both a CLI and a Go library"
-- https://github.com/thefloweringash/sigtool "minimal multicall binary providing helpers for working with embedded signatures in Mach-O files"
-- https://github.com/kubkon/ZachO "Zig's Mach-O parser"
-
-
-## Useful resources
-
-- https://llvm.org/docs/HowToCrossCompileLLVM.html#hacks
-- https://llvm.org/docs/BuildingADistribution.html
-- https://libcxx.llvm.org/BuildingLibcxx.html
-- https://libcxx.llvm.org/UsingLibcxx.html#alternate-libcxx
-- https://compiler-rt.llvm.org/
-- https://github.com/rust-lang/rust/issues/65051
-- https://wiki.musl-libc.org/building-llvm.html
-- https://fuchsia.googlesource.com/fuchsia/+/master/docs/development/build/toolchain.md
-- https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/development/compilers/llvm/11/llvm/default.nix#L277
-- https://git.alpinelinux.org/aports/tree/main/llvm15
-- https://git.alpinelinux.org/aports/tree/main/llvm-runtimes
-- https://git.alpinelinux.org/aports/tree/main/clang15
-- https://github.com/Homebrew/homebrew-core/blob/master/Formula/llvm.rb
-- [llvm-dev mailing list: "Building LLVM with LLVM with no dependence on GCC"](https://lists.llvm.org/pipermail/llvm-dev/2019-September/135199.html)
-- https://libc.llvm.org/full_host_build.html
-
+Now, recompiling after making a small change to a source file is much faster.

@@ -2,6 +2,13 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
+if [ "${1:-}" != "-f" ] &&
+   [ "$(cat "$LLVM_SRC/version" 2>/dev/null)" = "$LLVM_RELEASE" ]
+then
+  echo "up to date (\`$0 -f\` to force re-creation)"
+  exit
+fi
+
 _fetch_source_tar "$LLVM_SRC_URL" "$LLVM_SHA256" "$LLVM_SRC"
 
 # apply patches
@@ -15,3 +22,5 @@ for f in "${PATCHFILES[@]}"; do
   echo "patch -p1 < $f"
   patch -p1 < "$f"
 done
+
+printf "%s" "$LLVM_RELEASE" > "$LLVM_SRC/version"

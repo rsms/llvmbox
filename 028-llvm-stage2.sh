@@ -67,12 +67,15 @@ CMAKE_C_FLAGS=( \
   -Wno-unused-command-line-argument \
   -isystem"$LLVMBOX_SYSROOT/include" \
 )
-CMAKE_CXX_FLAGS=(
-  -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" \
-)
-CMAKE_LD_FLAGS=(
-  -nostdlib++ -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi \
-)
+CMAKE_CXX_FLAGS=( -nostdinc++ -I"$LIBCXX_STAGE2/include/c++/v1" )
+CMAKE_LD_FLAGS=( -nostdlib++ )
+if $LLVMBOX_ENABLE_LTO; then
+  [ -d "$LIBCXX_STAGE2/lib-lto" ] ||
+    _err "directory not found: $(_relpath "$LIBCXX_STAGE2/lib-lto")"
+  CMAKE_LD_FLAGS=( -L"$LIBCXX_STAGE2/lib-lto" -lc++ -lc++abi )
+else
+  CMAKE_LD_FLAGS=( -L"$LIBCXX_STAGE2/lib" -lc++ -lc++abi )
+fi
 EXTRA_CMAKE_ARGS=( -Wno-dev )
 
 # zlib
@@ -197,7 +200,7 @@ esac
 # Note that if sysroot is relative, clang will treat it as relative to itself.
 # I.e. sysroot=foo with clang at /bar/bin/clang results in sysroot=/bar/bin/foo.
 # See line ~200 of clang/lib/Driver/Driver.cpp
-EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/$TARGET/" )
+EXTRA_CMAKE_ARGS+=( -DDEFAULT_SYSROOT="../sysroot/" )
 #
 # C_INCLUDE_DIRS is a colon-separated list of paths to search by default.
 # Relative paths are relative to sysroot. The user can pass -nostdlibinc to disable

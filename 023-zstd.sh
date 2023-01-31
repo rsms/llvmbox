@@ -49,7 +49,7 @@ OBJECTS=()
 for f in "${SOURCES[@]}"; do
   OBJECTS+=( "$f.o" )
   echo "compile $f"
-  "$STAGE2_CC" "${STAGE2_CFLAGS[@]}" -O2 -c "$f" -o "$f.o" &
+  "$STAGE2_CC" "${STAGE2_CFLAGS[@]}" "${STAGE2_LTO_CFLAGS[@]}" -O2 -c "$f" -o "$f.o" &
 done
 wait
 

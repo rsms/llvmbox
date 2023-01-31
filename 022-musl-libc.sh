@@ -22,6 +22,9 @@ _fetch_source_tar \
 
 _pushd "$MUSL_SRC"
 
+# note: do NOT include STAGE2_LTO_*FLAGS for musl; the LTO gains are basically zero
+# and would just complect the build setup.
+
 CC=$STAGE2_CC \
 LD=$STAGE2_LD \
 AR=$STAGE2_AR \

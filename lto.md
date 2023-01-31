@@ -108,3 +108,9 @@ To quickly rebuild & test libc++ with or without ThinLTO, here's a shortcut:
    `rm -rf ~/tmp/llvm-runtimes/ && bash 031-llvm-runtimes.sh &&
     cp out/libcxx-stage2/lib/lib*.a \
       out/llvmbox-15.0.7-x86_64-linux/sysroot/x86_64-linux/lib/`
+
+
+## See also
+
+- https://clang.llvm.org/docs/ThinLTO.html
+- https://blog.llvm.org/2016/06/thinlto-scalable-and-incremental-lto.html

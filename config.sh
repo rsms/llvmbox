@@ -129,7 +129,7 @@ export LLVMBOX_SYSROOT
 
 # ————————————————————————————————————————————————————————————————————————————————————
 
-LLVM_RELEASE=15.0.7
+LLVM_RELEASE=15.0.7  # reset LLVMBOX_VERSION_TAG when upgrading
 LLVM_SHA256=42a0088f148edcf6c770dfc780a7273014a9a89b66f357c761b4ca7c8dfa10ba
 LLVM_SRC_URL=https://github.com/llvm/llvm-project/archive/llvmorg-${LLVM_RELEASE}.tar.gz
 [[ "$LLVM_RELEASE" != *"."* ]] && # git snapshot
@@ -140,8 +140,10 @@ LLVM_STAGE1=${LLVM_STAGE1:-$OUT_DIR/llvm-stage1}
 LIBCXX_STAGE2=${LIBCXX_STAGE2:-$OUT_DIR/libcxx-stage2}
 LLVM_STAGE2=${LLVM_STAGE2:-$OUT_DIR/llvm-stage2}
 
-LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVM_RELEASE-$TARGET_ARCH-$TARGET_SYS}
-LLVMBOX_DESTDIR_DEV=${LLVMBOX_DESTDIR_DEV:-$(dirname "$LLVMBOX_DESTDIR")/llvmbox-dev-$LLVM_RELEASE-$TARGET_ARCH-$TARGET_SYS}
+LLVMBOX_VERSION_TAG=1
+LLVMBOX_RELEASE_ID=$LLVM_RELEASE+$LLVMBOX_VERSION_TAG-$TARGET_ARCH-$TARGET_SYS
+LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVMBOX_RELEASE_ID}
+LLVMBOX_DEV_DESTDIR=${LLVMBOX_DEV_DESTDIR:-$OUT_DIR/llvmbox-dev-$LLVMBOX_RELEASE_ID}
 
 ZLIB_VERSION=1.2.13
 ZLIB_SHA256=b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30
@@ -232,6 +234,9 @@ STAGE2_RC="$LLVM_STAGE1/bin/llvm-rc"
 STAGE2_AR="$LLVM_STAGE1/bin/llvm-ar"
 STAGE2_RANLIB="$LLVM_STAGE1/bin/llvm-ranlib"
 STAGE2_LIBTOOL="$LLVM_STAGE1/bin/llvm-libtool-darwin"
+STAGE2_OPT="$LLVM_STAGE1/bin/opt"
+STAGE2_LLC="$LLVM_STAGE1/bin/llc"
+STAGE2_LLVM_LINK="$LLVM_STAGE1/bin/llvm-link"
 
 STAGE2_CFLAGS=(
   --target=$TARGET_TRIPLE \
@@ -247,15 +252,12 @@ STAGE2_LDFLAGS=(
 )
 STAGE2_LDFLAGS_EXE=()
 
-# Set LLVMBOX_ENABLE_LTO=1 to enable ThinLTO.
-# The result is a much slower build with better-optimized products.
-# However, the real-world practical gains are low in our testing.
-# Since this affects all libraries (libc, libc++, llvm libs)
+# Set LLVMBOX_ENABLE_LTO=1 or 0 to enable or disable ThinLTO.
 # See file lto.md
 # See https://clang.llvm.org/docs/ThinLTO.html
 case "${LLVMBOX_ENABLE_LTO:-}" in
-  0|false|no|"") LLVMBOX_ENABLE_LTO=false ;;
-  1|true|yes)    LLVMBOX_ENABLE_LTO=true ;;
+  1|true|yes|"") LLVMBOX_ENABLE_LTO=true ;;
+  0|false|no)    LLVMBOX_ENABLE_LTO=false ;;
   *) _err "unexpected value of LLVMBOX_ENABLE_LTO \"$LLVMBOX_ENABLE_LTO\"" ;;
 esac
 STAGE2_LTO_CACHE="$BUILD_DIR/lto-cache"
@@ -280,10 +282,6 @@ if $LLVMBOX_ENABLE_LTO; then
       STAGE2_LTO_LDFLAGS=
       ;;
   esac
-  if $LLVMBOX_ENABLE_LTO; then
-    STAGE2_CFLAGS+=( "${STAGE2_LTO_CFLAGS[@]}" )
-    STAGE2_LDFLAGS+=( "${STAGE2_LTO_LDFLAGS[@]}" )
-  fi
 fi
 
 case "$TARGET_SYS" in
@@ -314,9 +312,10 @@ STAGE2_LDFLAGS_EXE=( "${STAGE2_LDFLAGS[@]}" "${STAGE2_LDFLAGS_EXE[@]:-}" )
 
 _relpath() { # <path>
   case "$1" in
-    "$PWD0/"*) echo "${1##${2:-$PWD0}/}" ;;
+    "$PWD0/"*) echo "${1##$PWD0/}" ;;
     "$PWD0")   echo "." ;;
-    *)         echo "${1/$HOME\//~/}" ;;
+    "$HOME/"*) echo "~${1:${#HOME}}" ;;
+    *)         echo "$1" ;;
   esac
 }
 
@@ -435,6 +434,7 @@ _copyinto() {
 _symlink() { # <linkfile-to-create> <target>
   echo "symlink $(_relpath "$1") -> $(_relpath "$2")"
   [ ! -e "$1" ] || [ -L "$1" ] || _err "$(_relpath "$1") exists (not a link)"
+  rm -f "$1"
   ln -fs "$2" "$1"
 }
 
