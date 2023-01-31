@@ -81,6 +81,15 @@ LDFLAGS="$LDFLAGS -Lllvmbox-dev-VERSION/lib"
 
 If you are interested in building your own C/C++ compiler based on clang & lld, have a look at the [`myclang`](myclang/) example.
 
+To merge the two distributions toghether, use `tar --strip-components` and extract the "dev" package after extracting the base package:
+
+```sh
+mkdir llvmbox
+cd llvmbox
+tar --strip-components 1 -xf llvmbox-15.0.7+1-x86_64-linux.tar.xz
+tar --strip-components 1 -xf llvmbox-dev-15.0.7+1-x86_64-linux.tar.xz
+```
+
 
 ### Building with LTO libs
 
