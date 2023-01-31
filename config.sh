@@ -341,7 +341,7 @@ _sha_test() { # <file> [<sha256> | <sha512>]
     64)  kind=256; actual=$(sha256sum "$file" | cut -d' ' -f1) ;;
     *)   _err "checksum $expect has incorrect length (not sha256 nor sha512)" ;;
   esac
-  [ "$actual" = "$actual" ] || return 1
+  [ "$actual" = "$expect" ] || return 1
 }
 
 _sha_verify() { # <file> [<sha256> | <sha512>]
