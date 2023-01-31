@@ -23,23 +23,23 @@ _cxx() { echo "$(_relpath "$CXX")" "$@" ; time "$CXX" "$@"; }
 
 _pushd "$PROJECT/test"
 
-# echo "————————————————————————————————————————————————————————————"
-# out="$BUILD_DIR/hello_c"
-# _cc "${CFLAGS[@]:-}" "${LDFLAGS[@]:-}" hello.c -o "$out"
-# _print_linking "$out" ; "$out"
+echo "————————————————————————————————————————————————————————————"
+out="$BUILD_DIR/hello_c"
+_cc "${CFLAGS[@]:-}" "${LDFLAGS[@]:-}" hello.c -o "$out"
+_print_linking "$out" ; "$out"
 
-# echo "————————————————————————————————————————————————————————————"
-# out="$BUILD_DIR/hello_cc"
-# _cxx "${CXXFLAGS[@]:-}" "${LDFLAGS[@]:-}" -std=c++14 hello.cc -o "$out"
-# _print_linking "$out" ; "$out"
+echo "————————————————————————————————————————————————————————————"
+out="$BUILD_DIR/hello_cc"
+_cxx "${CXXFLAGS[@]:-}" "${LDFLAGS[@]:-}" -std=c++14 hello.cc -o "$out"
+_print_linking "$out" ; "$out"
 
-# echo "————————————————————————————————————————————————————————————"
-# out="$BUILD_DIR/hello-llvm_c"
-# _cc $("$LLVM_CONFIG" --cflags) -c hello-llvm.c -o "$out.o"
-# _cxx \
-#   $("$LLVM_CONFIG" --ldflags --system-libs --libs core native) \
-#   "$out.o" -o "$out"
-# _print_linking "$out" ; "$out"
+echo "————————————————————————————————————————————————————————————"
+out="$BUILD_DIR/hello-llvm_c"
+_cc $("$LLVM_CONFIG" --cflags) -c hello-llvm.c -o "$out.o"
+_cxx \
+  $("$LLVM_CONFIG" --ldflags --system-libs --libs core native) \
+  "$out.o" -o "$out"
+_print_linking "$out" ; "$out"
 
 echo "————————————————————————————————————————————————————————————"
 out="$BUILD_DIR/hello-llvm_c_lto"
@@ -50,7 +50,3 @@ _cxx \
   $("$LLVM_CONFIG" --system-libs --libs core native) \
   "$out.o" -o "$out"
 _print_linking "$out" ; "$out"
-
-
-# 21344120
-# 20829880
