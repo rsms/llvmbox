@@ -43,7 +43,7 @@ _create_prelinked_obj_macos() { # <outfile> <srclib> ...
     -r \
     -o "$outfile" \
     -cache_path_lto "$STAGE2_LTO_CACHE" \
-    -arch $TARGET_ARCH \
+    -arch ${TARGET_ARCH/aarch64/arm64} \
     -keep_private_externs \
     -merge_zero_fill_sections \
     -no_eh_labels \
