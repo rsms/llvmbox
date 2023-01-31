@@ -2,12 +2,8 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-LLVM_ROOT="${1:-$LLVMBOX_DESTDIR}"
-LLVM_ROOT="`cd "$LLVM_ROOT"; pwd`"
-
-LLVM_DEV_ROOT="${2:-$LLVMBOX_DEV_DESTDIR}"
-LLVM_DEV_ROOT="`cd "$LLVM_DEV_ROOT"; pwd`"
-
+LLVM_ROOT="$(realpath "${1:-$LLVMBOX_DESTDIR}")"
+LLVM_DEV_ROOT="$(realpath "${2:-$LLVMBOX_DEV_DESTDIR}")"
 LLVM_CONFIG="$LLVM_DEV_ROOT/bin/llvm-config"
 
 CC="$LLVM_ROOT/bin/clang"
