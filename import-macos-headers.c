@@ -136,6 +136,9 @@ SOFTWARE.
 #include <wctype.h>
 #include <wordexp.h>
 
+// Non-standard headers found in most libc's (musl, macos, bsd, glibc etc)
+#include <err.h>
+
 // macOS system headers
 #include <mach/clock.h>
 #include <mach/mach.h>
@@ -201,8 +204,6 @@ SOFTWARE.
 #include <simd/simd.h>
 #include <xpc/xpc.h>
 #include <CommonCrypto/CommonCrypto.h>
-#include <CommonCrypto/CommonCryptoError.h> // openssl
-#include <CommonCrypto/CommonRandom.h> // openssl
 
 #include <objc/message.h>
 #include <objc/NSObject.h>

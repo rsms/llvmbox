@@ -218,7 +218,7 @@ for d in "/Volumes/Command Line Developer Tools"*; do
   fi
   SUBDIR="$CLT_TMP_DIR/$ID"
   if [ -f "$SUBDIR/processed.mark" ]; then
-    # echo "skipping already-processed $(_relpath "$SUBDIR")"
+    echo "skipping already-processed $(_relpath "$SUBDIR")"
     continue
   fi
   echo "extracting $(_relpath "$d")"
