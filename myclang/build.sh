@@ -5,6 +5,7 @@ SELF_SCRIPT=$(realpath "$0")
 cd "$(dirname "$0")"
 PROJECT=$(realpath "$PWD/..")
 ENABLE_LTO=false
+LLVM_CONFIG="$PROJECT/out/llvmbox-dev/bin/llvm-config"
 
 _err() { echo -e "$0:" "$@" >&2 ; exit 1; }
 _usage() { echo "usage: $0 [--lto] <llvmroot>"; }
@@ -30,8 +31,8 @@ C_AND_CXX_FLAGS=(
   -I"$PROJECT"/out/llvmbox-dev/include \
   -DMYCLANG_SYSROOT="\"$LLVM_ROOT/sysroot\"" \
 )
-CFLAGS=( $("$LLVM_ROOT"/bin/llvm-config --cflags) )
-CXXFLAGS=( $("$LLVM_ROOT"/bin/llvm-config --cxxflags) )
+CFLAGS=( $("$LLVM_CONFIG" --cflags) )
+CXXFLAGS=( $("$LLVM_CONFIG" --cxxflags) )
 LDFLAGS=( -gz=zlib )
 
 # ——————————————————————————————————————————————————————————————————————————————————————
@@ -59,7 +60,7 @@ else
   )
 fi
 
-LDFLAGS+=( $("$LLVM_ROOT"/bin/llvm-config --system-libs) )
+LDFLAGS+=( $("$LLVM_CONFIG" --system-libs) )
 
 CFLAGS=( "${C_AND_CXX_FLAGS[@]}" "${CFLAGS[@]}" )
 CXXFLAGS=( "${C_AND_CXX_FLAGS[@]}" "${CXXFLAGS[@]}" )
