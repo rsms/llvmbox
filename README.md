@@ -22,6 +22,9 @@ Supported systems:
   - macOS: minimum OS 10.15, x86_64 (arm64: work in progress)
   - Windows: NOT YET SUPPORTED — [contributions welcome!](CONTRIBUTING.md)
 
+Currently the toolchain is not cross-compilation capable but that is something I'd like to enable in the future by including sysroots and sources, compiling them as needed for requested targets.
+
+
 ## Usage
 
 ```sh
@@ -108,3 +111,24 @@ esac
 ```
 
 Now, recompiling after making a small change to a source file is much faster.
+
+### LLVM targets
+
+Support for the following target architectures are included in the LLVM libraries:
+(from `clang --print-targets`)
+
+- aarch64    - AArch64 (little endian)
+- aarch64_32 - AArch64 (little endian ILP32)
+- aarch64_be - AArch64 (big endian)
+- arm        - ARM
+- arm64      - ARM64 (little endian)
+- arm64_32   - ARM64 (little endian ILP32)
+- armeb      - ARM (big endian)
+- riscv32    - 32-bit RISC-V
+- riscv64    - 64-bit RISC-V
+- thumb      - Thumb
+- thumbeb    - Thumb (big endian)
+- wasm32     - WebAssembly 32-bit
+- wasm64     - WebAssembly 64-bit
+- x86        - 32-bit X86: Pentium-Pro and above
+- x86-64     - 64-bit X86: EM64T and AMD64
