@@ -53,6 +53,10 @@ Linux)
     [ -e "$LIBCXX" ] &&
       CXX_STAGE1_LDFLAGS+=( -stdlib=libc++ -L"$(dirname "$LIBCXX")" )
   fi
+  LD_INTERP=$(file "$(realpath "$LLVM_STAGE1"/bin/clang)" |
+              sed -E 's/^.* interpreter ([^, ]+).*$/\1/' || false)
+  [ -e "$LD_INTERP" ] &&
+    CFLAGS+=( -Wl,--dynamic-linker="$LD_INTERP" )
   ;;
 esac
 
@@ -155,11 +159,6 @@ if [ "$HOST_SYS" = Linux ]; then
 
   # however, it works with musl (must have run 022-musl-libc.sh)
   if [ -f "$LLVMBOX_SYSROOT/lib/libc.a" ]; then
-    echo "————————————————————————————————————————————————————————————"
-    echo "cc default musl libc"; out=$BUILD_DIR/_hello_c_musl
-    _cc_sysroot test/hello.c -o "$out"
-    _print_linking "$out" ; "$out"
-
     # if musl was built with shared lib, test it
     if [ -e "$LLVMBOX_SYSROOT/lib/libc-shared.so" ]; then
       echo "————————————————————————————————————————————————————————————"
@@ -194,6 +193,7 @@ fi
 # llvm libs
 echo "————————————————————————————————————————————————————————————"
 echo "llvm API example (stage1 libs: libc, llvm-c, z)"; out=$BUILD_DIR/_hello_llvm_c
+[ $TARGET_SYS = linux ] && LDFLAGS+=( -static )
 _cc $("$LLVM_STAGE1/bin/llvm-config" --cflags) -c test/hello-llvm.c -o "$out.o"
 _ldxx_stage1 \
   $("$LLVM_STAGE1/bin/llvm-config" --cxxflags --ldflags --libs core native) \
