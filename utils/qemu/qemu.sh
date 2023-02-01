@@ -60,9 +60,9 @@ if [ -f "$DISK0_IMG" ]; then
   echo "Using ${DISK0_IMG##$PWD/}"
   qemu-img check -q -r leaks "$DISK0_IMG"
 else
-  if [ -f res/userdisk-$GUEST_ARCH.qcow2 ]; then
-    echo "Creating ${DISK0_IMG##$PWD/} from template res/userdisk-$GUEST_ARCH.qcow2"
-    cp -v res/userdisk-$GUEST_ARCH.qcow2 "$DISK0_IMG"
+  if [ -f res/disk0-$GUEST_ARCH.qcow2 ]; then
+    echo "Creating ${DISK0_IMG##$PWD/} from template res/disk0-$GUEST_ARCH.qcow2"
+    cp -v res/disk0-$GUEST_ARCH.qcow2 "$DISK0_IMG"
   else
     echo "Creating new blank image -- manual setup required" >&2
     ALPINE_VERSION=3.17.1
