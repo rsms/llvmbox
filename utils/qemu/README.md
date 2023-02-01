@@ -69,9 +69,11 @@ ssh root@localhost -p10022
 1. remove any snapshots you might have (or delete `INSTANCE/disk0.qcow2` and start clean)
 2. boot up and sign in
 3. make changes to the system
-4. when you are ready, `reboot` and wait for qemu to shut down cleanly
-5. `qemu-img convert -O qcow2 -c INSTANCE/disk0.qcow2 res/disk0-ARCH.qcow2`
-6. Optional: to test, `rm INSTANCE/disk0.qcow2 && ./qemu.sh`
+4. run `apk cache --purge && rm -rf /tmp/*`
+5. `poweroff` and wait for qemu to shut down cleanly
+6. `qemu-img convert -O qcow2 -c INSTANCE/disk0.qcow2 res/disk0-ARCH.qcow2`
+7. `rm -f res/disk0-ARCH.qcow2.xz && xz -z -T0 -e res/disk0-ARCH.qcow2`
+7. Optional: to test, `rm INSTANCE/disk0.qcow2 && ./qemu.sh`
 
 `user-data-init.qcow2` is now a compact image.
 

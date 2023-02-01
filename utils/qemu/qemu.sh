@@ -60,9 +60,9 @@ if [ -f "$DISK0_IMG" ]; then
   echo "Using ${DISK0_IMG##$PWD/}"
   qemu-img check -q -r leaks "$DISK0_IMG"
 else
-  if [ -f res/disk0-$GUEST_ARCH.qcow2 ]; then
-    echo "Creating ${DISK0_IMG##$PWD/} from template res/disk0-$GUEST_ARCH.qcow2"
-    cp -v res/disk0-$GUEST_ARCH.qcow2 "$DISK0_IMG"
+  if [ -f res/disk0-$GUEST_ARCH.qcow2.xz ]; then
+    echo "Creating ${DISK0_IMG##$PWD/} from template res/disk0-$GUEST_ARCH.qcow2.xz"
+    xz -d -c res/disk0-$GUEST_ARCH.qcow2.xz > "$DISK0_IMG"
   else
     echo "Creating new blank image -- manual setup required" >&2
     ALPINE_VERSION=3.17.1
@@ -77,6 +77,7 @@ else
       -cdrom "$ALPINE_IMG_FILE" \
       -drive "if=virtio,file=${INSTANCE_DIR##$PWD/}/setup.qcow2" \
     )
+    echo -n "Press any key to continue (^C to cancel)" ; read && echo y || exit
   fi
   chmod 0600 "$DISK0_IMG"
 fi
