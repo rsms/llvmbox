@@ -18,8 +18,8 @@ Features:
 
 Supported systems:
 
-  - Linux: x86_64 (aarch64: work in progress)
-  - macOS: minimum OS 10.15, x86_64 (arm64: work in progress)
+  - Linux: x86_64, aarch64
+  - macOS: x86_64 (macOS >=10.15) arm64 (macOS >=11.0)
   - Windows: NOT YET SUPPORTED — [contributions welcome!](CONTRIBUTING.md)
 
 Currently the toolchain is not cross-compilation capable but that is something I'd like to enable in the future by including sysroots and sources, compiling them as needed for requested targets.
@@ -143,3 +143,13 @@ Support for the following target architectures are included in the LLVM librarie
 - wasm64     - WebAssembly 64-bit
 - x86        - 32-bit X86: Pentium-Pro and above
 - x86-64     - 64-bit X86: EM64T and AMD64
+
+
+## Motivation
+
+llvmbox is both a necessity for some of my personal projects, like hobby OSes without anything but Linux syscalls, but also a reaction to the brutal complexity of contemporary software culture. Entangled messes of shared libraries and dynamic linkers, all with various version constraints makes it harder to develop software than it needs to be. By "collapsing the stack" we can isolate the complexities of certain inherently-complex systems, like llvm.
+
+I also enjoy making hobby languages and compilers. Some of them uses llvm as the "backend" and it is _always_ a huge hassle getting llvm building, causing directories full of patches and shell scripts to litter these hobby projects. For some projects, like [Compis](https://github.com/rsms/compis), I embed clang & lld ([Zig](https://ziglang.org/) also does this) to allow compiling C & C++, but this brings a big burden: now Compis needs to be linked with the exact C++ lib that the llvm which libs it links with was built with. It gets messier, but basically, it's too complex.
+
+The [Zig project](https://ziglang.org/) is a great example of doing something about the complexity. They have put in a tremendous effort into building a C & C++ compatible compiler that is truly portable, which even has first-class "cross compilation." Zig is an inspiration for this project and a breath of fresh air when it comes to software portability and simplicity.
+
