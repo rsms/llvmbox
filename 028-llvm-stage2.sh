@@ -152,12 +152,15 @@ case "$HOST_SYS" in
         -DDARWIN_macosx_BUILTIN_ARCHS="x86_64;x86_64h" \
       )
     elif [ "$TARGET_ARCH" == aarch64 ]; then
-      # needed on aarch64 since cmake will try 'clang -v' (which it expects to be ld)
+      # Needed on aarch64 since cmake will try 'clang -v' (which it expects to be ld)
       # to discover supported architectures.
       EXTRA_CMAKE_ARGS+=(
         -DDARWIN_osx_BUILTIN_ARCHS="arm64" \
         -DDARWIN_macosx_BUILTIN_ARCHS="arm64" \
       )
+      # Note: macOS 11 and/or apple arm64 executables must be built with PIE
+      # (LLVM_ENABLE_PIC=ON). Otherwise the resulting executables are simply killed
+      # by the kernel when started without an error message or information.
     fi
     # all: asan;dfsan;msan;hwasan;tsan;safestack;cfi;scudo;ubsan_minimal;gwp_asan
     EXTRA_CMAKE_ARGS+=(
@@ -266,7 +269,7 @@ cmake -G Ninja "$LLVM_SRC/llvm" \
   -DLLVM_INCLUDE_DOCS=OFF \
   -DLLVM_BUILD_LLVM_DYLIB=OFF \
   -DLLVM_BUILD_LLVM_C_DYLIB=OFF \
-  -DLLVM_ENABLE_PIC=OFF \
+  -DLLVM_ENABLE_PIC=ON \
   -DLLVM_INCLUDE_TOOLS=ON \
   \
   -DCLANG_INCLUDE_DOCS=OFF \
