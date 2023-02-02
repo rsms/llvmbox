@@ -300,6 +300,7 @@ case "$TARGET_SYS" in
     # STAGE2_LDFLAGS+=( -L"$LLVMBOX_SYSROOT/lib" )
     ;;
   linux)
+    [ -f /etc/alpine-release ] && STAGE2_LDFLAGS+=( -static )
     STAGE2_LDFLAGS_EXE+=( \
       -nostartfiles "$LLVMBOX_SYSROOT/lib/crt1.o" \
     )
