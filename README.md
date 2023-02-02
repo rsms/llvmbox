@@ -31,7 +31,7 @@ Find the URL for [the release suitable for your system in (latest release)](http
 
 ```sh
 # download & install in current directory
-wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-VERSION.tar.xz | tar xz
+wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-VERSION.tar.xz | tar x
 
 # create example C++ source
 cat << EXAMPLE > hello.cc
@@ -57,7 +57,7 @@ LLVM libraries are distributed in a separate archive "llvmbox-dev." Its director
 
 ```sh
 # download & install in current directory
-wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-dev-VERSION.tar.xz | tar xz
+wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-dev-VERSION.tar.xz | tar x
 
 # fetch example program
 wget https://github.com/rsms/llvmbox/blob/954ee63a9c82c4f2dca2dd319496f1cfa5d7d06d/test/hello-llvm.c
