@@ -209,7 +209,7 @@ elif [ "$HOST_SYS" = "Darwin" ]; then
   STAGE1_CC="$(command -v  clang || true)"
   STAGE1_CXX="$(command -v clang++ || true)"
   STAGE1_MACOS_VERSION=10.10
-  [ "$HOST_ARCH" != x86_64 ] && STAGE1_MACOS_VERSION=11.7
+  [ "$HOST_ARCH" != x86_64 ] && STAGE1_MACOS_VERSION=11.0
   STAGE1_CFLAGS="$STAGE1_CFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
   STAGE1_LDFLAGS="$STAGE1_LDFLAGS -mmacosx-version-min=$TARGET_SYS_MINVERSION"
 fi
