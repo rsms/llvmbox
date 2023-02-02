@@ -64,6 +64,17 @@ _create_prelinked_obj_linux() { # <outfile> <input> ...
   done
   echo "prelinking $(_relpath "$outfile")"
   mkdir -p "$(dirname "$outfile")"
+  local target_emu
+  # see https://github.com/llvm/llvm-project/blob/llvmorg-15.0.7/lld/ELF/Driver.cpp#L131
+  case "$TARGET_ARCH" in
+    x86_64|i386)   target_emu=elf_${TARGET_ARCH} ;;
+    aarch64|arm64) target_emu=aarch64elf ;;
+    riscv64)       target_emu=elf64lriscv ;;
+    riscv32)       target_emu=elf32lriscv ;;
+    arm*)          target_emu=armelf ;;
+    *)             _err "don't know -m value for $TARGET_ARCH"
+  esac
+  [ $TARGET_SYS = freebsd ] && target_emu=${target_emu}_fbsd
   "$LLVM_STAGE1"/bin/ld.lld \
     -r -o "$outfile" \
     --lto-O3 \
@@ -72,7 +83,7 @@ _create_prelinked_obj_linux() { # <outfile> <input> ...
     --no-lto-legacy-pass-manager \
     --as-needed \
     --thinlto-cache-dir="$STAGE2_LTO_CACHE" \
-    -m elf_${TARGET_ARCH} \
+    -m $target_emu \
     -z noexecstack \
     -z relro \
     -z now \
