@@ -1,6 +1,6 @@
 llvmbox is a highly "portable" distribution of the LLVM tools and development libraries, without external dependencies.
 
-Simply unpack the tar file and you have a fully-functional compiler toolchain that is fully self-contained (does not need libc or even a dynamic linker to be present on your system.)
+Simply unpack the tar file and you have a fully-functional compiler toolchain that is fully self-contained (on Linux, it does not need libc or even a dynamic linker to be present on the target system.)
 
 Features:
 
@@ -19,8 +19,12 @@ Features:
 Supported systems:
 
   - Linux: x86_64, aarch64
-  - macOS: x86_64 (macOS >=10.15) arm64 (macOS >=11.0)
-  - Windows: NOT YET SUPPORTED — [contributions welcome!](CONTRIBUTING.md)
+  - macOS: x86_64, aarch64/arm64 (macOS 10.15 and up with x86_64, 11.0 and up with arm64)
+
+Hoping to support in the future: ([contributions welcome!](CONTRIBUTING.md))
+
+  - Windows
+  - FreeBSD
 
 Currently the toolchain is not cross-compilation capable but that is something I'd like to enable in the future by including sysroots and sources, compiling them as needed for requested targets.
 
@@ -152,4 +156,3 @@ llvmbox is both a necessity for some of my personal projects, like hobby OSes wi
 I also enjoy making hobby languages and compilers. Some of them uses llvm as the "backend" and it is _always_ a huge hassle getting llvm building, causing directories full of patches and shell scripts to litter these hobby projects. For some projects, like [Compis](https://github.com/rsms/compis), I embed clang & lld ([Zig](https://ziglang.org/) also does this) to allow compiling C & C++, but this brings a big burden: now Compis needs to be linked with the exact C++ lib that the llvm which libs it links with was built with. It gets messier, but basically, it's too complex.
 
 The [Zig project](https://ziglang.org/) is a great example of doing something about the complexity. They have put in a tremendous effort into building a C & C++ compatible compiler that is truly portable, which even has first-class "cross compilation." Zig is an inspiration for this project and a breath of fresh air when it comes to software portability and simplicity.
-
