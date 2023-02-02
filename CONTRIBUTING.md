@@ -91,6 +91,54 @@ bash 019-llvm-stage1.sh
 
 
 
+### Building aarch64 linux on macOS arm64
+
+Start an Alpine Linux instance via qemu:
+
+```
+brew install qemu
+cd path/to/llvmbox
+./utils/qemu.sh
+```
+
+Inside linux vm: setup host tools
+
+```sh
+hwclock -s
+apk add bash ninja wget ca-certificates cmake cmake3 file \
+    gcc g++ git linux-headers make musl-dev patch \
+    diff python3 rsync xz
+mkdir -p ~/src/llvmbox
+```
+
+On your host machine: transfer a copy of llvmbox
+
+```sh
+rsync -aui --delete \
+  --exclude out --exclude download --exclude .git \
+  --exclude utils/qemu --exclude 'myclang/build-*' \
+  -e 'ssh -p 10022' ./ root@localhost:src/llvmbox/
+```
+
+Inside linux vm: build llvmbox
+
+```sh
+cd ~/src/llvmbox
+export LLVMBOX_BUILD_DIR=~/tmp
+./utils/mktmpfs-build-dir.sh
+./build.sh
+```
+
+On your host machine: transfer build products
+
+```sh
+rsync -ai -e 'ssh -p 10022' --include '*.tar.xz' --exclude '*' \
+  root@localhost:src/llvm/out/ out/
+```
+
+To shut down the qemu instance, run `poweroff` in the vm.
+
+
 ### Build problems
 
 If the linker gets OOM killed, try setting NCPU to a smaller number than `nproc`:
