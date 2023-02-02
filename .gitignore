@@ -2,6 +2,8 @@
 *.exe
 *.gz
 *.tar
+*.o
+*.d
 
 /_*
 /build
