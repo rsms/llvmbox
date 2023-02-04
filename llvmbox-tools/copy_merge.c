@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "llvmbox-tools.h"
-#include <dirent.h>
+#include "llvmboxlib.h"
 #ifdef __APPLE__
   #include <sys/clonefile.h>
 #endif
+
+// TODO: consider rewriting this using nftw
 
 
 static bool copy_merge_badtype(copy_merge_t* cm, const char* path) {
@@ -140,9 +141,9 @@ static bool copy_merge_dir(
       if (strcmp(ent.d_name, ".DS_Store") == 0)
         continue;
     }
-    if (!join_path(tmp, dst, ent.d_name))
+    if (!path_join(tmp, dst, ent.d_name))
       return false;
-    if (!join_path(tmp2, src, ent.d_name))
+    if (!path_join(tmp2, src, ent.d_name))
       return false;
     #if defined(__APPLE__) || defined(__linux__)
       int dtype = ent.d_type;

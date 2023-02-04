@@ -39,19 +39,30 @@ else
 endif
 
 mksysroot_objs := \
-	$(OBJDIR)/path.c.o \
+	$(OBJDIR)/llvmboxlib.c.o \
 	$(OBJDIR)/copy_merge.c.o \
 	$(OBJDIR)/llvmbox-mksysroot.c.o
 
-all: llvmbox-mksysroot
+dedup_target_files_objs := \
+	$(OBJDIR)/llvmboxlib.c.o \
+	$(OBJDIR)/sha256.c.o \
+	$(OBJDIR)/dedup-target-files.c.o
+
+all: llvmbox-mksysroot dedup-target-files
 
 llvmbox-mksysroot: $(mksysroot_objs)
+	@echo "link $@"
+	$(Q)$(CC) $(LDFLAGS) $^ -o $@
+
+dedup-target-files: $(dedup_target_files_objs)
+	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
 install: | $(BINDIR)
 	$(Q)cp $(EXE) $(BINDIR)/
 
 $(OBJDIR)/%.c.o: %.c | $(OBJDIR)
+	@echo "cc $<"
 	$(Q)$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR):
