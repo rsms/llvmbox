@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "llvmboxlib.h"
 #include <sys/mman.h>
+#ifdef __APPLE__
+  #include <sys/clonefile.h>
+#endif
 
 
 #ifdef WIN32
@@ -149,6 +152,15 @@ bool path_join_resolve(char result[PATH_MAX], const char* path1, const char* pat
   if (path_join(tmp, path1, path2) < 0)
     return false;
   return path_resolve(result, tmp);
+}
+
+
+usize path_common_prefix_len(const char* a, const char* b) {
+  const char* start = a;
+  const char* end = a;
+  while (*a && *a++ == *b++)
+    if (*a == '/') end = a+1;
+  return (usize)(end - start);
 }
 
 
@@ -526,6 +538,339 @@ void* _array_sorted_assign(
   return p;
 }
 
+// ———————————————————————————————————————————————————————————————————————————————————
+// copy_merge
+
+typedef struct {
+  int flags;
+} copy_merge_t;
+
+
+static bool copy_merge_any(copy_merge_t* cm, const char* dst, const char* src);
+
+
+static bool copy_merge_badtype(copy_merge_t* cm, const char* path) {
+  errno = EINVAL;
+  warnx("uncopyable file type: %s", path);
+  return false;
+}
+
+
+static bool copy_merge_link(copy_merge_t* cm, const char* dst, const char* src) {
+  char target[PATH_MAX];
+
+  ssize_t len = readlink(src, target, sizeof(target));
+  if (len >= PATH_MAX) {
+    errno = EOVERFLOW;
+    return false;
+  }
+  target[len] = '\0';
+
+  if (cm->flags & COPY_MERGE_VERBOSE)
+    printf("create symlink %s -> %s\n", relpath(NULL, dst), target);
+
+  if (symlink(target, dst) == 0)
+    return true;
+
+  if ((cm->flags & COPY_MERGE_OVERWRITE) && errno == EEXIST) {
+    if (unlink(dst)) {
+      warn("unlink: %s", dst);
+      return false;
+    }
+    if (symlink(target, dst) == 0)
+      return true;
+  }
+  warn("symlink: %s", dst);
+  return false;
+}
+
+
+static isize copy_fd_fd(int src_fd, int dst_fd, char* buf, usize bufsize) {
+  isize wresid, wcount = 0;
+  char *bufp;
+  isize rcount = read(src_fd, buf, bufsize);
+  if (rcount <= 0)
+    return rcount;
+  for (bufp = buf, wresid = rcount; ; bufp += wcount, wresid -= wcount) {
+    wcount = write(dst_fd, bufp, wresid);
+    if (wcount <= 0)
+      break;
+    if (wcount >= (isize)wresid)
+      break;
+  }
+  return wcount < 0 ? wcount : rcount;
+}
+
+
+static bool copy_file(copy_merge_t* cm, const char* dst, const char* src) {
+  int src_fd = -1, dst_fd = -1;
+
+  if (cm->flags & COPY_MERGE_VERBOSE)
+    printf("add file %s\n", relpath(NULL, dst));
+
+again:
+  errno = 0;
+
+  #if defined(__APPLE__)
+    if (clonefile(src, dst, /*flags*/0) == 0)
+      goto end;
+  #endif
+
+  // TODO: look into using ioctl_ficlone or copy_file_range on linux
+
+  if (errno != EEXIST) {
+    // fall back to byte copying
+    if ((src_fd = open(src, O_RDONLY, 0)) == -1)
+      goto end;
+    struct stat src_st;
+    if (fstat(src_fd, &src_st) != 0)
+      goto end;
+    mode_t dst_mode = src_st.st_mode & ~(S_ISUID | S_ISGID);
+    if ((dst_fd = open(dst, O_WRONLY|O_TRUNC|O_CREAT, dst_mode)) == -1)
+      goto end;
+
+    static char *buf = NULL; // WARNING! SINGLE-THREADED ONLY!
+    if (!buf && (buf = malloc(4096)) == NULL)
+      goto end;
+
+    isize rcount;
+    for (;;) {
+      rcount = copy_fd_fd(src_fd, dst_fd, buf, 4096);
+      if (rcount == 0)
+        goto end;
+      if (rcount < 0)
+        break;
+    }
+  }
+
+  if (errno == EEXIST && (cm->flags & COPY_MERGE_OVERWRITE)) {
+    unlink(dst);
+    goto again;
+  }
+
+end:
+  if (src_fd != -1) close(src_fd);
+  if (dst_fd != -1) close(dst_fd);
+  if (errno)
+    warn("%s", dst);
+  return errno == 0;
+}
+
+
+static bool copy_merge_dir(
+  copy_merge_t* cm, const char* dst, const char* src, mode_t mode)
+{
+  char tmp[PATH_MAX];
+  char tmp2[PATH_MAX];
+
+  DIR* dirp = opendir(src);
+  if (!dirp)
+    return false;
+
+  if (mode == 0) {
+    struct stat st;
+    if (fstat(dirfd(dirp), &st) != 0)
+      return false;
+    mode = st.st_mode;
+  }
+  mode &= S_IRWXU|S_IRWXG|S_IRWXO; //|S_ISUID|S_ISGID|S_ISVTX;
+
+  if ((cm->flags & COPY_MERGE_VERBOSE) && !isdir(dst))
+    printf("creating directory %s\n", relpath(NULL, dst));
+
+  if (!mkdirs(dst, mode))
+    return false;
+
+  struct dirent ent;
+  struct dirent* result;
+  bool ok = true;
+  while (readdir_r(dirp, &ent, &result) == 0 && result && ok) {
+    if (*ent.d_name == 0)
+      continue;
+    if (*ent.d_name == '.') {
+      // ignore "." and ".." entries
+      if (ent.d_name[1] == 0 || (ent.d_name[1] == '.' && ent.d_name[2] == 0))
+        continue;
+      // ignore annoying macOS ".DS_Store" files
+      if (strcmp(ent.d_name, ".DS_Store") == 0)
+        continue;
+    }
+    if (!path_join(tmp, dst, ent.d_name))
+      return false;
+    if (!path_join(tmp2, src, ent.d_name))
+      return false;
+    #if defined(__APPLE__) || defined(__linux__)
+      int dtype = ent.d_type;
+    #else
+      int dtype = 0;
+    #endif
+    switch (dtype) {
+      case DT_REG: ok = copy_file(cm, tmp, tmp2); break;
+      case DT_LNK: ok = copy_merge_link(cm, tmp, tmp2); break;
+      case DT_DIR: ok = copy_merge_dir(cm, tmp, tmp2, 0); break;
+      case 0:      ok = copy_merge_any(cm, tmp, tmp2); break;
+      default:     return copy_merge_badtype(cm, tmp2);
+    }
+  }
+
+  closedir(dirp);
+  return ok;
+}
+
+
+static bool copy_merge_any(copy_merge_t* cm, const char* dst, const char* src) {
+  struct stat st;
+  if (lstat(src, &st) != 0)
+    return false;
+  if (S_ISREG(st.st_mode)) return copy_file(cm, dst, src);
+  if (S_ISLNK(st.st_mode)) return copy_merge_link(cm, dst, src);
+  if (S_ISDIR(st.st_mode)) return copy_merge_dir(cm, dst, src, st.st_mode);
+  return copy_merge_badtype(cm, src);
+}
+
+
+bool copy_merge(const char* srcpath, const char* dstpath, int flags) {
+  copy_merge_t cm = { .flags=flags };
+  return copy_merge_any(&cm, dstpath, srcpath);
+}
+
+
+// ———————————————————————————————————————————————————————————————————————————————————
+// SHA-256 aka SHA-2 implementation by Alain Mosnier (public domain)
+// https://github.com/amosnier/sha-2
+
+static inline u32 right_rot(u32 value, unsigned int count) {
+  return value >> count | value << (32 - count);
+}
+
+static inline void sha256_consume_chunk(u32 *h, const u8 *p) {
+  unsigned i, j;
+  u32 ah[8];
+  for (i = 0; i < 8; i++)
+    ah[i] = h[i];
+  u32 w[16];
+  for (i = 0; i < 4; i++) {
+    for (j = 0; j < 16; j++) {
+      if (i == 0) {
+        w[j] =
+            (u32)p[0] << 24 | (u32)p[1] << 16 | (u32)p[2] << 8 | (u32)p[3];
+        p += 4;
+      } else {
+        const u32 s0 = right_rot(w[(j + 1) & 0xf], 7) ^ right_rot(w[(j + 1) & 0xf], 18) ^
+                (w[(j + 1) & 0xf] >> 3);
+        const u32 s1 = right_rot(w[(j + 14) & 0xf], 17) ^
+                right_rot(w[(j + 14) & 0xf], 19) ^ (w[(j + 14) & 0xf] >> 10);
+        w[j] = w[j] + s0 + w[(j + 9) & 0xf] + s1;
+      }
+      const u32 s1 = right_rot(ah[4], 6) ^ right_rot(ah[4], 11) ^ right_rot(ah[4], 25);
+      const u32 ch = (ah[4] & ah[5]) ^ (~ah[4] & ah[6]);
+
+      static const u32 k[] = {
+          0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+          0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+          0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+          0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+          0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+          0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+          0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+          0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+          0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+          0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+          0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 };
+
+      const u32 temp1 = ah[7] + s1 + ch + k[i << 4 | j] + w[j];
+      const u32 s0 = right_rot(ah[0], 2) ^ right_rot(ah[0], 13) ^ right_rot(ah[0], 22);
+      const u32 maj = (ah[0] & ah[1]) ^ (ah[0] & ah[2]) ^ (ah[1] & ah[2]);
+      const u32 temp2 = s0 + maj;
+
+      ah[7] = ah[6];
+      ah[6] = ah[5];
+      ah[5] = ah[4];
+      ah[4] = ah[3] + temp1;
+      ah[3] = ah[2];
+      ah[2] = ah[1];
+      ah[1] = ah[0];
+      ah[0] = temp1 + temp2;
+    }
+  }
+  for (i = 0; i < 8; i++)
+    h[i] += ah[i];
+}
+
+void sha256_init(sha256_t *sha_256, u8 hash[SHA256_SUM_SIZE]) {
+  sha_256->hash = hash;
+  sha_256->chunk_pos = sha_256->chunk;
+  sha_256->space_left = SHA256_CHUNK_SIZE;
+  sha_256->total_len = 0;
+  sha_256->h[0] = 0x6a09e667;
+  sha_256->h[1] = 0xbb67ae85;
+  sha_256->h[2] = 0x3c6ef372;
+  sha_256->h[3] = 0xa54ff53a;
+  sha_256->h[4] = 0x510e527f;
+  sha_256->h[5] = 0x9b05688c;
+  sha_256->h[6] = 0x1f83d9ab;
+  sha_256->h[7] = 0x5be0cd19;
+}
+
+void sha256_write(sha256_t *sha_256, const void *data, usize len) {
+  sha_256->total_len += len;
+  const u8 *p = data;
+  while (len > 0) {
+    if (sha_256->space_left == SHA256_CHUNK_SIZE && len >= SHA256_CHUNK_SIZE) {
+      sha256_consume_chunk(sha_256->h, p);
+      len -= SHA256_CHUNK_SIZE;
+      p += SHA256_CHUNK_SIZE;
+      continue;
+    }
+    const usize consumed_len = len < sha_256->space_left ? len : sha_256->space_left;
+    memcpy(sha_256->chunk_pos, p, consumed_len);
+    sha_256->space_left -= consumed_len;
+    len -= consumed_len;
+    p += consumed_len;
+    if (sha_256->space_left == 0) {
+      sha256_consume_chunk(sha_256->h, sha_256->chunk);
+      sha_256->chunk_pos = sha_256->chunk;
+      sha_256->space_left = SHA256_CHUNK_SIZE;
+    } else {
+      sha_256->chunk_pos += consumed_len;
+    }
+  }
+}
+
+void sha256_close(sha256_t *sha_256) {
+  u8 *pos = sha_256->chunk_pos;
+  usize space_left = sha_256->space_left;
+  const usize kTotalLenLen = 8;
+  u32 *const h = sha_256->h;
+  *pos++ = 0x80;
+  --space_left;
+  if (space_left < kTotalLenLen) {
+    memset(pos, 0x00, space_left);
+    sha256_consume_chunk(h, sha_256->chunk);
+    pos = sha_256->chunk;
+    space_left = SHA256_CHUNK_SIZE;
+  }
+  const usize left = space_left - kTotalLenLen;
+  memset(pos, 0x00, left);
+  pos += left;
+  usize len = sha_256->total_len;
+  pos[7] = (u8)(len << 3);
+  len >>= 5;
+  int i;
+  for (i = 6; i >= 0; --i) {
+    pos[i] = (u8)len;
+    len >>= 8;
+  }
+  sha256_consume_chunk(h, sha_256->chunk);
+  int j;
+  u8 *const hash = sha_256->hash;
+  for (i = 0, j = 0; i < 8; i++) {
+    hash[j++] = (u8)(h[i] >> 24);
+    hash[j++] = (u8)(h[i] >> 16);
+    hash[j++] = (u8)(h[i] >> 8);
+    hash[j++] = (u8)h[i];
+  }
+}
 
 // ———————————————————————————————————————————————————————————————————————————————————
 // quick sort

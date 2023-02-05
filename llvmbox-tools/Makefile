@@ -38,23 +38,22 @@ else
 	LDFLAGS += -dead_strip
 endif
 
-mksysroot_objs := \
+all_objs := \
 	$(OBJDIR)/llvmboxlib.c.o \
-	$(OBJDIR)/copy_merge.c.o \
-	$(OBJDIR)/llvmbox-mksysroot.c.o
-
-dedup_target_files_objs := \
-	$(OBJDIR)/llvmboxlib.c.o \
-	$(OBJDIR)/sha256.c.o \
+	$(OBJDIR)/llvmbox-mksysroot.c.o \
 	$(OBJDIR)/dedup-target-files.c.o
 
-all: llvmbox-mksysroot dedup-target-files
+all: llvmbox-mksysroot llvmbox-cpmerge dedup-target-files
 
-llvmbox-mksysroot: $(mksysroot_objs)
+llvmbox-mksysroot: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-mksysroot.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
-dedup-target-files: $(dedup_target_files_objs)
+llvmbox-cpmerge: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-cpmerge.c.o
+	@echo "link $@"
+	$(Q)$(CC) $(LDFLAGS) $^ -o $@
+
+dedup-target-files: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/dedup-target-files.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
@@ -62,7 +61,7 @@ install: | $(BINDIR)
 	$(Q)cp $(EXE) $(BINDIR)/
 
 $(OBJDIR)/%.c.o: %.c | $(OBJDIR)
-	@echo "cc $<"
+	@echo "compile $<"
 	$(Q)$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR):
@@ -71,7 +70,7 @@ $(OBJDIR):
 $(BINDIR):
 	$(Q)mkdir -p $@
 
-DEPS := ${mksysroot_objs:.o=.d}
+DEPS := ${all_objs:.o=.d}
 -include $(DEPS)
 
 clean:

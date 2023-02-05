@@ -423,10 +423,8 @@ int file_visitor(const char* path, const struct stat* sb, int type, struct FTW* 
 
 
 bool visit_subdir(target_t* target) {
-  #if DEBUG
-    target_str(*target, tmpbuf, sizeof(tmpbuf));
-    dlog("%s", tmpbuf);
-  #endif
+  target_str(*target, tmpbuf, sizeof(tmpbuf));
+  printf("indexing %s\n", tmpbuf);
 
   g_curr_target = target;
   g_curr_subdir_len = (usize)target_str(*target, g_curr_subdir, sizeof(g_curr_subdir));
@@ -468,7 +466,6 @@ bool dir_isempty(const char* path, bool* has_DS_Store) {
 
 void remove_empty_dirs() {
   dlog("remove_empty_dirs");
-  // lb_qsort(g_mvdirs.ptr, g_mvdirs.len, sizeof(void*), strptr_cmp_r, NULL);
   for (u32 i = 0; i < g_mvdirs.len; i++) {
     const char* path = array_at(const char*, &g_mvdirs, i);
     bool has_DS_Store = false;

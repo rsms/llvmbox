@@ -69,9 +69,9 @@ char* create_outdir(bumpalloc_t* ma, char tmp[PATH_MAX], target_t target) {
 
 
 bool copy_merge_one(const char* dstdir, const char* srcdir) {
-  copy_merge_t cm = { .overwrite = false };
   printf("* %s -> %s\n", relpath(NULL, srcdir), relpath(NULL, dstdir));
-  bool ok = copy_merge(&cm, dstdir, srcdir);
+  int flags = 0;
+  bool ok = copy_merge(srcdir, dstdir, flags);
   if (!ok)
     warn("failed to copy dir tree %s -> %s", srcdir, dstdir);
   return ok;

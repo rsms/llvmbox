@@ -172,6 +172,7 @@ int path_join(char result[PATH_MAX], const char* path1, const char* path2);
 char* path_join_dup(bumpalloc_t* ma, const char* path1, const char* path2);
 bool path_resolve(char result[PATH_MAX], const char* path);
 bool path_join_resolve(char result[PATH_MAX], const char* path1, const char* path2);
+usize path_common_prefix_len(const char* a, const char* b);
 const char* relpath(const char* parent, const char* path);
 bool isdir(const char* path);
 bool mkdirs(const char *path, mode_t mode);
@@ -191,7 +192,6 @@ int target_str(target_t target, char* dst, usize dstcap); // e.g. "arch-sys.ver-
 void sha256_init(sha256_t* state, u8 hash_storage[SHA256_SUM_SIZE]);
 void sha256_write(sha256_t* state, const void* data, usize len);
 void sha256_close(sha256_t* state);
-void sha256_data(u8 result[SHA256_SUM_SIZE], const u8* data, usize len);
 
 bool str_has_suffix(const char* subject, const char* suffix);
 
@@ -224,8 +224,6 @@ void* _array_sorted_assign(
 typedef int(*lb_qsort_cmp)(const void* x, const void* y, void* ctx);
 void lb_qsort(void* base, usize nmemb, usize width, lb_qsort_cmp cmp, void* ctx);
 
-// copy_merge.c
-typedef struct {
-  bool overwrite; // if a file exists, replace it instead of reporting an error
-} copy_merge_t;
-bool copy_merge(copy_merge_t*, const char* dst, const char* src);
+#define COPY_MERGE_OVERWRITE (1<<0)
+#define COPY_MERGE_VERBOSE   (1<<1)
+bool copy_merge(const char* srcpath, const char* dstpath, int flags);
