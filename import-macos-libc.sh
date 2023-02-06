@@ -116,10 +116,6 @@ _import_headers() { # <sdk-dir> <sysversion>
     [[ "$line" != *"/clang/"* ]] || continue  # ignore clang builtins like immintrin.h
     path=${line/ \\/}                         # "foo \" => "foo"
 
-
-    # .framework
-    # /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreFoundation.framework/Headers/CFBase.h
-
     if [[ "$path" == *"/usr/include/"* ]]; then
       name="${path/*\/usr\/include\//}" # /a/b/usr/include/foo/bar.h => foo/bar.h
     elif [[ "$path" == *".framework/Headers/"* ]]; then
@@ -265,8 +261,7 @@ if command -v xcrun >/dev/null; then
 fi
 
 # did we find any SDKs?
-[ "${#SDKS[@]:-}" -gt 0 ] ||
-  _err "no SDKs found"
+[ -n "$SDKS" ] || _err "no SDKs found"
 
 # sort SDKs by version so that a later minor version is processed after an earlier one
 SDKS_TMP=()
