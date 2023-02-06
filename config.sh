@@ -334,6 +334,18 @@ _array_join() { # <gluechar> <element> ...
   local IFS="$1"; shift; echo "$*"
 }
 
+_copy() {
+  printf "copy"
+  local past=
+  for arg in "$@"; do case "$arg" in
+    -*) [ -z "$past" ] || printf " %s" "$(_relpath "$arg")";;
+    --) past=1 ;;
+    *)  printf " %s" "$(_relpath "$arg")" ;;
+  esac; done
+  printf "\n"
+  cp -R "$@"
+}
+
 _sha_test() { # <file> [<sha256> | <sha512>]
   local file=$1 ; local expect=$2
   [ -f "$file" ] || return 1
