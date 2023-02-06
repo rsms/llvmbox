@@ -337,9 +337,3 @@ fi
 if [ "$(dirname "$DESTDIR")" = "$OUT_DIR" ]; then
   _symlink "$OUT_DIR/llvmbox-dev" "$(basename "$DESTDIR")"
 fi
-
-# create .tar.xz archive out of the result
-if [ "${1:-}" != "--no-tar" ]; then
-  echo "creating $(_relpath "$DESTDIR.tar.xz")"
-  _create_tar_xz_from_dir "$DESTDIR" "$DESTDIR.tar.xz"
-fi

@@ -3,20 +3,6 @@ set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
 DESTDIR="${DESTDIR:-$LLVMBOX_DESTDIR}"
-CREATE_TAR=true
-
-while [ $# -gt 0 ]; do case "$1" in
-  -h|--help) cat << EOF
-usage: $0 [options]
-options:
-  --no-tar    Don't create .tar.xz archive
-  -h, --help  Print help on stdout and exit
-EOF
-    exit ;;
-  --no-tar) CREATE_TAR=false; shift ;;
-  -*) _err "Unknown option $1" ;;
-  *)  _err "Unexpected argument $1" ;;
-esac; done
 
 rm -rf "$DESTDIR"
 mkdir -p "$DESTDIR/lib"
@@ -27,13 +13,8 @@ _copyinto "$LLVM_STAGE2/bin/"       "$DESTDIR/bin/"
 _copyinto "$LLVM_STAGE2/share/"     "$DESTDIR/share/"
 _copyinto "$LLVM_STAGE2/lib/clang/" "$DESTDIR/lib/clang/"
 
-# remove llvm-config
+# remove llvm-config (instead, it is included in llvmbox-dev)
 rm -f "$DESTDIR/bin/llvm-config"
-# # create empty files to satisfy llvm-config
-# for f in "$LLVM_STAGE2"/lib/lib*.a; do
-#   touch -r "$f" "$DESTDIR/lib/$(basename "$f")"
-#   # ln -s "../dev/lib/$(basename "$f")" "$DESTDIR/lib/$(basename "$f")"
-# done
 
 _merge_libs() { # <targetlib> <srclib> ...
   # see https://llvm.org/docs/CommandGuide/llvm-ar.html
@@ -91,10 +72,4 @@ fi
 # create symlink for development
 if [ "$(dirname "$DESTDIR")" = "$OUT_DIR" ]; then
   _symlink "$OUT_DIR/llvmbox" "$(basename "$DESTDIR")"
-fi
-
-# create .tar.xz archive out of the result
-if $CREATE_TAR; then
-  echo "creating $(_relpath "$DESTDIR.tar.xz")"
-  _create_tar_xz_from_dir "$DESTDIR" "$DESTDIR.tar.xz"
 fi
