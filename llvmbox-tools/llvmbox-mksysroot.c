@@ -36,9 +36,23 @@ bool target_sysroot_dir(target_t target, const char* infix, char result[PATH_MAX
 }
 
 
+int target_cmp(const void* p1, const void* p2, void* ctx) {
+  const target_t* a = p1;
+  const target_t* b = p2;
+  char* tmp = ctx;
+  target_str(*a, tmp, PATH_MAX);
+  target_str(*b, tmp+PATH_MAX, PATH_MAX);
+  return strcmp(tmp, tmp+PATH_MAX);
+}
+
+
 void print_target_list() {
-  for (usize i = 0; i < supported_targets_count; i++)
-    printf(TARGET_FMT "\n", TARGET_FMT_ARGS(supported_targets[i]));
+  char tmp[PATH_MAX*2];
+  target_t targets[SUPPORTED_TARGETS_COUNT];
+  memcpy(targets, supported_targets, sizeof(targets));
+  lb_qsort(targets, SUPPORTED_TARGETS_COUNT, sizeof(target_t), target_cmp, tmp);
+  for (usize i = 0; i < SUPPORTED_TARGETS_COUNT; i++)
+    printf(TARGET_FMT "\n", TARGET_FMT_ARGS(targets[i]));
 }
 
 

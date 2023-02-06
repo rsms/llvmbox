@@ -1,5 +1,19 @@
 #pragma once
 
+#define FOR_EACH_SUPPORTED_TARGET(_) \
+  /* these must be sorted by sysver (per system) */\
+  /* _(arch, sys, sysver, triple) */\
+  _("aarch64", "linux", "",   "aarch64-linux-musl") \
+  _("x86_64",  "linux", "",   "x86_64-linux-musl") \
+  _("aarch64", "macos", "11", "arm64-apple-darwin20") \
+  _("aarch64", "macos", "12", "arm64-apple-darwin21") \
+  _("aarch64", "macos", "13", "arm64-apple-darwin22") \
+  _("x86_64",  "macos", "10", "x86_64-apple-darwin19") \
+  _("x86_64",  "macos", "11", "x86_64-apple-darwin20") \
+  _("x86_64",  "macos", "12", "x86_64-apple-darwin21") \
+  _("x86_64",  "macos", "13", "x86_64-apple-darwin22") \
+// end FOR_EACH_SUPPORTED_TARGET
+
 #define _GNU_SOURCE
 #define _BSD_SOURCE
 #include <dirent.h>
@@ -93,7 +107,6 @@ static inline __attribute__((warn_unused_result)) bool __must_check_unlikely(
   __builtin_mul_overflow(a__, b__, dst__); \
 }))
 
-
 typedef struct {
   u8* ptr;
   u32 cap, len; // count of T items (not bytes)
@@ -139,9 +152,11 @@ typedef struct {
   u32   h[8];
 } sha256_t;
 
+#define LB_PLUS_ONE(...) + 1lu
+enum { SUPPORTED_TARGETS_COUNT = (0lu FOR_EACH_SUPPORTED_TARGET(LB_PLUS_ONE)) };
+
 extern const target_t    supported_targets[];
 extern const char* const supported_target_triples[];
-extern const usize       supported_targets_count;
 
 #define TARGET_FMT "%s-%s%s%s%s%s"
 #define TARGET_FMT_ARGS(target) \

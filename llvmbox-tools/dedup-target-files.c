@@ -178,7 +178,7 @@ void array_sorted_add_str(array_t* a, const char* str, array_sorted_cmp_t cmpf) 
 bool target_sys_versions(
   const char* sys, const char** archv, u32 archc, array_t* sorted_set_result)
 {
-  for (usize i = 0; i < supported_targets_count; i++) {
+  for (usize i = 0; i < SUPPORTED_TARGETS_COUNT; i++) {
     const target_t* t = &supported_targets[i];
     if (strcmp(t->sys, sys) != 0)
       continue;
@@ -485,7 +485,7 @@ bool target_is_supported(target_t t) {
   bool arch_ok = strcmp(t.arch, "any") == 0;
   bool sys_ok = strcmp(t.sys, "any") == 0;
 
-  for (usize i = 0; i < supported_targets_count; i++) {
+  for (usize i = 0; i < SUPPORTED_TARGETS_COUNT; i++) {
     const target_t* t2 = &supported_targets[i];
 
     if (!arch_ok && strcmp(t.arch, t2->arch) == 0)

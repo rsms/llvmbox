@@ -18,20 +18,6 @@
   #define PATH_DELIM_STR ":"
 #endif
 
-#define FOR_EACH_SUPPORTED_TARGET(_) \
-  /* these must be sorted by sysver (per system) */\
-  /* _(arch, sys, sysver, triple) */\
-  _("aarch64", "linux", "",   "aarch64-linux-musl") \
-  _("x86_64",  "linux", "",   "x86_64-linux-musl") \
-  _("aarch64", "macos", "11", "arm64-apple-darwin20") \
-  _("aarch64", "macos", "12", "arm64-apple-darwin21") \
-  _("aarch64", "macos", "13", "arm64-apple-darwin22") \
-  _("x86_64",  "macos", "10", "x86_64-apple-darwin19") \
-  _("x86_64",  "macos", "11", "x86_64-apple-darwin20") \
-  _("x86_64",  "macos", "12", "x86_64-apple-darwin21") \
-  _("x86_64",  "macos", "13", "x86_64-apple-darwin22") \
-// end FOR_EACH_SUPPORTED_TARGET
-
 const target_t supported_targets[] = {
   #define _(arch, sys, sysver, triple) {(arch), (sys), (sysver), ""},
   FOR_EACH_SUPPORTED_TARGET(_)
@@ -42,7 +28,6 @@ const char* const supported_target_triples[] = {
   FOR_EACH_SUPPORTED_TARGET(_)
   #undef _
 };
-const usize supported_targets_count = countof(supported_targets);
 
 
 static char _exe_path[PATH_MAX];
@@ -410,7 +395,7 @@ bool target_parse(target_t* target, const char* target_str, int flags) {
   }
 
   bool found_without_version = false;
-  for (usize i = 0; i < supported_targets_count; i++) {
+  for (usize i = 0; i < SUPPORTED_TARGETS_COUNT; i++) {
     const target_t* t = &supported_targets[i];
     if (slice_eq_cstr(arch, t->arch) && slice_eq_cstr(sys, t->sys)) {
       found_without_version = true;
