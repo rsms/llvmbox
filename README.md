@@ -35,7 +35,7 @@ Find the URL for [the release suitable for your system in (latest release)](http
 
 ```sh
 # download & install in current directory
-wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-VERSION.tar.xz | tar x
+wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-VERSION.tar.xz | tar xJ
 
 # create example C++ source
 cat << EXAMPLE > hello.cc
@@ -61,7 +61,7 @@ LLVM libraries are distributed in a separate archive "llvmbox-dev." Its director
 
 ```sh
 # download & install in current directory
-wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-dev-VERSION.tar.xz | tar x
+wget -qO- https://github.com/rsms/llvmbox/.../llvmbox-dev-VERSION.tar.xz | tar xJ
 
 # fetch example program
 wget https://github.com/rsms/llvmbox/blob/954ee63a9c82c4f2dca2dd319496f1cfa5d7d06d/test/hello-llvm.c
@@ -90,8 +90,8 @@ To merge the two distributions toghether, use `tar --strip-components` and extra
 ```sh
 mkdir llvmbox
 cd llvmbox
-tar --strip-components 1 -xf llvmbox-15.0.7+1-x86_64-linux.tar.xz
-tar --strip-components 1 -xf llvmbox-dev-15.0.7+1-x86_64-linux.tar.xz
+tar --strip-components 1 -xf ../llvmbox-15.0.7+1-x86_64-linux.tar.xz
+tar --strip-components 1 -xf ../llvmbox-dev-15.0.7+1-x86_64-linux.tar.xz
 ```
 
 
