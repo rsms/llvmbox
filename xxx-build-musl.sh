@@ -12,20 +12,27 @@ LLVMBOX=../..
 DESTDIR="$LLVMBOX/targets/$TARGET_ARCH-linux/lib"
 BUILDDIR="$LLVMBOX/cache/musl-$TARGET_ARCH-linux"
 
+mkdir -p "$DESTDIR"
+
 
 # [for testing] build using musl's makefile:
 # ( cd out/llvmbox/src/musl-1 && rm -rf obj && CC=../../bin/clang AR=../../bin/ar RANLIB=../../bin/ranlib CFLAGS='--target=x86_64-linux-musl' ./configure --disable-shared && make -j$(nproc) )
 if false; then
+  _fetch_source_tar \
+    https://musl.libc.org/releases/musl-$MUSL_VERSION.tar.gz "$MUSL_SHA256" "$MUSL_SRC"
+  LLVMBOX="$(realpath "$LLVMBOX")"
+  DESTDIR="$(realpath "$DESTDIR")"
+  _pushd "$MUSL_SRC"
   rm -rf obj
 
   CC=$LLVMBOX/bin/clang \
   AR=$LLVMBOX/bin/ar \
   RANLIB=$LLVMBOX/bin/ranlib \
-  CFLAGS=--target=x86_64-linux-musl \
-  ./configure --disable-shared
+  CFLAGS=--target=$TARGET_ARCH-linux-musl \
+  ./configure --disable-shared --target=$TARGET_ARCH-linux-musl
 
   make -j$(nproc)
-  cp lib/libc.a $DESTDIR/libc.a
+  cp -v lib/*.[ao] "$DESTDIR/"
   exit
 fi
 
