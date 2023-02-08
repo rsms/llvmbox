@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
+# Note: This script can run on any posix system (host doesn't need to be linux)
 
 SUPPORTED_ARCHS=( aarch64 arm i386 riscv64 x86_64 )
 
@@ -10,7 +11,7 @@ _fetch_source_tar \
 
 _pushd "$MUSL_SRC"
 
-# headers
+# copy headers
 for arch in "${SUPPORTED_ARCHS[@]}"; do
   HEADERS_DESTDIR=$SYSROOTS_DIR/include/$arch-linux-libc
   echo "make install-headers $arch -> $(_relpath "$HEADERS_DESTDIR")"
@@ -21,43 +22,57 @@ for arch in "${SUPPORTED_ARCHS[@]}"; do
   mv destdir/include "$HEADERS_DESTDIR"
 done
 
-# sources
+# copy sources (from musl Makefile)
 SOURCE_DESTDIR="$SYSROOTS_DIR/libc/musl"
-mkdir -p "$SOURCE_DESTDIR"
-for dir in arch compat crt src; do
-  rm -rf "$SOURCE_DESTDIR/$dir"
-  _copy "$dir" "$SOURCE_DESTDIR/$dir"
+for f in "$SOURCE_DESTDIR"/*; do [ -d "$f" ] && rm -rf "$f"; done
+mkdir -p "$SOURCE_DESTDIR/arch"
+
+for f in \
+  $(find src -type f -name '*.h') \
+  compat/time32/*.c \
+  crt/*.c \
+  ldso/*.c \
+  src/*/*.c \
+  src/malloc/mallocng/*.c \
+;do
+  [ -f "$f" ] || continue
+  mkdir -p $(dirname "$SOURCE_DESTDIR/$f")
+  cp $f "$SOURCE_DESTDIR/$f"
+done &
+
+for arch in "${SUPPORTED_ARCHS[@]}"; do
+  for f in \
+    crt/$arch/*.[csS] \
+    ldso/$arch/*.[csS] \
+    src/*/$arch/*.[csS] \
+    src/malloc/mallocng/$arch/*.[csS] \
+  ;do
+    [ -f "$f" ] || continue
+    mkdir -p $(dirname "$SOURCE_DESTDIR/$f")
+    cp $f "$SOURCE_DESTDIR/$f"
+  done &
+  # internal headers
+  [ -d "arch/$arch" ] &&
+    _copy "arch/$arch" "$SOURCE_DESTDIR/arch/$arch"
 done
+_copy "arch/generic" "$SOURCE_DESTDIR/arch/generic" &
+wait
+
+# copy license statement
 _copy COPYRIGHT "$SOURCE_DESTDIR"
-mkdir "$SOURCE_DESTDIR/ldso"
-_copy ldso/dlstart.c "$SOURCE_DESTDIR/ldso"
 
 # create version.h, needed by version.c (normally created by musl's makefile)
 echo "generate $(_relpath "$SOURCE_DESTDIR/src/internal/version.h")"
 echo "#define VERSION \"$MUSL_VERSION\"" > "$SOURCE_DESTDIR/src/internal/version.h"
-
-# remove unused dirs
-for arch_dir in "$SOURCE_DESTDIR"/arch/* "$SOURCE_DESTDIR"/crt/*; do
-  [ -d "$arch_dir" ] || continue
-  arch=$(basename "$arch_dir")
-  [ "$arch" != generic ] || continue
-  is_supported=
-  for supported_arch in "${SUPPORTED_ARCHS[@]}"; do
-    if [ "$arch" = "$supported_arch" ]; then
-      is_supported=1
-      break
-    fi
-  done
-  if [ -z "$is_supported" ]; then
-    echo "remove unused $(_relpath "$arch_dir")"
-    rm -rf "$arch_dir"
-  fi
-done
 
 _popd
 
 # remove unused files
 find "$(_relpath "$SOURCE_DESTDIR")" \
   -type f -name '*.mak' -or -name '*.in' -delete -exec echo "remove unused {}" \;
+
+# remove empty directories
+find "$(_relpath "$SOURCE_DESTDIR")" \
+  -empty -type d -delete -exec echo "remove empty directory {}" \;
 
 rm -rf "$MUSL_SRC"

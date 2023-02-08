@@ -8,7 +8,8 @@
 #   crtn.o  [exe, shlib] function epilogs for the .init/.fini sections
 #   note: musl has no crt0
 #   linking order: crt1 crti [-L paths] [objects] [C libs] crtn
-#   See https://www.openwall.com/lists/musl/2015/06/01/12 re. rcrt1.o
+#   See https://www.openwall.com/lists/musl/2015/06/01/12 (re. rcrt1.o)
+#   See https://dev.gentoo.org/~vapier/crt.txt
 #
 set -euo pipefail
 source "$(dirname "$0")/config.sh"

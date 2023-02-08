@@ -237,6 +237,7 @@ STAGE2_LIBTOOL="$LLVM_STAGE1/bin/llvm-libtool-darwin"
 STAGE2_OPT="$LLVM_STAGE1/bin/opt"
 STAGE2_LLC="$LLVM_STAGE1/bin/llc"
 STAGE2_LLVM_LINK="$LLVM_STAGE1/bin/llvm-link"
+STAGE2_STRIP="$LLVM_STAGE1/bin/llvm-strip"
 
 STAGE2_CFLAGS=(
   --target=$TARGET_TRIPLE \
