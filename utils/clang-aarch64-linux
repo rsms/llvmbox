@@ -1,0 +1,66 @@
+#!/bin/sh
+set -e
+LLVMBOX=`cd $(dirname "$0")/..; pwd`
+LIB="$LLVMBOX/targets/aarch64-linux/lib"
+
+[ -f "$LIB/libc.a" ] || (
+  echo "building $LIB/libc.a..."
+  cd "$LLVMBOX/src/musl"
+  ../../bin/ninja -f build-aarch64.ninja -j$(nproc) >/dev/null
+  rm -rf /tmp/llvmbox-15.0.7+1-musl-aarch64
+)
+
+[ -f "$LIB/librt.a" ] || (
+  echo "building $LIB/librt.a..."
+  cd "$LLVMBOX/src/builtins"
+  ../../bin/ninja -f build-aarch64-linux.ninja -j$(nproc) >/dev/null
+  rm -rf /tmp/llvmbox-15.0.7+1-rt-aarch64-linux
+)
+
+clang=clang ; case "$0" in *++-aarch64-linux) clang=clang++ ;; esac
+
+# linking order: crt1 crti [-L paths] [objects] [C libs] crtn
+sflags=
+eflags=
+for x ; do
+  case "$x" in
+    -l*) input=1 ;;
+    *) input= ;;
+  esac
+  if test "$input" ; then
+    sflags="-l-user-start"
+    eflags="-l-user-end"
+    break
+  fi
+done
+
+lflags=1
+for x ; do
+  case "$x" in
+    -l*) lflags=1 ;;
+    -c)  lflags= ;;
+  esac
+done
+if test "$lflags"; then
+  lflags="-lc -lrt -fPIE -static $LIB/crt1.o"
+else
+  lflags=-fPIC
+fi
+
+exec "$LLVMBOX/bin/$clang" \
+  --target=aarch64-linux-musl \
+  --sysroot=$LLVMBOX/targets/aarch64-linux \
+  -nostdinc -nostdlib -nostartfiles -ffreestanding \
+  -I"$LLVMBOX/targets/aarch64-linux/include" \
+  -I"$LLVMBOX/targets/any-linux/include" \
+  -L"$LIB" \
+  $lflags \
+  -Wno-unused-command-line-argument \
+  -L-user-start \
+  $sflags \
+  -Wunused-command-line-argument \
+  $@ \
+  -Wno-unused-command-line-argument \
+  $eflags \
+  -L"$LIB" \
+  -L-user-end

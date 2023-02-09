@@ -59,3 +59,7 @@ _copy "$SYSROOTS_DIR/compiler-rt/builtins" "$DESTDIR/src/builtins"
 mkdir -p "$DESTDIR/bin"
 install -v -m755 "$PROJECT/llvmbox-tools/llvmbox-mksysroot" "$DESTDIR/bin"
 
+# install target-specific wrappers
+# TODO FIXME: generate for all targets
+install -v -m755 utils/clang-aarch64-linux "$DESTDIR/bin/"
+ln -vsf clang-aarch64-linux "$DESTDIR/bin/clang++-aarch64-linux"
