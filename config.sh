@@ -127,6 +127,24 @@ LLVMBOX_SYSROOT_BASE=${LLVMBOX_SYSROOT_BASE:-$OUT_DIR/sysroot}
 LLVMBOX_SYSROOT=${LLVMBOX_SYSROOT:-$LLVMBOX_SYSROOT_BASE/$TARGET}
 export LLVMBOX_SYSROOT
 
+# SUPPORTED_DIST_TARGETS is a list of all targets supported by llvmbox,
+# in its "llvmbox/targets" directory.
+SUPPORTED_DIST_TARGETS=( # tuples with system versions
+  aarch64-linux \
+  arm-linux \
+  i386-linux \
+  riscv32-linux \
+  riscv64-linux \
+  x86_64-linux \
+  \
+  x86_64-macos.10 \
+  aarch64-macos.11  x86_64-macos.11 \
+  aarch64-macos.12  x86_64-macos.12 \
+  aarch64-macos.13  x86_64-macos.13 \
+  \
+  wasm32-wasi wasm64-wasi \
+)
+
 # ————————————————————————————————————————————————————————————————————————————————————
 
 LLVM_RELEASE=15.0.7  # reset LLVMBOX_VERSION_TAG when upgrading
@@ -140,7 +158,7 @@ LLVM_STAGE1=${LLVM_STAGE1:-$OUT_DIR/llvm-stage1}
 LIBCXX_STAGE2=${LIBCXX_STAGE2:-$OUT_DIR/libcxx-stage2}
 LLVM_STAGE2=${LLVM_STAGE2:-$OUT_DIR/llvm-stage2}
 
-LLVMBOX_VERSION_TAG=1
+LLVMBOX_VERSION_TAG=2
 LLVMBOX_RELEASE_ID=$LLVM_RELEASE+$LLVMBOX_VERSION_TAG-$TARGET_ARCH-$TARGET_SYS
 LLVMBOX_DESTDIR=${LLVMBOX_DESTDIR:-$OUT_DIR/llvmbox-$LLVMBOX_RELEASE_ID}
 LLVMBOX_DEV_DESTDIR=${LLVMBOX_DEV_DESTDIR:-$OUT_DIR/llvmbox-dev-$LLVMBOX_RELEASE_ID}
@@ -486,4 +504,26 @@ _print_linking() { # <file>
   else
     echo "$(_relpath "$1") is statically linked."
   fi
+}
+
+_fmt_triple() { # <arch> <sys> [<sysver>]
+  local arch=$1 triple ; shift
+  local sys=$1 ; shift
+  local sysver=${1:-}
+  case "$sys" in
+    linux) triple=$arch-linux-musl ;;
+    macos) triple=$arch-apple-darwin
+      if [ -z "$sysver" -a "$arch" = aarch64 ]; then
+        sysver=11
+      elif [ -z "$sysver" ]; then
+        sysver=10
+      fi
+      case "$sysver" in
+        "") triple=${triple}19 ;;
+        *)  triple=${triple}$(( ${sysver%%.*} + 9 )) ;;
+      esac
+      ;;
+    wasi) triple=$arch-unknown-wasi ;;
+  esac
+  echo $triple
 }

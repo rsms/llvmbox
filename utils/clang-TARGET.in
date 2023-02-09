@@ -1,0 +1,95 @@
+#!/bin/sh
+set -e
+LLVMBOX=`cd $(dirname "$0")/..; pwd`
+
+LLVMBOXID=@LLVMBOXID@
+ARCH=@ARCH@
+SYS=@SYS@
+TARGETID=@TARGETID@
+TRIPLE=@TRIPLE@
+
+LIB="$LLVMBOX/targets/$TARGETID/lib"
+BUILDLOCK=/tmp/$LLVMBOXID-build.lock
+HAS_BUILDLOCK=
+clang=clang ; case "$0" in */clang++*) clang=clang++ ;; esac
+
+_buildunlock() { HAS_BUILDLOCK=; rm -rf "$BUILDLOCK"; }
+_buildlock() {
+  [ "$HAS_BUILDLOCK" != 0 ] || return 1
+  if [ "$HAS_BUILDLOCK" = 1 ] || mkdir "$BUILDLOCK" 2>/dev/null; then
+    HAS_BUILDLOCK=1
+    # echo "[$$] acquired buildlock"
+    return 0
+  fi
+  HAS_BUILDLOCK=0
+  # echo "[$$] waiting for buildlock"
+  while [ -d "$BUILDLOCK" ]; do sleep 0.5; done
+  return 1
+}
+
+trap _buildunlock EXIT
+trap "_buildunlock; exit 1" INT
+
+if [ $SYS = linux ] && [ ! -f "$LIB/libc.a" ] && _buildlock; then
+  echo "building $LIB/libc.a..."
+  ( cd "$LLVMBOX/src/musl"
+    ../../bin/ninja -f build-$ARCH.ninja -j$(nproc) >/dev/null )
+  rm -rf /tmp/$LLVMBOXID-musl-$ARCH
+fi
+
+if [ ! -f "$LIB/librt.a" ] && _buildlock; then
+  echo "building $LIB/librt.a..."
+  ( cd "$LLVMBOX/src/builtins"
+    ../../bin/ninja -f build-$TARGETID.ninja -j$(nproc) >/dev/null )
+  rm -rf /tmp/$LLVMBOXID-rt-$TARGETID
+fi
+
+if [ $clang == clang++ ] && [ ! -f "$LIB/libc++.a" ] && _buildlock; then
+  echo "building $LIB/libc++.a..."
+  ( cd "$LLVMBOX/src/libcxx"
+    ../../bin/ninja -f build-$TARGETID.ninja -j$(nproc) >/dev/null )
+  rm -rf /tmp/$LLVMBOXID-cxx-$TARGETID
+fi
+
+_buildunlock
+
+sflags=
+eflags=
+[ $SYS = linux ] && for x ; do
+  case "$x" in
+    -l*) input=1 ;;
+    *) input= ;;
+  esac
+  if test "$input" ; then
+    sflags="-l-user-start"
+    eflags="-l-user-end"
+    break
+  fi
+done
+
+lflags=1
+for x ; do
+  case "$x" in
+    -l*) lflags=1 ;;
+    -c)  lflags= ;;
+  esac
+done
+if test "$lflags"; then
+  lflags="-L$LIB @LDFLAGS@"
+fi
+
+exec "$LLVMBOX/bin/$clang" \
+  -nostdinc -nostdlib -ffreestanding \
+  --target=$TRIPLE \
+  --sysroot=$LLVMBOX/targets/$TARGETID \
+  -resource-dir="$LIB" \
+  @CFLAGS@ \
+  $lflags \
+  -Wno-unused-command-line-argument \
+  @USER_START@ \
+  $sflags \
+  -Wunused-command-line-argument \
+  $@ \
+  -Wno-unused-command-line-argument \
+  $eflags \
+  @USER_END@

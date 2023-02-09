@@ -2,22 +2,6 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-SUPPORTED_TARGETS=( # tuples with system versions
-  aarch64-linux \
-  arm-linux \
-  i386-linux \
-  riscv32-linux \
-  riscv64-linux \
-  x86_64-linux \
-  \
-  x86_64-macos.10 \
-  aarch64-macos.11  x86_64-macos.11 \
-  aarch64-macos.12  x86_64-macos.12 \
-  aarch64-macos.13  x86_64-macos.13 \
-)
-# TODO: wasi wasm
-# SUPPORTED_TARGETS+=( wasm32-wasi wasm64-wasi )
-
 DESTDIR="$SYSROOTS_DIR/compiler-rt"
 
 # make sure we have llvm source
@@ -517,7 +501,8 @@ END
   echo "default \$libdir/librt.a" >> $BF
 }
 
-for target in ${SUPPORTED_TARGETS[@]}; do
+for target in ${SUPPORTED_DIST_TARGETS[@]}; do
+  [[ "$target" == wasm* ]] && continue  # TODO wasm{32,64}-wasi
   _gen_buildfile $target &
 done
 wait
