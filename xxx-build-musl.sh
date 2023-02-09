@@ -141,7 +141,7 @@ _ar_rule() { # <lib> [<src> ...]
 
 OBJDIR="$BUILDDIR/.obj"
 # OBJDIR=obj-$TARGET_ARCH
-OBJEXT=.lo ; $ENABLE_LTO && OBJEXT=.bc
+OBJEXT=.o ; $ENABLE_LTO && OBJEXT=.bc
 LIBC_OBJECTS=()
 LIBC_SOURCES=()
 ALL_TARGETS=()
