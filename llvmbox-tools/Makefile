@@ -22,7 +22,8 @@ CFLAGS += -g -std=c11 -MMD \
   -Wno-unused-parameter -Werror=implicit-function-declaration \
   -Werror=incompatible-pointer-types -Werror=int-conversion -Werror=format \
   -Wcovered-switch-default -Werror=format-insufficient-args \
-  -Werror=bitfield-constant-conversion -Wno-pragma-once-outside-header
+  -Werror=bitfield-constant-conversion -Wno-pragma-once-outside-header \
+  -DLLVM_VERSION=$(LLVM_VERSION) -DLLVMBOX_VERSION=$(LLVMBOX_VERSION)
 
 ifeq ($(TARGET_SYS),Linux)
 	CFLAGS += -fno-stack-protector # must disable ssp for musl static
@@ -43,13 +44,17 @@ all_objs := \
 	$(OBJDIR)/llvmbox-mksysroot.c.o \
 	$(OBJDIR)/dedup-target-files.c.o
 
-all: llvmbox-mksysroot llvmbox-cpmerge dedup-target-files
+all: llvmbox-mksysroot llvmbox-cpmerge llvmbox-config dedup-target-files
 
 llvmbox-mksysroot: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-mksysroot.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
 llvmbox-cpmerge: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-cpmerge.c.o
+	@echo "link $@"
+	$(Q)$(CC) $(LDFLAGS) $^ -o $@
+
+llvmbox-config: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-config.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
