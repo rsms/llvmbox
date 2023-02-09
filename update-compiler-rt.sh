@@ -2,11 +2,32 @@
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 
-SUPPORTED_ARCHS=( aarch64 arm i386 riscv32 riscv64 x86_64 wasm32 wasm64 )
+SUPPORTED_TARGETS=( # tuples with system versions
+  aarch64-linux \
+  arm-linux \
+  i386-linux \
+  riscv32-linux \
+  riscv64-linux \
+  x86_64-linux \
+  \
+  x86_64-macos.10 \
+  aarch64-macos.11  x86_64-macos.11 \
+  aarch64-macos.12  x86_64-macos.12 \
+  aarch64-macos.13  x86_64-macos.13 \
+)
+# TODO: wasi wasm
+# SUPPORTED_TARGETS+=( wasm32-wasi wasm64-wasi )
+
 DESTDIR="$SYSROOTS_DIR/compiler-rt"
 
+# make sure we have llvm source
 [ -d "$LLVM_SRC" ] || "$BASH" "$PROJECT/025-llvm-source-stage2.sh"
+
 _pushd "$LLVM_SRC/compiler-rt/lib/builtins"
+
+# ————————————————————————————————————————————————————————————————————————————————————
+# find & copy sources
+
 _deps() { for f in "$1"/*.{h,inc}; do [ ! -f "$f" ] || echo $f; done; }
 #
 # when upgrading compiler-rt to a new version, perform these manual steps:
@@ -392,3 +413,111 @@ for var in ${EXCLUDE_BUILTINS_VARS[@]}; do
   echo "create $(_relpath "$outfile")"
   echo ${!var} > "$outfile"
 done
+
+# ————————————————————————————————————————————————————————————————————————————————————
+# generate build files
+
+_pushd "$DESTDIR/builtins"
+
+_gen_buildfile() { # <arch> <sys> [<sysver>]
+  local arch sys sysver f name src obj var
+  IFS=- read -r arch sys <<< "$1"
+  IFS=. read -r sys sysver <<< "$sys"
+  local triple=$arch-$sys
+  case "$sys" in
+    linux) triple=$arch-linux-musl ;;
+    macos) triple=$arch-apple-darwin
+      if [ -z "$sysver" -a "$arch" = aarch64 ]; then
+        sysver=11
+      elif [ -z "$sysver" ]; then
+        sysver=10
+      fi
+      case "$sysver" in
+        "") triple=${triple}19 ;;
+        *)  triple=${triple}$(( ${sysver%%.*} + 9 )) ;;
+      esac
+      ;;
+    wasi) triple=$arch-unknown-wasi ;;
+  esac
+  local target=$arch-$sys; [ -n "$sysver" ] && target=$target.$sysver
+  # echo "arch=$arch sys=$sys sysver=$sysver triple=$triple"
+
+  local BF="build-$target.ninja"
+
+  echo "generating $(_relpath "$PWD/$BF")"
+
+  # see compiler-rt/lib/builtins/CMakeLists.txt
+  local CFLAGS=(
+    -std=c11 -nostdinc -Os --target=$triple \
+    -fPIC \
+    -fno-builtin \
+    -fomit-frame-pointer \
+    -Wno-nullability-completeness \
+    -I. \
+    -I../../lib/clang/$LLVM_RELEASE/include \
+  )
+  # note: lib/clang/$LLVM_RELEASE/include contains headers for all supported archs
+
+  # system and libc headers
+  [ -n "$sysver" ] &&
+    CFLAGS+=( -I../../targets/$arch-$sys.$sysver/include )
+  CFLAGS+=( -I../../targets/$arch-$sys/include )
+  CFLAGS+=( -I../../targets/any-$sys/include )
+  # for f in ${CFLAGS[@]}; do echo $f; done
+
+  # TODO: $COMPILER_RT_HAS_FLOAT16 && CFLAGS+=( -DCOMPILER_RT_HAS_FLOAT16 )
+
+  # arch-specific flags
+  case "$arch" in
+    riscv32) CFLAGS+=( -fforce-enable-int128 ) ;;
+  esac
+
+  # exclude certain functions, depending on platform and arch
+  for f in \
+    filters/$arch-$sys.$sysver.exclude \
+    filters/$arch-$sys.exclude \
+    filters/any-$sys.exclude \
+  ;do
+    [ -f $f ] || continue
+    for name in $(cat $f); do
+      declare EXCLUDE_FUN__${arch//-/_}__${sys}__${name##*/}=1
+    done
+  done
+
+  # generate ninja file
+  cat << END > $BF
+cflags = ${CFLAGS[@]}
+libdir = ../../targets/$target/lib
+obj = /tmp/llvmbox-$LLVM_RELEASE+$LLVMBOX_VERSION_TAG-rt-$target
+rule cc
+  command = ../../bin/clang -MMD -MF \$out.d \$cflags \$flags -c -o \$out \$in
+  depfile = \$out.d
+  description = cc \$in -> \$out
+rule ar
+  command = rm -f \$out && ../../bin/ar crs \$out \$in
+  description = archive \$out
+END
+
+  local objects=()
+  for f in *.c $arch/*.[csS]; do
+    [ -f "$f" ] || continue
+    name=${f:0:-2}
+    name=${name##*/}
+    var=EXCLUDE_FUN__${arch//-/_}__${sys}__${name}
+    if [ -n "${!var:-}" ]; then
+      # echo "excluding $f"
+      continue
+    fi
+    obj=\$obj/${f/%.[csS]/.o}
+    objects+=( "$obj" )
+    echo "build $obj: cc $f" >> $BF
+  done
+
+  echo "build \$libdir/librt.a: ar ${objects[@]}" >> $BF
+  echo "default \$libdir/librt.a" >> $BF
+}
+
+for target in ${SUPPORTED_TARGETS[@]}; do
+  _gen_buildfile $target &
+done
+wait
