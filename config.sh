@@ -498,7 +498,7 @@ _print_linking() { # <file>
     Darwin) PAT='RUNPATH|RPATH|\.dylib' ;;
   esac
   OUT=$( "$objdump" -p "$1" | grep -E "$PAT" | awk '{printf $1 " " $2 "\n"}' || true )
-  if [ -n "$OUT" ]; then
+  if [ -n "$OUT" ] || file "$1" | grep -q 'dynamically linked'; then
     echo "$(_relpath "$1") is dynamically linked:"
     echo "$OUT"
   else
