@@ -152,12 +152,12 @@ _gen_clang_wrapper() { # <target>
 IFS=$'\n' SUPPORTED_DIST_TARGETS=(
   $(sort -u -V <<< "${SUPPORTED_DIST_TARGETS[*]}") ); unset IFS
 for target in ${SUPPORTED_DIST_TARGETS[@]}; do
-  # wasm targets not yet supported (no sysroot)
-  case "$target" in wasm*) continue ;; esac
+  case "$target" in wasm*) continue ;; esac # wasm targets not yet supported
   _gen_clang_wrapper $target
 done
 
 for target in "${EXTRA_DIST_TARGETS[@]}"; do
+  case "$target" in wasm*) continue ;; esac # wasm targets not yet supported
   IFS=- read -r arch sys <<< "$target"
   IFS=. read -r sys sysver <<< "$sys"
   _symlink "$DESTDIR/bin/clang-$arch-$sys" "clang-$target"
