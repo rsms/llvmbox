@@ -44,7 +44,7 @@ if [ ! -f "$LIB/librt.a" ] && _buildlock; then
   rm -rf /tmp/$LLVMBOXID-rt-$TARGETID
 fi
 
-if [ $clang == clang++ ] && [ ! -f "$LIB/libc++.a" ] && _buildlock; then
+if [ $clang = clang++ ] && [ ! -f "$LIB/libc++.a" ] && _buildlock; then
   echo "building $LIB/libc++.a..."
   ( cd "$LLVMBOX/src/libcxx"
     ../../bin/ninja -f build-$TARGETID.ninja -j$(nproc) >/dev/null )
