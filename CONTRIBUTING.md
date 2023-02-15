@@ -33,15 +33,26 @@ utils/mktmpfs-build-dir.sh 16384 # limit to 16GB
 Host requirements:
 
 - compiler that can build clang (for example gcc or clang)
-- ninja or equivalent
-- cmake 3
+- common posix tools like cat, tar, awk etc.
+- bash >=3
+- cmake >=3
+- make
+- ninja or samurai
+- patch
 - python3
-- bash
+- rsync
+- wget
+- xz
+- Linux-specific requirements:
+  - linux kernel UAPI headers (usually "linux-headers" in your package manager)
+- Alpine-specific requirements:
+  - musl-dev
 
 Tested host systems:
 
 - Ubuntu 20 x86_64
 - Alpine 3.16 x86_64
+- Alpine 3.16 aarch64
 - macOS 10.15 x86_64
 - macOS 12 aarch64
 
