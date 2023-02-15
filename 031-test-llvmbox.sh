@@ -32,7 +32,7 @@ _print_linking "$out" ; "$out"
 echo "————————————————————————————————————————————————————————————"
 out="$BUILD_DIR/hello-llvm_c"
 _cc $("$LLVM_CONFIG" --cflags) -c hello-llvm.c -o "$out.o"
-_cxx \
+_cxx "${LDFLAGS[@]:-}" \
   $("$LLVM_CONFIG" --ldflags --system-libs --libs core native) \
   "$out.o" -o "$out"
 _print_linking "$out" ; "$out"
@@ -40,7 +40,7 @@ _print_linking "$out" ; "$out"
 echo "————————————————————————————————————————————————————————————"
 out="$BUILD_DIR/hello-llvm_c_lto"
 _cc $("$LLVM_CONFIG" --cflags) -flto=thin -c hello-llvm.c -o "$out.o"
-_cxx \
+_cxx "${LDFLAGS[@]:-}" \
   -L"$LLVM_DEV_ROOT/lib-lto" \
   -nostdlib++ -L"$LLVM_ROOT/sysroot/lib-lto" -lc++ \
   $("$LLVM_CONFIG" --system-libs --libs core native) \
