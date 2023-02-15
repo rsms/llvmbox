@@ -193,7 +193,8 @@ fi
 # llvm libs
 echo "————————————————————————————————————————————————————————————"
 echo "llvm API example (stage1 libs: libc, llvm-c, z)"; out=$BUILD_DIR/_hello_llvm_c
-[ $TARGET_SYS = linux ] && LDFLAGS+=( -static )
+[ $TARGET_SYS != linux -o "$(echo /lib/ld-musl*)" = "/lib/ld-musl*" ] ||
+  LDFLAGS+=( -static )
 _cc $("$LLVM_STAGE1/bin/llvm-config" --cflags) -c test/hello-llvm.c -o "$out.o"
 _ldxx_stage1 \
   $("$LLVM_STAGE1/bin/llvm-config" --cxxflags --ldflags --libs core native) \
