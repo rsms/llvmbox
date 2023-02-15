@@ -95,8 +95,11 @@ _gen_clang_wrapper() { # <target>
   CFLAGS=( -fPIC )
   LDFLAGS=()
 
-  [ "$sys" = macos ] &&
-    CFLAGS+=( -Wno-nullability-completeness )
+  # including TargetConditionals.h prevents "error: TARGET_OS_EMBEDDED is not defined"
+  [ "$sys" = macos ] && CFLAGS+=(
+    -Wno-nullability-completeness \
+    -include TargetConditionals.h \
+  )
 
   [ -d "$DESTDIR/targets/$arch-$sys.$sysver/include" ] &&
     CFLAGS+=( "-I\$LLVMBOX/targets/$arch-$sys.$sysver/include" )
