@@ -152,6 +152,8 @@ _gen_clang_wrapper() { # <target>
 IFS=$'\n' SUPPORTED_DIST_TARGETS=(
   $(sort -u -V <<< "${SUPPORTED_DIST_TARGETS[*]}") ); unset IFS
 for target in ${SUPPORTED_DIST_TARGETS[@]}; do
+  # wasm targets not yet supported (no sysroot)
+  case "$target" in wasm*) continue ;; esac
   _gen_clang_wrapper $target
 done
 
