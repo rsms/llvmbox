@@ -1,0 +1,24 @@
+From a7872f32114e5b8e03b08025325ccfe85ad9ca5a Mon Sep 17 00:00:00 2001
+From: Rasmus Andersson <rasmus@notion.se>
+Date: Thu, 23 Feb 2023 09:23:59 -0800
+Subject: [PATCH] fixes header definition of getloadavg on darwin/macos
+
+---
+ build.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/build.c b/build.c
+index f6b48ff..0e9f3df 100644
+--- a/build.c
++++ b/build.c
+@@ -1,6 +1,7 @@
+ #define _POSIX_C_SOURCE 200809L
+ #ifndef NO_GETLOADAVG
+ #define _BSD_SOURCE /* for getloadavg */
++#define _DARWIN_C_SOURCE /* for getloadavg */
+ #endif
+ #include <errno.h>
+ #include <fcntl.h>
+-- 
+2.38.1
+
