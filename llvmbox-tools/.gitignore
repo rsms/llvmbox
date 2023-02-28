@@ -1,5 +1,5 @@
 /llvmbox-config
 /llvmbox-cpmerge
 /llvmbox-mksysroot
-/dedup-target-files
+/llvmbox-dedup-target-files
 /sysroot-*

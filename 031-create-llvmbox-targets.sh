@@ -19,7 +19,7 @@ echo make -C "$PROJECT/llvmbox-tools"
       LLVM_VERSION=$LLVM_RELEASE \
       LLVMBOX_VERSION=$LLVMBOX_VERSION_TAG
 
-"$PROJECT/llvmbox-tools/dedup-target-files" "$DESTDIR/targets"
+"$PROJECT/llvmbox-tools/llvmbox-dedup-target-files" "$DESTDIR/targets"
 
 # remove "-suffix" dirs by merging with corresponding non-suffix dirs.
 # e.g. "any-linux-libc" -> "any-linux"
@@ -46,8 +46,7 @@ done
 # removing empty directories, so we run a second pass here to catch any of those.
 # In addition, we run this at the end, on the whole HEADERS_DESTDIR, to clean up
 # any accidental empty dirs.
-find "$(_relpath "$DESTDIR/targets")" \
-  -empty -type d -delete -exec echo "remove empty dir {}" \;
+find "$(_relpath "$DESTDIR/targets")" -empty -type d -delete
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # copy any .tbd lib files, per target, into "targets" dir
@@ -79,6 +78,7 @@ _copy "$SYSROOTS_DIR/compiler-rt/builtins" "$DESTDIR/src/builtins"
 mkdir -p "$DESTDIR/bin"
 install -v -m755 "$PROJECT/llvmbox-tools/llvmbox-config" "$DESTDIR/bin"
 install -v -m755 "$PROJECT/llvmbox-tools/llvmbox-mksysroot" "$DESTDIR/bin"
+install -v -m755 "$PROJECT/llvmbox-tools/llvmbox-dedup-target-files" "$DESTDIR/bin"
 
 # ————————————————————————————————————————————————————————————————————————————————————
 # generate bin/clang-TARGET wrappers

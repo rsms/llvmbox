@@ -42,9 +42,9 @@ endif
 all_objs := \
 	$(OBJDIR)/llvmboxlib.c.o \
 	$(OBJDIR)/llvmbox-mksysroot.c.o \
-	$(OBJDIR)/dedup-target-files.c.o
+	$(OBJDIR)/llvmbox-dedup-target-files.c.o
 
-all: llvmbox-mksysroot llvmbox-cpmerge llvmbox-config dedup-target-files
+all: llvmbox-mksysroot llvmbox-cpmerge llvmbox-config llvmbox-dedup-target-files
 
 llvmbox-mksysroot: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-mksysroot.c.o
 	@echo "link $@"
@@ -58,7 +58,7 @@ llvmbox-config: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-config.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
-dedup-target-files: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/dedup-target-files.c.o
+llvmbox-dedup-target-files: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-dedup-target-files.c.o
 	@echo "link $@"
 	$(Q)$(CC) $(LDFLAGS) $^ -o $@
 
