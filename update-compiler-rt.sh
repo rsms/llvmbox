@@ -389,6 +389,7 @@ _cpd "${X86_64_SOURCES[@]}"   "$DESTDIR"/builtins/x86_64
 _cpd "${RISCV_SOURCES[@]}"    "$DESTDIR"/builtins/riscv
 _cpd "${RISCV32_SOURCES[@]}"  "$DESTDIR"/builtins/riscv32
 _cpd "${RISCV64_SOURCES[@]}"  "$DESTDIR"/builtins/riscv64
+_cpd "${DARWIN_SOURCES[@]}"   "$DESTDIR"/builtins/any-macos
 
 for var in ${EXCLUDE_BUILTINS_VARS[@]}; do
   IFS=. read -r ign sys arch <<< "${var//__/.}"
@@ -483,7 +484,7 @@ rule ar
 END
 
   local objects=()
-  for f in *.c $arch/*.[csS]; do
+  for f in *.c $arch/*.[csS] any-$sys/*.[csS] $arch-$sys/*.[csS]; do
     [ -f "$f" ] || continue
     name=${f:0:-2}
     name=${name##*/}

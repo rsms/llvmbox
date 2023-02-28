@@ -1,6 +1,6 @@
 cflags = -std=c11 -nostdinc -Os --target=i386-linux-musl -fPIC -fno-builtin -fomit-frame-pointer -Wno-nullability-completeness -I. -I../../lib/clang/15.0.7/include -I../../targets/i386-linux/include -I../../targets/any-linux/include
 libdir = ../../targets/i386-linux/lib
-obj = /tmp/llvmbox-15.0.7+1-rt-i386-linux
+obj = /tmp/llvmbox-15.0.7+2-rt-i386-linux
 rule cc
   command = ../../bin/clang -MMD -MF $out.d $cflags $flags -c -o $out $in
   depfile = $out.d

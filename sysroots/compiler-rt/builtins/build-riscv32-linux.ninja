@@ -1,6 +1,6 @@
 cflags = -std=c11 -nostdinc -Os --target=riscv32-linux-musl -fPIC -fno-builtin -fomit-frame-pointer -Wno-nullability-completeness -I. -I../../lib/clang/15.0.7/include -I../../targets/riscv32-linux/include -I../../targets/any-linux/include -fforce-enable-int128
 libdir = ../../targets/riscv32-linux/lib
-obj = /tmp/llvmbox-15.0.7+1-rt-riscv32-linux
+obj = /tmp/llvmbox-15.0.7+2-rt-riscv32-linux
 rule cc
   command = ../../bin/clang -MMD -MF $out.d $cflags $flags -c -o $out $in
   depfile = $out.d
