@@ -59,6 +59,7 @@ int target_cmp(const target_t* a, const target_t* b) {
   //   any-macos, any-macos-libc
   //   any-any
   //
+
   bool a_any_arch = strcmp(a->arch, "any") == 0;
   bool b_any_arch = strcmp(b->arch, "any") == 0;
   if (a_any_arch != b_any_arch) {
@@ -73,12 +74,13 @@ int target_cmp(const target_t* a, const target_t* b) {
     return a_any_sys ? -1 : 1;
   }
 
+  int cmp = strcmp(a->arch, b->arch);
+  if (cmp != 0)
+    return cmp;
+
   assert(a->sysver != NULL);
   assert(b->sysver != NULL);
-  int cmp = strcmp(a->sysver, b->sysver);
-  if (cmp == 0)
-    return 0;
-  return atoi(a->sysver) - atoi(b->sysver);
+  return strcmp(a->sysver, b->sysver);
 }
 
 
@@ -86,8 +88,12 @@ int tfiles_cmp(const void* x, const void* y, void* ctx) {
   const tfile_t* a = x;
   const tfile_t* b = y;
 
+  int cmp = strcmp(a->relpath, b->relpath);
+  if (cmp != 0)
+    return cmp;
+
   // <hash>  {"x86_64","linux"}  "x86_64-linux"  "sys/types.h"
-  int cmp = memcmp(&a->hash, &b->hash, sizeof(a->hash));
+  cmp = memcmp(&a->hash, &b->hash, sizeof(a->hash));
   if (cmp != 0)
     return cmp;
 
@@ -219,7 +225,7 @@ char* dirname_mut(char* path) {
 }
 
 
-void dedup_tfiles(tfile_t* tfv, u32 tfc) {
+u32 dedup_tfiles(tfile_t* tfv, u32 tfc, target_t ctarget) {
   // We begin by selecting the highest-level destdir, where to consolidate files.
   //
   // Note that the list is sorted by higest level first.
@@ -281,6 +287,8 @@ void dedup_tfiles(tfile_t* tfv, u32 tfc) {
     dlog("%s: only %u/%u versions covered",
       tfv[0].relpath, nversions_covered, versions.len);
 
+    u32 nremoved = 0;
+
     // Find out if tfv contains a file in a directory on a lower layer.
     // If that is true, then we can remove all other files.
     for (u32 i = 0; i < tfc; i++) {
@@ -300,23 +308,26 @@ void dedup_tfiles(tfile_t* tfv, u32 tfc) {
           err(1, "path_join %s, %s", tmpbuf, tfv[0].relpath);
         ok &= dryrun_aware_rm(srcpath);
         mvdirs_add(dirname_mut(srcpath));
+        nremoved++;
       }
       if (!ok)
         exit(1);
       break;
     }
-    return;
+
+    return nremoved;
   }
 
-  target_t common_target = *tfv[0].target;
-  for (u32 i = 1; i < tfc; i++)
-    common_target = target_intersection(common_target, *tfv[i].target);
-
-  target_str(common_target, tmpbuf, sizeof(tmpbuf));
+  target_str(ctarget, tmpbuf, sizeof(tmpbuf));
   if (path_join(dstpath, tmpbuf, tfv[0].relpath) < 0)
     err(1, "path_join %s, %s", tmpbuf, tfv[0].relpath);
 
-  printf("%s: consolidate %u files\n", dstpath, tfc);
+  printf("%s <= {", dstpath);
+  for (u32 i = 0, j = 0; i < tfc; i++) {
+    if (target_cmp(tfv[i].target, &ctarget) != 0)
+      printf("%s" TARGET_FMT, &","[!j++], TARGET_FMT_ARGS(*tfv[i].target));
+  }
+  printf("}/%s\n", tfv[0].relpath);
 
   // create destination directories
   char* p = strrchr(dstpath, '/');
@@ -332,14 +343,19 @@ void dedup_tfiles(tfile_t* tfv, u32 tfc) {
   *p = '/';
 
   bool ok = true;
+  u32 nmerged = 0;
 
   for (u32 i = 0; i < tfc; i++) {
     target_str(*tfv[i].target, tmpbuf, sizeof(tmpbuf));
     if (path_join(srcpath, tmpbuf, tfv[0].relpath) < 0)
       err(1, "path_join %s, %s", tmpbuf, tfv[0].relpath);
     if (i == 0) {
-      ok &= dryrun_aware_mv(srcpath, dstpath);
+      if (strcmp(srcpath, dstpath) != 0) {
+        nmerged++;
+        ok &= dryrun_aware_mv(srcpath, dstpath);
+      }
     } else {
+      nmerged++;
       ok &= dryrun_aware_rm(srcpath);
     }
 
@@ -350,39 +366,173 @@ void dedup_tfiles(tfile_t* tfv, u32 tfc) {
 
   if (!ok)
     exit(1);
+
+  return nmerged;
+}
+
+
+u32 process_tfiles2(tfile_t* tfv, u32 tfc, u32 start, u32 end) {
+  // must be sysver targets
+  assert(*tfv[start].target->sysver != 0);
+
+  // common consolidation target is target without sysver
+  target_t ctarget = *tfv[start].target;
+  ctarget.sysver = "";
+
+  // Check if there's a conflicting file already associated with ctarget.
+  // I.e. avoid overwriting target consolidation file if one exists and is different.
+  // Example:
+  //   8cc7bb3263e979b7fc3bacd39a9  i386-linux    <— exists!
+  //   ddd398b475596f2a5e68fcdbbc6  i386-linux.5  <— ...
+  //   ddd398b475596f2a5e68fcdbbc6  i386-linux.6  <— ... These consolidate to i386-linux
+  for (u32 i = 0; i < tfc; i++) {
+    if ((i < start || i >= end) && target_cmp(tfv[i].target, &ctarget) == 0)
+      return 0;
+  }
+
+  // printf("  dedup_tfiles [%u:%u] (%u) -> " TARGET_FMT "\n",
+  //   start, end, end - start, TARGET_FMT_ARGS(ctarget));
+  return dedup_tfiles(&tfv[start], end - start, ctarget);
+}
+
+
+u32 process_tfiles1(tfile_t* tfv, u32 tfc) {
+  // This function calls dedup_tfiles if all tfiles have same hash, with ctarget as
+  // the common "consolidate into" target.
+  // If not all tfiles have the same hash, it tries to find subsets of tfiles with
+  // matching hashes, trying process_tfiles1 on those subsets.
+  //
+  // Note: tfiles at tfv all have the same relpath.
+  //
+  //   32256452ca8ee261d52b7b0750a  riscv64-linux ├─ (no solution)
+  //   32256452ca8ee261d52b7b0750a  aarch64-linux │
+  //   8cc7bb3263e979b7fc3bacd39a9  x86_64-linux  │
+  //   ddd398b475596f2a5e68fcdbbc6  arm-linux.5   │
+  //   ddd398b475596f2a5e68fcdbbc6  arm-linux.6   │
+  //   ddd398b475596f2a5e68fcdbbc6  i386-linux.5  │
+  //   ddd398b475596f2a5e68fcdbbc6  i386-linux.6  │
+  //   ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  //     32256452ca8ee261d52b7b0750a  riscv64-linux ├─ (no solution)
+  //     32256452ca8ee261d52b7b0750a  aarch64-linux │
+  //
+  //     8cc7bb3263e979b7fc3bacd39a9  x86_64-linux   (ignore)
+  //
+  //     ddd398b475596f2a5e68fcdbbc6  arm-linux.5   ├─ (no solution)
+  //     ddd398b475596f2a5e68fcdbbc6  arm-linux.6   │
+  //     ddd398b475596f2a5e68fcdbbc6  i386-linux.5  │
+  //     ddd398b475596f2a5e68fcdbbc6  i386-linux.6  │
+  //     ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+  //       ddd398b475596f2a5e68fcdbbc6  arm-linux.5   ├─ arm-linux
+  //       ddd398b475596f2a5e68fcdbbc6  arm-linux.6   │
+  //
+  //       ddd398b475596f2a5e68fcdbbc6  i386-linux.5  ├─ i386-linux
+  //       ddd398b475596f2a5e68fcdbbc6  i386-linux.6  │
+  //
+  //
+  if (tfc < 2)
+    return 0; // nothing we can do with just one (or no) tfile
+
+  // calculate common target (intersection of all targets)
+  target_t ctarget = *tfv[0].target;
+  for (u32 i = 1; i < tfc; i++)
+    ctarget = target_intersection(ctarget, *tfv[i].target);
+  //printf("ctarget: " TARGET_FMT "\n", TARGET_FMT_ARGS(ctarget));
+
+  // for (u32 i = 0; i < tfc; i++) {
+  //   tfile_t* tf = &tfv[i];
+  //   char hash[SHA256_SUM_SIZE*2];
+  //   base16_encode(hash, sizeof(hash), &tf->hash, sizeof(tf->hash));
+  //   printf("%.64s  " TARGET_FMT "\t%s\n",
+  //     hash, TARGET_FMT_ARGS(*tf->target), tf->relpath);
+  // }
+
+  for (u32 i = 1; i < tfc; i++) {
+    if (memcmp(&tfv[i].hash, &tfv[i-1].hash, sizeof(tfv[i].hash)) != 0)
+      goto find_subsets;
+  }
+  // if we get here, all files are identical
+  return dedup_tfiles(tfv, tfc, ctarget);
+
+find_subsets:
+
+  // If the common consolidation target is arch-specific, there's nothing we can do.
+  // For example, if we get the following input:
+  //   ddd398b475596f2a5e68fcdbbc6  arm-linux.5
+  //   ddd398b475596f2a5e68fcdbbc6  arm-linux.6
+  //   8cc7bb3263e979b7fc3bacd39a9  arm-linux.7  <— different
+  // There's no way to consolidate these.
+  if (strcmp(ctarget.arch, "any") != 0)
+    return 0;
+
+  // consider system-versioned files
+  tfile_t* tf_prev = &tfv[0];
+  u32 i = 1, range_start = 0, nmerged = 0;
+  if (*tf_prev->target->sysver == 0)
+    range_start = 1;
+
+  // printf("0 " TARGET_FMT "\n", TARGET_FMT_ARGS(*tf_prev->target));
+  for (; i < tfc; i++) {
+    tfile_t* tf = &tfv[i];
+    // printf("%u " TARGET_FMT "\n", i, TARGET_FMT_ARGS(*tf->target));
+
+    if (*tf->target->sysver == 0) {
+      range_start = i;
+    } else if (
+      memcmp(&tf->hash, &tf_prev->hash, sizeof(tf->hash)) != 0 ||
+      strcmp(tf->target->arch, tf_prev->target->arch) != 0 )
+    {
+      // i is start of new range, i-1 was last of prev range
+      if (i - range_start > 1)
+        nmerged += process_tfiles2(tfv, tfc, range_start, i);
+      range_start = i;
+    }
+
+    tf_prev = tf;
+  }
+  // handle tail
+  if (i - range_start > 1)
+    nmerged += process_tfiles2(tfv, tfc, range_start, i);
+
+  return nmerged;
 }
 
 
 void process_tfiles() {
+  printf("analyzing %u files\n", g_tfiles.len);
+  if (g_tfiles.len < 2)
+    return;
+
   lb_qsort(g_tfiles.v, g_tfiles.len, sizeof(tfile_t), tfiles_cmp, NULL);
 
-  u32 i = 0, range_start = 0;
+  tfile_t* tf_prev = &g_tfiles.v[0];
+  u32 i = 1, range_start = 0, nmerged = 0;
+
+  //target_t anytarget = { .arch = "any", .sys = "any", .sysver = "", .suffix = "" };
+
+  // calls process_tfiles1 for each range of tfiles with a common relpath,
+  // segmented by system.
 
   for (; i < g_tfiles.len; i++) {
     tfile_t* tf = &g_tfiles.v[i];
-
-    // char hash[SHA256_SUM_SIZE*2];
-    // base16_encode(hash, sizeof(hash), &tf->hash, sizeof(tf->hash));
-    // printf("%.22s  " TARGET_FMT "\t%s\n",
-    //   hash, TARGET_FMT_ARGS(*tf->target), tf->relpath);
-
-    if (i == 0)
-      continue;
-
-    tfile_t* tf_prev = &g_tfiles.v[i - 1];
-
-    if (memcmp(&tf->hash, &tf_prev->hash, sizeof(tf->hash)) != 0 ||
+    if (strcmp(tf->relpath, tf_prev->relpath) != 0 ||
         strcmp(tf->target->sys, tf_prev->target->sys) != 0)
     {
-      // i is start of new range, i-1 was last of prev range
+      // start of new file (e.g. bits/stat.h != bits/errno.h or sys != sys)
       if (i - range_start > 1)
-        dedup_tfiles(&g_tfiles.v[range_start], i - range_start);
+        nmerged += process_tfiles1(&g_tfiles.v[range_start], i - range_start);
       range_start = i;
     }
+    tf_prev = tf;
   }
   // handle tail
   if (i - range_start > 1)
-    dedup_tfiles(&g_tfiles.v[range_start], i - range_start);
+    nmerged += process_tfiles1(&g_tfiles.v[range_start], i - range_start);
+
+  if (nmerged == 0) {
+    printf("No files could be consolidated\n");
+  } else {
+    printf("%u files consolidated\n", nmerged);
+  }
 }
 
 
@@ -391,8 +541,6 @@ int file_visitor(const char* path, const struct stat* sb, int type, struct FTW* 
     return 0;
   if (str_has_suffix(path, ".DS_Store"))
     return 0;
-
-  // printf("%s\n", path);
 
   tfile_t* tf = array_alloc(tfile_t, &g_tfiles, 1);
   if (!tf)
@@ -408,8 +556,8 @@ int file_visitor(const char* path, const struct stat* sb, int type, struct FTW* 
 
   sha256_t s;
   sha256_init(&s, (u8*)&tf->hash);
+  // sha256_write(&s, tf->relpath, strlen(tf->relpath));
   sha256_write(&s, contents.p, contents.len);
-  sha256_write(&s, tf->relpath, strlen(tf->relpath));
   sha256_close(&s);
 
   unload_file(&contents);
