@@ -14,6 +14,8 @@ mkdir -p "$(dirname "$DESTDIR/targets")"
 _copy "$SYSROOTS_DIR/include" "$DESTDIR/targets/"
 
 rm -rf "$PROJECT/llvmbox-tools/.obj"
+echo make -C "$PROJECT/llvmbox-tools" clean
+     make -C "$PROJECT/llvmbox-tools" clean
 echo make -C "$PROJECT/llvmbox-tools"
      make -C "$PROJECT/llvmbox-tools" -j$NCPU \
       LLVM_VERSION=$LLVM_RELEASE \
@@ -114,7 +116,7 @@ _gen_clang_wrapper() { # <target>
     [ -d "$DESTDIR/targets/$arch-$sys/lib" ] &&
       LDFLAGS+=( "-L\$LLVMBOX/targets/$arch-$sys/lib" )
     found=
-    for target2 in "${EXTRA_DIST_TARGETS_U[@]}"; do
+    for target2 in "${EXTRA_DIST_TARGETS_U[@]:-}"; do
       if [ "$target2" = "$arch-$sys" ]; then found=1; break; fi
     done
     if [ -z "$found" ]; then
