@@ -44,7 +44,13 @@ all_objs := \
 	$(OBJDIR)/llvmbox-mksysroot.c.o \
 	$(OBJDIR)/llvmbox-dedup-target-files.c.o
 
-all: llvmbox-mksysroot llvmbox-cpmerge llvmbox-config llvmbox-dedup-target-files
+all_progs := \
+	llvmbox-mksysroot \
+	llvmbox-cpmerge \
+	llvmbox-config \
+	llvmbox-dedup-target-files \
+
+all: $(all_progs)
 
 llvmbox-mksysroot: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-mksysroot.c.o
 	@echo "link $@"
@@ -65,6 +71,10 @@ llvmbox-dedup-target-files: $(OBJDIR)/llvmboxlib.c.o $(OBJDIR)/llvmbox-dedup-tar
 install: | $(BINDIR)
 	$(Q)cp $(EXE) $(BINDIR)/
 
+clean:
+	rm -rf $(OBJDIR) $(all_progs)
+.PHONY: clean
+
 $(OBJDIR)/%.c.o: %.c | $(OBJDIR)
 	@echo "compile $<"
 	$(Q)$(CC) $(CFLAGS) -c $< -o $@
@@ -77,6 +87,3 @@ $(BINDIR):
 
 DEPS := ${all_objs:.o=.d}
 -include $(DEPS)
-
-clean:
-	rm -f *.o $(EXE)
